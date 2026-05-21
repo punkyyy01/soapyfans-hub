@@ -82,7 +82,6 @@ export default function EditProfileForm({ profile }: { profile: Profile }) {
         </p>
       )}
 
-      {/* Avatar */}
       <div>
         <p className={LABEL_CLS}>Avatar</p>
         <div className="mt-2 flex flex-wrap items-center gap-4">
@@ -93,7 +92,6 @@ export default function EditProfileForm({ profile }: { profile: Profile }) {
             className="group relative shrink-0 overflow-hidden rounded-full"
           >
             {previewUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={previewUrl}
                 alt=""
@@ -126,7 +124,6 @@ export default function EditProfileForm({ profile }: { profile: Profile }) {
         />
       </div>
 
-      {/* Display name */}
       <div>
         <label className={LABEL_CLS}>Display name</label>
         <input
@@ -138,7 +135,6 @@ export default function EditProfileForm({ profile }: { profile: Profile }) {
         />
       </div>
 
-      {/* Username */}
       <div>
         <label className={LABEL_CLS}>
           Username <span className="text-red-400">*</span>
@@ -157,7 +153,6 @@ export default function EditProfileForm({ profile }: { profile: Profile }) {
         </p>
       </div>
 
-      {/* Bio */}
       <div>
         <label className={LABEL_CLS}>Bio</label>
         <textarea
@@ -170,7 +165,6 @@ export default function EditProfileForm({ profile }: { profile: Profile }) {
         />
       </div>
 
-      {/* Actions */}
       <div className="flex items-center justify-end gap-3 pt-1">
         <button
           type="button"

@@ -10,13 +10,11 @@ if (typeof window !== 'undefined') {
 
 interface Props {
   children: ReactNode
-  /** CSS selector for elements to animate. Defaults to direct children. */
   selector?: string
   stagger?: number
   delay?: number
   y?: number
   duration?: number
-  /** When true, animation starts immediately rather than on scroll. */
   immediate?: boolean
   className?: string
 }

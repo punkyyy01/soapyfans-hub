@@ -228,9 +228,7 @@ export default function Hero({
                 />
               </div>
 
-              {/* Desktop: side portrait figure with slideshow */}
               <figure className="relative ml-auto hidden aspect-[3/4] w-full max-w-[360px] overflow-hidden sm:max-w-[420px] lg:block lg:max-w-none">
-                {/* Vertical decorative rule + caption — magazine touch */}
                 <span className="absolute -left-6 top-0 h-full w-px bg-gradient-to-b from-transparent via-[var(--accent-amber)]/40 to-transparent" />
                 <span className="absolute -left-6 top-1/2 -translate-y-1/2 -rotate-90 origin-left whitespace-nowrap text-[0.62rem] uppercase tracking-[0.5em] text-[var(--text-muted)] inline-block">
                   Portrait — via TMDB
@@ -250,20 +248,16 @@ export default function Hero({
                   />
                 ))}
 
-                {/* Amber duotone wash — color from our palette pulled across the image */}
                 <span
                   aria-hidden
                   className="absolute inset-0 bg-gradient-to-t from-[rgba(232,137,12,0.32)] via-[rgba(232,137,12,0.05)] to-[rgba(42,92,63,0.18)] mix-blend-color"
                 />
-                {/* Vignette tying it back to the base */}
                 <span
                   aria-hidden
                   className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--bg-base)]"
                 />
-                {/* Side fades — dissolve into dark background */}
                 <span aria-hidden className="absolute inset-y-0 left-0 w-[22%] bg-gradient-to-r from-[var(--bg-base)] to-transparent" />
                 <span aria-hidden className="absolute inset-y-0 right-0 w-[22%] bg-gradient-to-l from-[var(--bg-base)] to-transparent" />
-                {/* Inner edge to anchor the figure */}
                 <span aria-hidden className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-[var(--accent-amber)]/15" />
               </figure>
             </>

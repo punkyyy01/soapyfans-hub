@@ -47,8 +47,6 @@ export default function ProfileReviewList({ reviews, isOwner, profileSlug }: Lis
   )
 }
 
-// ─── Single review row ───────────────────────────────────────────────────────
-
 type Mode = 'view' | 'edit' | 'confirmDelete'
 
 function ReviewRow({
@@ -80,7 +78,6 @@ function ReviewRow({
 
   return (
     <li className="group flex gap-4 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]/50 p-4 transition-colors hover:border-[var(--accent-amber)]/30">
-      {/* Poster */}
       <div className="shrink-0">
         {posterUrl && film?.tmdb_id ? (
           <Link href={`/films/${film.tmdb_id}`}>
@@ -99,7 +96,6 @@ function ReviewRow({
         )}
       </div>
 
-      {/* Content */}
       <div className="flex-1 min-w-0 space-y-1.5">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           {film?.tmdb_id ? (
@@ -133,7 +129,6 @@ function ReviewRow({
           </p>
         )}
 
-        {/* Owner actions */}
         {isOwner && mode === 'view' && (
           <div className="flex items-center gap-3 pt-1">
             <button
@@ -152,7 +147,6 @@ function ReviewRow({
           </div>
         )}
 
-        {/* Delete confirmation */}
         {isOwner && mode === 'confirmDelete' && (
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <p className="text-xs text-[var(--text-secondary)]">Delete this review?</p>
@@ -178,8 +172,6 @@ function ReviewRow({
     </li>
   )
 }
-
-// ─── Inline edit form ────────────────────────────────────────────────────────
 
 function ReviewEditForm({
   review,
@@ -214,7 +206,6 @@ function ReviewEditForm({
           )}
         </p>
 
-        {/* Star picker */}
         <div className="flex gap-1 text-2xl leading-none">
           {[1, 2, 3, 4, 5].map((star) => (
             <button

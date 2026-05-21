@@ -9,7 +9,6 @@ const RELEASE_TYPE_LABEL: Record<string, string> = {
   album: 'Album',
 }
 
-// TEMP: cold-start timing diagnostic — remove after profiling
 async function fetchReleases() {
   const t0 = performance.now()
   const supabase = await createClient()

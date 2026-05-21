@@ -43,3 +43,6 @@ repomix-output.xml
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# claude
+CLAUDE.md
