@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="SoapyFans Hub">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0907"/>
+      <stop offset="40%" stop-color="#15100b"/>
+      <stop offset="100%" stop-color="#24170f"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.15" cy="0.2" r="0.75">
+      <stop offset="0%" stop-color="#3a2a1a" stop-opacity="0.9"/>
+      <stop offset="55%" stop-color="#1a130c" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#0a0907" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f4d18a"/>
+      <stop offset="60%" stop-color="#e0b45a"/>
+      <stop offset="100%" stop-color="#b77b1b"/>
+    </linearGradient>
+    <linearGradient id="rose" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e4a0a6" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#4a2a2a" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="grain" width="6" height="6" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="0.6" fill="#ffffff" opacity="0.05"/>
+      <circle cx="4.5" cy="2" r="0.5" fill="#ffffff" opacity="0.04"/>
+      <circle cx="3" cy="5" r="0.4" fill="#ffffff" opacity="0.035"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <rect width="1200" height="630" fill="url(#rose)"/>
+  <rect width="1200" height="630" fill="url(#grain)"/>
+
+  <rect x="70" y="70" width="1060" height="490" rx="34" fill="none" stroke="#3f2c1a" stroke-width="2"/>
+  <rect x="94" y="98" width="1012" height="434" rx="28" fill="none" stroke="#2a1e12" stroke-width="1"/>
+
+  <g opacity="0.7">
+    <rect x="930" y="120" width="180" height="26" rx="13" fill="#1b140d" stroke="#3a2a1a"/>
+    <text x="950" y="138" fill="#d6c2a4" font-family="DM Sans, Arial, sans-serif" font-size="12" letter-spacing="3">
+      UNOFFICIAL
+    </text>
+  </g>
+
+  <g opacity="0.65">
+    <rect x="110" y="468" width="980" height="48" rx="24" fill="#14100b" stroke="#2e2216"/>
+    <text x="140" y="498" fill="#bda98a" font-family="DM Sans, Arial, sans-serif" font-size="16" letter-spacing="4">
+      FILMOGRAPHY  •  TV CREDITS  •  MUSIC  •  FAN REVIEWS
+    </text>
+  </g>
+
+  <text x="120" y="185" fill="#a58f74" font-family="DM Sans, Arial, sans-serif" font-size="14" letter-spacing="6">
+    SOAPYHUB.FANS
+  </text>
+
+  <text x="120" y="300" fill="#f7efe3" font-family="Playfair Display, serif" font-size="78" font-weight="600" letter-spacing="1">
+    SoapyFans
+  </text>
+  <text x="120" y="380" fill="url(#gold)" font-family="Playfair Display, serif" font-size="78" font-weight="600" letter-spacing="1">
+    Hub
+  </text>
+
+  <rect x="120" y="402" width="280" height="6" fill="url(#gold)"/>
+
+  <text x="120" y="442" fill="#cfb99b" font-family="DM Sans, Arial, sans-serif" font-size="22" letter-spacing="5">
+    A LUMINOUS SOPHIE THATCHER ARCHIVE
+  </text>
+</svg>
