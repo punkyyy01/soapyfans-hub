@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import { Suspense } from 'react'
 import {
@@ -112,6 +113,8 @@ export default async function HomePage() {
     .slice(0, 8)
     .map(p => getTmdbImageUrl(p.file_path, 'w780'))
     .filter((u): u is string => u !== null)
+
+  const aboutPortrait = portraitUrls[0] ?? backdropUrl
 
   const films = dated.filter((c) => c.mediaType === 'movie').slice(0, 5)
   const tv = dated.filter((c) => c.mediaType === 'tv').slice(0, 5)
@@ -258,6 +261,47 @@ export default async function HomePage() {
           )}
         </section>
       )}
+
+      <section className="relative mx-auto max-w-7xl px-6 pb-28 sm:px-10">
+        <Reveal stagger={0.12} y={36}>
+          <div className="grid grid-cols-1 gap-10 rounded-3xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/30 p-10 sm:p-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div>
+              <p className="text-[0.68rem] uppercase tracking-[0.55em] text-[var(--accent-amber)]">
+                The person behind the work
+              </p>
+              <h2 className="mt-5 font-display text-[clamp(2.2rem,4.5vw,3.8rem)] font-medium leading-[0.98] tracking-[-0.02em] text-[var(--text-primary)] text-balance">
+                A closer portrait of Sophie — beyond the roles.
+              </h2>
+              <p className="mt-5 max-w-xl text-base leading-[1.75] text-[var(--text-secondary)] text-pretty">
+                Family roots in Chicago and Evanston, a Mormon upbringing she left young, and the small rituals that shape her days in Los Angeles.
+              </p>
+              <Link
+                href="/about"
+                className="group mt-8 inline-flex items-center gap-3 rounded-full border border-[var(--border-strong)] px-7 py-3 text-[0.72rem] uppercase tracking-[0.28em] text-[var(--text-secondary)] transition-all hover:border-[var(--accent-amber)] hover:text-[var(--accent-gold)]"
+              >
+                Read more
+                <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
+              </Link>
+            </div>
+            <div className="relative overflow-hidden rounded-2xl ring-1 ring-[var(--border-subtle)]">
+              {aboutPortrait ? (
+                <Image
+                  src={aboutPortrait}
+                  alt="Sophie Thatcher"
+                  width={640}
+                  height={820}
+                  className="h-full w-full object-cover [filter:grayscale(0.15)_contrast(1.05)_brightness(0.9)]"
+                />
+              ) : (
+                <div className="flex h-full min-h-[360px] items-center justify-center bg-[var(--bg-card)] text-sm italic text-[var(--text-muted)]">
+                  Portrait unavailable
+                </div>
+              )}
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(8,7,4,0.6)] via-transparent to-transparent" />
+            </div>
+          </div>
+        </Reveal>
+      </section>
 
       <Suspense fallback={<MusicSkeleton />}>
         <MusicSection />

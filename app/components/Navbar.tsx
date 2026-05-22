@@ -27,7 +27,7 @@ export default async function Navbar() {
   return (
     <nav className="fixed inset-x-0 top-0 z-50 border-b border-[var(--border-subtle)] bg-[rgba(8,7,4,0.55)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 sm:px-10">
-        <div className="flex items-center gap-10">
+        <div className="flex items-center gap-8">
           <Link
             href="/"
             className="group flex items-baseline gap-2 font-display text-[1.35rem] font-semibold tracking-tight text-[var(--text-primary)]"
@@ -53,9 +53,12 @@ export default async function Navbar() {
               Music
             </Link>
             <span className="h-3 w-px bg-[var(--border-strong)]" />
-            <span className="cursor-default text-[var(--text-muted)]">
-              Archive
-            </span>
+            <Link
+              href="/about"
+              className="transition-colors hover:text-[var(--accent-gold)]"
+            >
+              About
+            </Link>
           </div>
         </div>
 
