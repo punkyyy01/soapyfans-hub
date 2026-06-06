@@ -140,7 +140,9 @@ export async function updateReview(
 
   if (error) return { error: 'Something went wrong. Please try again.' }
 
-  redirect(`/profile/${profile?.username ?? user.id}`)
+  const slug = profile?.username
+  if (!slug) redirect('/')
+  redirect(`/profile/${slug}`)
 }
 
 export async function deleteReview(formData: FormData) {
@@ -164,7 +166,8 @@ export async function deleteReview(formData: FormData) {
     supabase.from('profiles').select('username').eq('id', user.id).single(),
   ])
 
-  const profileSlug = profile?.username ?? user.id
+  const profileSlug = profile?.username ?? null
+  if (!profileSlug) redirect('/')
 
   if (deleteError) {
     redirect(

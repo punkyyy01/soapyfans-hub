@@ -7,6 +7,8 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
@@ -14,38 +16,38 @@ export type Database = {
     Tables: {
       banned_users: {
         Row: {
-          id: string
-          user_id: string
-          banned_by: string | null
-          reason: string | null
+          banned_by: string
           created_at: string
+          id: string
+          reason: string | null
+          user_id: string
         }
         Insert: {
-          id?: string
-          user_id: string
-          banned_by?: string | null
-          reason?: string | null
+          banned_by: string
           created_at?: string
+          id?: string
+          reason?: string | null
+          user_id: string
         }
         Update: {
-          id?: string
-          user_id?: string
-          banned_by?: string | null
-          reason?: string | null
+          banned_by?: string
           created_at?: string
+          id?: string
+          reason?: string | null
+          user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "banned_users_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "banned_users_banned_by_fkey"
             columns: ["banned_by"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "banned_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -132,36 +134,92 @@ export type Database = {
           },
         ]
       }
+      profile_favorites: {
+        Row: {
+          created_at: string | null
+          id: string
+          media_type: string
+          position: number
+          tmdb_id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          media_type: string
+          position?: number
+          tmdb_id: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          media_type?: string
+          position?: number
+          tmdb_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
+          accent_color: string | null
           avatar_url: string | null
+          banner_url: string | null
           bio: string | null
           created_at: string
           display_name: string | null
           id: string
           is_admin: boolean
+          location_text: string | null
+          profile_css: string | null
+          pronouns: string | null
+          show_activity: boolean
           updated_at: string
           username: string | null
+          website_url: string | null
         }
         Insert: {
+          accent_color?: string | null
           avatar_url?: string | null
+          banner_url?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
           id: string
           is_admin?: boolean
+          location_text?: string | null
+          profile_css?: string | null
+          pronouns?: string | null
+          show_activity?: boolean
           updated_at?: string
           username?: string | null
+          website_url?: string | null
         }
         Update: {
+          accent_color?: string | null
           avatar_url?: string | null
+          banner_url?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
           is_admin?: boolean
+          location_text?: string | null
+          profile_css?: string | null
+          pronouns?: string | null
+          show_activity?: boolean
           updated_at?: string
           username?: string | null
+          website_url?: string | null
         }
         Relationships: []
       }
