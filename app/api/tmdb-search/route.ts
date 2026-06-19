@@ -4,7 +4,30 @@ import { getPersonCombinedCredits, getTmdbImageUrl } from '@/utils/tmdb'
 const SOPHIE_ID = 1981044
 const CACHE_SECONDS = 3600
 
+// In-memory rate limiting (per serverless instance)
+const searchAttempts = new Map<string, { count: number; resetAt: number }>()
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now()
+  const window = 60_000 // 1 minute
+  const limit = 30
+
+  const record = searchAttempts.get(ip)
+  if (!record || record.resetAt < now) {
+    searchAttempts.set(ip, { count: 1, resetAt: now + window })
+    return false
+  }
+  record.count++
+  return record.count > limit
+}
+
 export async function GET(req: NextRequest) {
+  const ip =
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  if (isRateLimited(ip)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   const { searchParams } = req.nextUrl
   const q    = searchParams.get('q')?.trim() ?? ''
   const type = searchParams.get('type') ?? 'all'
