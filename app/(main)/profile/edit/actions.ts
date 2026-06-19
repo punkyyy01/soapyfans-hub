@@ -53,10 +53,23 @@ export async function saveProfile(
     .maybeSingle()
   if (taken) return { error: 'That username is already taken.', success: false, username: null }
 
+  // Fetch current URLs for old-image cleanup after successful uploads
+  const { data: currentProfile } = await supabase
+    .from('profiles')
+    .select('avatar_url, banner_url')
+    .eq('id', user.id)
+    .single()
+
   let avatarUrl: string | undefined
   const avatarFile = formData.get('avatar') as File | null
   if (avatarFile && avatarFile.size > 0) {
-    const res = await uploadImage(supabase, avatarFile, `${user.id}/${Date.now()}`, 2 * 1024 * 1024)
+    const res = await uploadImage(
+      supabase,
+      avatarFile,
+      `${user.id}/${Date.now()}`,
+      2 * 1024 * 1024,
+      currentProfile?.avatar_url,
+    )
     if ('error' in res) return { error: res.error, success: false, username: null }
     avatarUrl = res.url
   }
@@ -64,7 +77,13 @@ export async function saveProfile(
   let bannerUrl: string | undefined
   const bannerFile = formData.get('banner') as File | null
   if (bannerFile && bannerFile.size > 0) {
-    const res = await uploadImage(supabase, bannerFile, `banners/${user.id}/${Date.now()}`, 3 * 1024 * 1024)
+    const res = await uploadImage(
+      supabase,
+      bannerFile,
+      `banners/${user.id}/${Date.now()}`,
+      3 * 1024 * 1024,
+      currentProfile?.banner_url,
+    )
     if ('error' in res) return { error: res.error, success: false, username: null }
     bannerUrl = res.url
   }
@@ -99,6 +118,7 @@ async function uploadImage(
   file: File,
   basePath: string,
   maxBytes: number,
+  oldUrl?: string | null,
 ): Promise<{ url: string } | { error: string }> {
   const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
   if (!ALLOWED.includes(file.type)) return { error: 'Image must be a JPEG, PNG, WebP, or GIF.' }
@@ -117,13 +137,30 @@ async function uploadImage(
   const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' } as Record<string, string>)[file.type]!
   const path = `${basePath}.${ext}`
 
-  const { error } = await supabase.storage.from('avatars').upload(path, buffer, {
+  // Banners go to a dedicated bucket; avatars remain in 'avatars'
+  const bucket = basePath.startsWith('banners/') ? 'banners' : 'avatars'
+
+  const { error } = await supabase.storage.from(bucket).upload(path, buffer, {
     contentType: file.type,
     upsert: true,
   })
   if (error) return { error: 'Failed to upload image. Please try again.' }
 
-  const url = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl
+  // Fire-and-forget removal of the previous image
+  if (oldUrl) {
+    for (const b of ['avatars', 'banners'] as const) {
+      const marker = `/storage/v1/object/public/${b}/`
+      if (oldUrl.includes(marker)) {
+        const oldPath = oldUrl.split(marker)[1]
+        if (oldPath && !oldPath.includes('default')) {
+          supabase.storage.from(b).remove([oldPath]).catch(() => {})
+        }
+        break
+      }
+    }
+  }
+
+  const url = supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl
   return { url }
 }
 
