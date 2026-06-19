@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { loginWithDiscord, register } from '../actions'
+import { getFlash } from '@/utils/flash'
 
 export const metadata: Metadata = {
   title: 'Create account',
@@ -11,16 +12,12 @@ export const metadata: Metadata = {
   alternates: { canonical: '/register' },
 }
 
-interface Props {
-  searchParams: Promise<{ error?: string }>
-}
-
-export default async function RegisterPage({ searchParams }: Props) {
+export default async function RegisterPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (user) redirect('/')
 
-  const { error } = await searchParams
+  const flash = await getFlash()
 
   return (
     <main className="grid min-h-screen lg:grid-cols-[1fr_minmax(380px,520px)]">
@@ -67,9 +64,9 @@ export default async function RegisterPage({ searchParams }: Props) {
             </p>
           </div>
 
-          {error && (
+          {flash?.type === 'error' && (
             <p className="rounded-md border border-red-900/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">
-              {error}
+              {flash.message}
             </p>
           )}
 

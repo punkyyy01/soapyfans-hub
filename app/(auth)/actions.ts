@@ -5,6 +5,7 @@ import { getMovieDetails } from '@/utils/tmdb'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { getSiteUrl } from '@/utils/site'
+import { setFlash } from '@/utils/flash'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -12,7 +13,10 @@ export async function login(formData: FormData) {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
   })
-  if (error) redirect(`/login?error=${encodeURIComponent(error.message)}`)
+  if (error) {
+    await setFlash('Email o contraseña incorrectos.', 'error')
+    redirect('/login')
+  }
   redirect('/')
 }
 
@@ -22,9 +26,13 @@ export async function register(formData: FormData) {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
   })
-  if (error) redirect(`/register?error=${encodeURIComponent(error.message)}`)
+  if (error) {
+    await setFlash(error.message, 'error')
+    redirect('/register')
+  }
   if (data.session) redirect('/')
-  redirect('/login?message=Check+your+email+to+confirm+your+account')
+  await setFlash('Revisá tu email para confirmar tu cuenta.', 'message')
+  redirect('/login')
 }
 
 export async function loginWithDiscord() {
@@ -34,7 +42,10 @@ export async function loginWithDiscord() {
     provider: 'discord',
     options: { redirectTo: `${getSiteUrl()}/auth/callback` },
   })
-  if (error || !data.url) redirect('/login?error=Discord+auth+failed')
+  if (error || !data.url) {
+    await setFlash('No se pudo iniciar sesión con Discord. Intentá de nuevo.', 'error')
+    redirect('/login')
+  }
   redirect(data.url)
 }
 

@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { login, loginWithDiscord } from '../actions'
+import { getFlash } from '@/utils/flash'
 
 export const metadata: Metadata = {
   title: 'Sign in',
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 }
 
 interface Props {
-  searchParams: Promise<{ error?: string; message?: string; banned?: string }>
+  searchParams: Promise<{ banned?: string }>
 }
 
 export default async function LoginPage({ searchParams }: Props) {
@@ -20,7 +21,8 @@ export default async function LoginPage({ searchParams }: Props) {
   const { data: { user } } = await supabase.auth.getUser()
   if (user) redirect('/')
 
-  const { error, message, banned } = await searchParams
+  const { banned } = await searchParams
+  const flash = await getFlash()
 
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-16">
@@ -43,14 +45,14 @@ export default async function LoginPage({ searchParams }: Props) {
             Your account has been suspended. Contact us if you think this is a mistake.
           </p>
         )}
-        {error && (
+        {flash?.type === 'error' && (
           <p className="rounded-md border border-red-900/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">
-            {error}
+            {flash.message}
           </p>
         )}
-        {message && (
+        {flash?.type === 'message' && (
           <p className="rounded-md border border-emerald-900/40 bg-emerald-950/30 px-4 py-3 text-sm text-emerald-300">
-            {message}
+            {flash.message}
           </p>
         )}
 
