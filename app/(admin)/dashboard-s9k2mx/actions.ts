@@ -3,8 +3,8 @@
 import { createClient } from '@/utils/supabase/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { revalidatePath } from 'next/cache'
+import { ADMIN_EMAIL } from '@/utils/admin'
 
-const ADMIN_EMAIL = 'aikodiaz45@gmail.com'
 const DASHBOARD = '/dashboard-s9k2mx'
 
 async function verifyAdmin() {
@@ -64,7 +64,7 @@ export async function adminBanUser(formData: FormData) {
   const adminUser = await verifyAdmin()
   const userId = formData.get('user_id') as string
   if (!userId) return
-  const reason = ((formData.get('reason') as string) ?? '').trim() || null
+  const reason = ((formData.get('reason') as string) ?? '').trim().slice(0, 200) || null
 
   await createAdminClient()
     .from('banned_users')

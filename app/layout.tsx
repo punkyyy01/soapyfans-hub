@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { DM_Sans, Geist_Mono, Playfair_Display } from "next/font/google";
 import Link from "next/link";
+import { Suspense } from "react";
+import { headers } from "next/headers";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import Navbar from "./components/Navbar";
@@ -99,11 +101,12 @@ export const metadata: Metadata = {
   category: "entertainment",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined
   const year = new Date().getFullYear();
 
   return (
@@ -113,9 +116,12 @@ export default function RootLayout({
         className={`${dmSans.variable} ${geistMono.variable} ${playfair.variable} antialiased`}
       >
         <div className="flex min-h-screen flex-col">
-          <Navbar />
+          <Suspense fallback={<nav className="fixed inset-x-0 top-0 z-50 h-[73px] border-b border-[var(--border-subtle)] bg-[rgba(8,7,4,0.55)] backdrop-blur-xl" />}>
+            <Navbar />
+          </Suspense>
           <script
             type="application/ld+json"
+            nonce={nonce}
             dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildOrganizationSchema()) }}
           />
           <div className="flex-1">{children}</div>
