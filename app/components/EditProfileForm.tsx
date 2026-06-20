@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useRef, useState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { updateProfile } from '@/app/(auth)/actions'
 import type { ProfileUpdateState } from '@/app/(auth)/actions'
 
@@ -48,11 +48,18 @@ export default function EditProfileForm({ profile }: { profile: Profile }) {
   }
 
   function handleDiscard() {
+    if (previewUrl?.startsWith('blob:')) URL.revokeObjectURL(previewUrl)
     setPreviewUrl(profile.avatar_url)
     setFileError(null)
     if (fileRef.current) fileRef.current.value = ''
     setOpen(false)
   }
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl?.startsWith('blob:')) URL.revokeObjectURL(previewUrl)
+    }
+  }, [])
 
   if (!open) {
     return (

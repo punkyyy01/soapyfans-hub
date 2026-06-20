@@ -5,6 +5,7 @@ import {
   getPersonCombinedCredits,
   getTmdbImageUrl,
   normalizeCredit,
+  sortByDateDesc,
   type NormalizedCredit,
 } from '@/utils/tmdb'
 import { getSophieWikidataCredits } from '@/utils/wikidata'
@@ -85,12 +86,6 @@ function FeaturedFilmCard({ credit }: { credit: NormalizedCredit }) {
       </div>
     </Link>
   )
-}
-
-function sortByDateDesc(a: NormalizedCredit, b: NormalizedCredit) {
-  const ta = a.date ? new Date(a.date).getTime() : 0
-  const tb = b.date ? new Date(b.date).getTime() : 0
-  return tb - ta
 }
 
 function yearSpan(credits: NormalizedCredit[]): string | null {

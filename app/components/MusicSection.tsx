@@ -10,14 +10,12 @@ const RELEASE_TYPE_LABEL: Record<string, string> = {
 }
 
 async function fetchReleases() {
-  const t0 = performance.now()
   const supabase = await createClient()
   const result = await supabase
     .from('releases')
     .select('id, title, release_type, release_date')
     .order('release_date', { ascending: false })
     .limit(3)
-  console.log(`[home:music] supabase-releases: ${(performance.now() - t0).toFixed(0)}ms`)
   return result
 }
 

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import {
   getPersonImages,
   getTmdbImageUrl,
+  getPortraitUrls,
   type TmdbPersonImages,
 } from '@/utils/tmdb'
 import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
@@ -130,6 +131,8 @@ export default async function AboutPage() {
     (): TmdbPersonImages => ({ id: 0, profiles: [] }),
   )
 
+  const portraitUrls = getPortraitUrls(imagesData.profiles)
+
   const sortedProfiles = imagesData.profiles
     .filter((p) => p.aspect_ratio <= 0.74)
     .sort((a, b) => {
@@ -137,11 +140,6 @@ export default async function AboutPage() {
       if (Math.abs(ratioDiff) > 0.05) return ratioDiff
       return b.vote_average - a.vote_average
     })
-
-  const portraitUrls = sortedProfiles
-    .slice(0, 8)
-    .map((p) => getTmdbImageUrl(p.file_path, 'w780'))
-    .filter((u): u is string => u !== null)
 
   const galleryPhotos = sortedProfiles
     .slice(0, 12)

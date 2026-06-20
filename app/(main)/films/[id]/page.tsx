@@ -8,6 +8,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
+export const revalidate = 3600
+
 interface Props {
   params: Promise<{ id: string }>
   searchParams: Promise<{ error?: string }>
@@ -74,8 +76,10 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
 
   const supabase = await createClient()
 
-  const [film, user, { data: dbFilm }] = await Promise.all([
-    getMovieDetails(tmdbId).catch(() => notFound()),
+  const film = await getMovieDetails(tmdbId).catch(() => null)
+  if (!film) notFound()
+
+  const [user, { data: dbFilm }] = await Promise.all([
     getUser(),
     supabase
       .from('films')

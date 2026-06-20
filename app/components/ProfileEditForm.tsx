@@ -7,6 +7,7 @@ import { saveProfile, addFavorite, removeFavorite, reorderFavorites } from '@/ap
 import type { SaveProfileState } from '@/app/(main)/profile/edit/actions'
 import type { EnrichedFavorite } from '@/app/(main)/profile/edit/page'
 import { sanitizeCSS } from '@/utils/sanitize-css'
+import { getTmdbImageUrl } from '@/utils/tmdb'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -102,16 +103,26 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
     }
   }, [saveState])
 
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (avatarPreview?.startsWith('blob:')) URL.revokeObjectURL(avatarPreview)
+      if (bannerPreview?.startsWith('blob:')) URL.revokeObjectURL(bannerPreview)
+    }
+  }, [])
+
   // File handlers
   function onAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (avatarPreview?.startsWith('blob:')) URL.revokeObjectURL(avatarPreview)
     setAvatarPreview(URL.createObjectURL(file))
   }
 
   function onBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (bannerPreview?.startsWith('blob:')) URL.revokeObjectURL(bannerPreview)
     setBannerPreview(URL.createObjectURL(file))
   }
 
@@ -555,9 +566,7 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
         ) : (
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
             {favorites.map((fav, index) => {
-              const posterUrl = fav.posterPath
-                ? `https://image.tmdb.org/t/p/w342${fav.posterPath}`
-                : null
+              const posterUrl = getTmdbImageUrl(fav.posterPath, 'w342')
               const isDragging = dragIndex === index
               const isOver = dragOver === index && dragIndex !== index
 

@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { deleteReview, updateReview } from '@/app/(auth)/actions'
+import { getTmdbImageUrl } from '@/utils/tmdb'
 import type { ReviewUpdateState } from '@/app/(auth)/actions'
 
 export type ActivityItem = {
@@ -60,9 +61,7 @@ function ActivityRow({
 
   const imageUrl =
     item.kind === 'film'
-      ? item.poster_path
-        ? `https://image.tmdb.org/t/p/w185${item.poster_path}`
-        : null
+      ? getTmdbImageUrl(item.poster_path, 'w185')
       : item.cover_art_url
 
   const href = item.kind === 'film' && item.tmdb_id > 0 ? `/films/${item.tmdb_id}` : null

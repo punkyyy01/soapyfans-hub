@@ -31,18 +31,24 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+.env
+.env.*
+!.env.example
 
 # vercel
 .vercel
-
-# graphify
-graphify-out/
-repomix-output.xml
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
 
-# claude
+# graphify
+graphify-out/
+repomix-output.xml
+
+# editor
+.vscode/
+
+# AI assistants
 CLAUDE.md
+.mimocode/

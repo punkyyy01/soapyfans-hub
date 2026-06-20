@@ -194,21 +194,27 @@ export function getPersonImages(
   )()
 }
 
-export async function getBestPersonPortrait(
-  personId = SOPHIE_THATCHER_ID
-): Promise<string | null> {
-  try {
-    const { profiles } = await getPersonImages(personId)
-    if (!profiles?.length) return null
-    const sorted = [...profiles].sort((a, b) => {
+export function sortByDateDesc(a: NormalizedCredit, b: NormalizedCredit) {
+  const ta = a.date ? new Date(a.date).getTime() : 0
+  const tb = b.date ? new Date(b.date).getTime() : 0
+  return tb - ta
+}
+
+export function getPortraitUrls(
+  profiles: TmdbPersonImage[],
+  limit = 8,
+  size: 'w500' | 'w780' | 'w1280' = 'w780'
+): string[] {
+  return profiles
+    .filter((p) => p.aspect_ratio <= 0.74)
+    .sort((a, b) => {
       const ratioDiff = a.aspect_ratio - b.aspect_ratio
       if (Math.abs(ratioDiff) > 0.05) return ratioDiff
       return b.vote_average - a.vote_average
     })
-    return sorted[0]?.file_path ?? null
-  } catch {
-    return null
-  }
+    .slice(0, limit)
+    .map((p) => getTmdbImageUrl(p.file_path, size))
+    .filter((u): u is string => u !== null)
 }
 
 export function getMovieDetails(movieId: number): Promise<TmdbMovieDetails> {

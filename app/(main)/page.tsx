@@ -7,6 +7,8 @@ import {
   getPersonCombinedCredits,
   getTmdbImageUrl,
   normalizeCredit,
+  sortByDateDesc,
+  getPortraitUrls,
   type NormalizedCredit,
   type TmdbCombinedCredits,
   type TmdbPersonImages,
@@ -44,12 +46,6 @@ export const metadata: Metadata = {
   },
 }
 
-function sortByDateDesc(a: NormalizedCredit, b: NormalizedCredit) {
-  const ta = a.date ? new Date(a.date).getTime() : 0
-  const tb = b.date ? new Date(b.date).getTime() : 0
-  return tb - ta
-}
-
 function MusicSkeleton() {
   return (
     <section className="relative mx-auto max-w-7xl px-6 pb-24 sm:px-10">
@@ -67,24 +63,17 @@ function MusicSkeleton() {
 }
 
 export default async function HomePage() {
-  const t0 = performance.now()
-  const elapsed = (label: string) =>
-    console.log(`[home] ${label}: ${(performance.now() - t0).toFixed(0)}ms`)
-
   const creditsPromise = getPersonCombinedCredits()
-    .then((r) => { elapsed('tmdb-credits'); return r })
-    .catch((): TmdbCombinedCredits => { elapsed('tmdb-credits-error'); return { id: 0, cast: [], crew: [] } })
+    .catch((): TmdbCombinedCredits => { return { id: 0, cast: [], crew: [] } })
 
   const portraitPromise = getPersonImages()
-    .then((r) => { elapsed('tmdb-portrait'); return r })
-    .catch((): TmdbPersonImages => { elapsed('tmdb-portrait-error'); return { id: 0, profiles: [] } })
+    .catch((): TmdbPersonImages => { return { id: 0, profiles: [] } })
 
   const [user, credits, imagesData] = await Promise.all([
     getUser(),
     creditsPromise,
     portraitPromise,
   ])
-  elapsed('critical-path-done')
 
   const seen = new Set<string>()
   const all: NormalizedCredit[] = []
@@ -103,16 +92,7 @@ export default async function HomePage() {
     getTmdbImageUrl(heroCredit?.posterPath ?? null, 'w780') ??
     ''
 
-  const portraitUrls = imagesData.profiles
-    .filter(p => p.aspect_ratio <= 0.74)
-    .sort((a, b) => {
-      const ratioDiff = a.aspect_ratio - b.aspect_ratio
-      if (Math.abs(ratioDiff) > 0.05) return ratioDiff
-      return b.vote_average - a.vote_average
-    })
-    .slice(0, 8)
-    .map(p => getTmdbImageUrl(p.file_path, 'w780'))
-    .filter((u): u is string => u !== null)
+  const portraitUrls = getPortraitUrls(imagesData.profiles)
 
   const aboutPortrait = portraitUrls[0] ?? backdropUrl
 
