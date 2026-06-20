@@ -25,7 +25,7 @@ export default async function Navbar() {
   }
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-50 border-b border-[var(--border-subtle)] bg-[rgba(8,7,4,0.55)] backdrop-blur-xl">
+    <nav className="fixed inset-x-0 top-0 z-50 border-b border-[var(--border-subtle)] bg-[rgba(8,7,4,0.75)] backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 sm:px-10">
         <div className="flex items-center gap-8">
           <Link
