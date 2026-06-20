@@ -57,7 +57,7 @@ body {
    but below content. ~3.5% opacity keeps it subliminal. */
 body::before {
   content: "";
-  position: fixed;
+  position: absolute;
   inset: 0;
   pointer-events: none;
   z-index: 0;
