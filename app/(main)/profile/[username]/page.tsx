@@ -182,6 +182,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
               src={profile.banner_url}
               alt=""
               fill
+              sizes="100vw"
               className="object-cover object-center"
               priority
             />

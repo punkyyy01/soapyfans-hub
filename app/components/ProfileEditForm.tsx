@@ -395,6 +395,7 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
                     src={bannerPreview}
                     alt="Banner preview"
                     fill
+                    sizes="100vw"
                     className="object-cover"
                     unoptimized={bannerPreview.startsWith('blob:')}
                   />
@@ -691,6 +692,7 @@ function CssPreviewPanel({
               src={bannerUrl}
               alt=""
               fill
+              sizes="100vw"
               className="object-cover"
               unoptimized={bannerUrl.startsWith('blob:')}
             />
