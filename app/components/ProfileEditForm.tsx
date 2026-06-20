@@ -653,7 +653,7 @@ function CssPreviewPanel({
   return (
     <div className="fixed inset-0 z-50 overflow-auto bg-[var(--bg-base)]">
       {/* Sticky header */}
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-base)]/95 px-6 py-3 backdrop-blur">
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-base)] px-6 py-3">
         <div className="flex items-center gap-3">
           <span className="text-[0.65rem] uppercase tracking-[0.32em] text-[var(--accent-amber)]">
             CSS Preview
