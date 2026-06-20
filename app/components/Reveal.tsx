@@ -50,6 +50,7 @@ export default function Reveal({
         delay,
         stagger,
         ease: 'expo.out',
+        clearProps: 'willChange',
         scrollTrigger: immediate
           ? undefined
           : {
