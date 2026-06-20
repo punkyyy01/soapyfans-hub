@@ -250,6 +250,7 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
         <input type="hidden" name="profile_css"  value={profileCss} />
         <input type="hidden" name="show_activity" value={showActivity ? 'true' : 'false'} />
 
+        <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
         {/* ── Identidad ── */}
         <section className={SECTION_CLS}>
           <h2 className="font-display text-base font-semibold text-[var(--text-primary)]">
@@ -326,6 +327,7 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
           </div>
         </section>
 
+        <div className="space-y-6">
         {/* ── Apariencia ── */}
         <section className={SECTION_CLS}>
           <h2 className="font-display text-base font-semibold text-[var(--text-primary)]">
@@ -441,6 +443,39 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
           </div>
         </section>
 
+        {/* ── Privacidad ── */}
+        <section className={SECTION_CLS}>
+          <h2 className="font-display text-base font-semibold text-[var(--text-primary)]">
+            Privacy
+          </h2>
+
+          <div className="flex items-center justify-between gap-6">
+            <div>
+              <p className="text-sm text-[var(--text-primary)]">Show activity on profile</p>
+              <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                Your recent film and music reviews will appear publicly on your profile.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showActivity}
+              onClick={() => setShowActivity((v) => !v)}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
+                showActivity ? 'bg-[var(--accent-amber)]' : 'bg-[var(--bg-elevated)]'
+              } border border-[var(--border-strong)]`}
+            >
+              <span
+                className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                  showActivity ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        </section>
+        </div>
+        </div>
+
         {/* ── CSS personalizado ── */}
         <section className={SECTION_CLS}>
           <div className="flex items-center justify-between">
@@ -481,37 +516,6 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
             >
               {cssCharCount.toLocaleString()} / 5,000
             </p>
-          </div>
-        </section>
-
-        {/* ── Privacidad ── */}
-        <section className={SECTION_CLS}>
-          <h2 className="font-display text-base font-semibold text-[var(--text-primary)]">
-            Privacy
-          </h2>
-
-          <div className="flex items-center justify-between gap-6">
-            <div>
-              <p className="text-sm text-[var(--text-primary)]">Show activity on profile</p>
-              <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                Your recent film and music reviews will appear publicly on your profile.
-              </p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={showActivity}
-              onClick={() => setShowActivity((v) => !v)}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full transition-colors ${
-                showActivity ? 'bg-[var(--accent-amber)]' : 'bg-[var(--bg-elevated)]'
-              } border border-[var(--border-strong)]`}
-            >
-              <span
-                className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
-                  showActivity ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
           </div>
         </section>
 
