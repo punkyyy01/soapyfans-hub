@@ -20,6 +20,20 @@ export async function login(formData: FormData) {
   redirect('/')
 }
 
+function mapRegisterError(message: string): string {
+  const lower = message.toLowerCase()
+  if (lower.includes('already registered') || lower.includes('already exists')) {
+    return 'Ya existe una cuenta con ese email.'
+  }
+  if (lower.includes('password')) {
+    return 'La contraseña debe tener al menos 6 caracteres.'
+  }
+  if (lower.includes('email') && (lower.includes('invalid') || lower.includes('valid'))) {
+    return 'Ingresá un email válido.'
+  }
+  return 'No se pudo crear la cuenta. Intentá de nuevo.'
+}
+
 export async function register(formData: FormData) {
   const supabase = await createClient()
   const { data, error } = await supabase.auth.signUp({
@@ -27,7 +41,7 @@ export async function register(formData: FormData) {
     password: formData.get('password') as string,
   })
   if (error) {
-    await setFlash(error.message, 'error')
+    await setFlash(mapRegisterError(error.message), 'error')
     redirect('/register')
   }
   if (data.session) redirect('/')
