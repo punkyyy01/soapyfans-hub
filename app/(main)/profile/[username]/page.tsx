@@ -168,7 +168,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
       <div id="profile-canvas" className="profile-canvas">
         {/* 1. BANNER */}
         <div
-          className="relative h-[140px] w-full overflow-hidden sm:h-[200px]"
+          className="relative h-[170px] w-full overflow-hidden sm:h-[230px]"
           style={
             !profile.banner_url
               ? {
@@ -194,27 +194,27 @@ export default async function ProfilePage({ params, searchParams }: Props) {
           {/* 2. PROFILE HEADER */}
           <section className="mb-14">
             {/* Avatar row — pulled up to overlap the banner */}
-            <div className="-mt-14 flex flex-wrap items-end gap-4 sm:-mt-16">
+            <div className="-mt-10 flex flex-wrap items-end gap-4 sm:-mt-12">
               {/* Avatar with accent-color ring */}
               <div
                 className="shrink-0 rounded-full"
                 style={{
-                  padding: '3px',
+                  padding: '4px',
                   background: accentColor,
-                  boxShadow: `0 0 0 3px var(--bg-base)`,
+                  boxShadow: `0 0 0 4px var(--bg-base)`,
                 }}
               >
                 {profile.avatar_url ? (
                   <Image
                     src={profile.avatar_url}
                     alt={displayName}
-                    width={80}
-                    height={80}
+                    width={96}
+                    height={96}
                     className="rounded-full"
                   />
                 ) : (
                   <div
-                    className="flex h-20 w-20 items-center justify-center rounded-full text-2xl font-semibold text-[var(--bg-base)]"
+                    className="flex h-24 w-24 items-center justify-center rounded-full text-3xl font-semibold text-[var(--bg-base)]"
                     style={{
                       background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}88 100%)`,
                     }}
