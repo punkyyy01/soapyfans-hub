@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
-import { getTvDetails, getTmdbImageUrl } from '@/utils/tmdb'
+import { getTvDetails, getTmdbImageUrl, getWatchProvidersForCountry } from '@/utils/tmdb'
+import WhereToWatch from '@/app/components/WhereToWatch'
+import MediaDetailTabs from '@/app/components/MediaDetailTabs'
 import { buildTvSeriesSchema, serializeJsonLd } from '@/utils/schema'
 import Reveal from '@/app/components/Reveal'
 import Image from 'next/image'
@@ -95,7 +97,7 @@ export default async function TvDetailPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(seriesSchema) }}
       />
-      <section className="relative h-[68vh] min-h-[480px] w-full overflow-hidden grain">
+      <section className="relative h-[420px] sm:h-[480px] w-full overflow-hidden grain">
         {backdrop && (
           <Image
             src={backdrop}
@@ -222,24 +224,28 @@ export default async function TvDetailPage({ params }: Props) {
                 </div>
               )}
             </div>
+
+            <WhereToWatch providers={getWatchProvidersForCountry(tv.watchProvidersByCountry)} />
           </aside>
 
           <div className="space-y-16 pt-10 lg:pt-12">
             <Reveal immediate stagger={0.1}>
-              <div className="flex flex-wrap gap-2">
-                {tv.genres.map((g) => (
-                  <span
-                    key={g.id}
-                    className="rounded-full border border-[var(--border-strong)] px-3 py-1 text-[0.65rem] uppercase tracking-[0.22em] text-[var(--text-secondary)]"
-                  >
-                    {g.name}
-                  </span>
-                ))}
-              </div>
               <p className="font-display text-[1.35rem] font-medium leading-relaxed text-[var(--text-primary)] text-pretty sm:text-2xl">
                 {tv.overview || 'No synopsis yet.'}
               </p>
             </Reveal>
+
+            <MediaDetailTabs
+              tmdbId={tvId}
+              mediaType="tv"
+              cast={tv.credits.cast}
+              crew={tv.credits.crew}
+              genres={tv.genres}
+              productionCompanies={tv.production_companies}
+              productionCountries={tv.production_countries}
+              spokenLanguages={tv.spoken_languages}
+              alternativeTitles={tv.alternativeTitles}
+            />
 
             <section className="space-y-6">
               <div className="border-b border-[var(--border-subtle)] pb-5">

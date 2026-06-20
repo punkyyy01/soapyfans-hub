@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
-import { getMovieDetails, getTmdbImageUrl } from '@/utils/tmdb'
+import { getMovieDetails, getTmdbImageUrl, getWatchProvidersForCountry } from '@/utils/tmdb'
+import WhereToWatch from '@/app/components/WhereToWatch'
+import MediaDetailTabs from '@/app/components/MediaDetailTabs'
 import { createClient, getUser } from '@/utils/supabase/server'
 import { buildMovieSchema, serializeJsonLd } from '@/utils/schema'
 import ReviewForm from '@/app/components/ReviewForm'
@@ -115,7 +117,7 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(movieSchema) }}
       />
-      <section className="relative h-[68vh] min-h-[480px] w-full overflow-hidden grain">
+      <section className="relative h-[420px] sm:h-[480px] w-full overflow-hidden grain">
         {backdrop && (
           <Image
             src={backdrop}
@@ -194,24 +196,28 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
                 </div>
               )}
             </div>
+
+            <WhereToWatch providers={getWatchProvidersForCountry(film.watchProvidersByCountry)} />
           </aside>
 
           <div className="space-y-16 pt-10 lg:pt-12">
             <Reveal immediate stagger={0.1}>
-              <div className="flex flex-wrap gap-2">
-                {film.genres.map((g) => (
-                  <span
-                    key={g.id}
-                    className="rounded-full border border-[var(--border-strong)] px-3 py-1 text-[0.65rem] uppercase tracking-[0.22em] text-[var(--text-secondary)]"
-                  >
-                    {g.name}
-                  </span>
-                ))}
-              </div>
               <p className="font-display text-[1.35rem] font-medium leading-relaxed text-[var(--text-primary)] text-pretty sm:text-2xl">
                 {film.overview || 'No synopsis yet.'}
               </p>
             </Reveal>
+
+            <MediaDetailTabs
+              tmdbId={tmdbId}
+              mediaType="movie"
+              cast={film.credits.cast}
+              crew={film.credits.crew}
+              genres={film.genres}
+              productionCompanies={film.production_companies}
+              productionCountries={film.production_countries}
+              spokenLanguages={film.spoken_languages}
+              alternativeTitles={film.alternativeTitles}
+            />
 
             <section className="space-y-10">
               <div className="flex items-end justify-between border-b border-[var(--border-subtle)] pb-5">
