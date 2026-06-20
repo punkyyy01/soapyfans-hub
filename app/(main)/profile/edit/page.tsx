@@ -59,7 +59,7 @@ export default async function ProfileEditPage() {
   )
 
   return (
-    <main className="mx-auto max-w-2xl px-6 pb-24 pt-24 sm:px-8 sm:pb-32 sm:pt-28">
+    <main className="mx-auto max-w-4xl px-6 pb-24 pt-24 sm:px-8 sm:pb-32 sm:pt-28">
       <ProfileEditForm profile={profile} initialFavorites={favorites} />
     </main>
   )
