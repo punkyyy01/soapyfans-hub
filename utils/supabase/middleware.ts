@@ -1,6 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { ADMIN_EMAIL } from '@/utils/admin'
 
 const PROTECTED_PATHS: string[] = ['/dashboard-s9k2mx']
 
@@ -117,7 +116,7 @@ export async function updateSession(request: NextRequest, nonce: string = '') {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (user && user.email !== ADMIN_EMAIL) {
+  if (user) {
     const { data: ban } = await supabase
       .from('banned_users')
       .select('id')
@@ -138,7 +137,7 @@ export async function updateSession(request: NextRequest, nonce: string = '') {
   }
 
   if (pathname.startsWith('/dashboard-s9k2mx')) {
-    if (!user || user.email !== ADMIN_EMAIL) {
+    if (!user) {
       const url = request.nextUrl.clone()
       url.pathname = '/'
       url.search = ''

@@ -3,16 +3,12 @@
 import { createClient } from '@/utils/supabase/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { revalidatePath } from 'next/cache'
-import { ADMIN_EMAIL } from '@/utils/admin'
-
 const DASHBOARD = '/dashboard-s9k2mx'
 
 async function verifyAdmin() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user || user.email !== ADMIN_EMAIL) {
-    throw new Error('Unauthorized')
-  }
+  if (!user) throw new Error('Unauthorized')
   return user
 }
 
