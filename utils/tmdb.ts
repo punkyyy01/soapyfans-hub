@@ -77,6 +77,67 @@ export interface TmdbCombinedCredits {
   crew: TmdbCredit[]
 }
 
+export interface TmdbCastMember {
+  id: number
+  name: string
+  character: string
+  order: number
+  profile_path: string | null
+}
+
+export interface TmdbCrewMember {
+  id: number
+  name: string
+  job: string
+  department: string
+  profile_path: string | null
+}
+
+export interface TmdbCredits {
+  cast: TmdbCastMember[]
+  crew: TmdbCrewMember[]
+}
+
+export interface TmdbWatchProvider {
+  provider_id: number
+  provider_name: string
+  logo_path: string
+}
+
+export interface TmdbWatchProvidersForCountry {
+  link?: string
+  flatrate?: TmdbWatchProvider[]
+  rent?: TmdbWatchProvider[]
+  buy?: TmdbWatchProvider[]
+  ads?: TmdbWatchProvider[]
+  free?: TmdbWatchProvider[]
+}
+
+export interface TmdbAlternativeTitle {
+  iso_3166_1: string
+  title: string
+}
+
+export interface TmdbProductionCompany {
+  id: number
+  name: string
+  logo_path: string | null
+  origin_country: string
+}
+
+export interface TmdbProductionCountry {
+  iso_3166_1: string
+  name: string
+}
+
+export interface TmdbSpokenLanguage {
+  iso_639_1: string
+  name: string
+  english_name: string
+}
+
+export const DEFAULT_WATCH_COUNTRY = 'CL'
+
 export interface TmdbMovieDetails {
   id: number
   title: string
@@ -89,6 +150,12 @@ export interface TmdbMovieDetails {
   runtime: number | null
   tagline: string
   status: string
+  production_companies: TmdbProductionCompany[]
+  production_countries: TmdbProductionCountry[]
+  spoken_languages: TmdbSpokenLanguage[]
+  credits: TmdbCredits
+  alternativeTitles: TmdbAlternativeTitle[]
+  watchProvidersByCountry: Record<string, TmdbWatchProvidersForCountry>
 }
 
 export interface TmdbTvDetails {
@@ -109,6 +176,12 @@ export interface TmdbTvDetails {
   in_production: boolean
   networks: { id: number; name: string; logo_path: string | null }[]
   created_by: { id: number; name: string }[]
+  production_companies: TmdbProductionCompany[]
+  production_countries: TmdbProductionCountry[]
+  spoken_languages: TmdbSpokenLanguage[]
+  credits: TmdbCredits
+  alternativeTitles: TmdbAlternativeTitle[]
+  watchProvidersByCountry: Record<string, TmdbWatchProvidersForCountry>
 }
 
 export interface NormalizedCredit {
@@ -217,18 +290,59 @@ export function getPortraitUrls(
     .filter((u): u is string => u !== null)
 }
 
+type RawWatchProvidersResponse = {
+  results?: Record<string, TmdbWatchProvidersForCountry>
+}
+
+type RawMovieDetailsResponse = Omit<
+  TmdbMovieDetails,
+  'credits' | 'alternativeTitles' | 'watchProvidersByCountry'
+> & {
+  credits?: TmdbCredits
+  alternative_titles?: { titles?: TmdbAlternativeTitle[] }
+  'watch/providers'?: RawWatchProvidersResponse
+}
+
+type RawTvDetailsResponse = Omit<
+  TmdbTvDetails,
+  'credits' | 'alternativeTitles' | 'watchProvidersByCountry'
+> & {
+  credits?: TmdbCredits
+  // In /tv the key is "results", not "titles" like in /movie
+  alternative_titles?: { results?: TmdbAlternativeTitle[] }
+  'watch/providers'?: RawWatchProvidersResponse
+}
+
 export function getMovieDetails(movieId: number): Promise<TmdbMovieDetails> {
   return unstable_cache(
-    () => tmdbFetch<TmdbMovieDetails>(`/movie/${movieId}`, { language: 'en-US' }),
-    ['tmdb', 'movie', `${movieId}`],
+    () =>
+      tmdbFetch<RawMovieDetailsResponse>(`/movie/${movieId}`, {
+        language: 'en-US',
+        append_to_response: 'credits,watch/providers,alternative_titles',
+      }).then((raw) => ({
+        ...raw,
+        credits: raw.credits ?? { cast: [], crew: [] },
+        alternativeTitles: raw.alternative_titles?.titles ?? [],
+        watchProvidersByCountry: raw['watch/providers']?.results ?? {},
+      })),
+    ['tmdb', 'movie', `${movieId}`, 'v2'],
     { revalidate: TMDB_REVALIDATE_SECONDS }
   )()
 }
 
 export function getTvDetails(tvId: number): Promise<TmdbTvDetails> {
   return unstable_cache(
-    () => tmdbFetch<TmdbTvDetails>(`/tv/${tvId}`, { language: 'en-US' }),
-    ['tmdb', 'tv', `${tvId}`],
+    () =>
+      tmdbFetch<RawTvDetailsResponse>(`/tv/${tvId}`, {
+        language: 'en-US',
+        append_to_response: 'credits,watch/providers,alternative_titles',
+      }).then((raw) => ({
+        ...raw,
+        credits: raw.credits ?? { cast: [], crew: [] },
+        alternativeTitles: raw.alternative_titles?.results ?? [],
+        watchProvidersByCountry: raw['watch/providers']?.results ?? {},
+      })),
+    ['tmdb', 'tv', `${tvId}`, 'v2'],
     { revalidate: TMDB_REVALIDATE_SECONDS }
   )()
 }
@@ -239,4 +353,11 @@ export function getTmdbImageUrl(
 ): string | null {
   if (!path) return null
   return `https://image.tmdb.org/t/p/${size}${path}`
+}
+
+export function getWatchProvidersForCountry(
+  watchProvidersByCountry: Record<string, TmdbWatchProvidersForCountry>,
+  country: string = DEFAULT_WATCH_COUNTRY
+): TmdbWatchProvidersForCountry | null {
+  return watchProvidersByCountry[country] ?? null
 }
