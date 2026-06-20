@@ -143,6 +143,19 @@ export async function updateSession(request: NextRequest, nonce: string = '') {
       url.search = ''
       return NextResponse.redirect(url)
     }
+
+    const { data: adminProfile } = await supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (!adminProfile?.is_admin) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
   }
 
   if (!user && PROTECTED_PATHS.some((p) => pathname.startsWith(p))) {
