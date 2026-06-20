@@ -6,7 +6,6 @@ import { createClient, getUser } from '@/utils/supabase/server'
 import { getMovieDetails, getTvDetails, getTmdbImageUrl } from '@/utils/tmdb'
 import { sanitizeCSS } from '@/utils/sanitize-css'
 import ActivityFeed, { type ActivityItem } from '@/app/components/ActivityFeed'
-import EditProfileForm from '@/app/components/EditProfileForm'
 
 interface Props {
   params: Promise<{ username: string }>
@@ -228,7 +227,12 @@ export default async function ProfilePage({ params, searchParams }: Props) {
               {/* Edit button pushed to the right, vertically aligned with avatar base */}
               {isOwner && (
                 <div className="ml-auto">
-                  <EditProfileForm profile={profile} />
+                  <Link
+                    href="/profile/edit"
+                    className="inline-block rounded-full border border-[var(--border-strong)] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[var(--text-secondary)] transition-all hover:border-[var(--accent-amber)] hover:text-[var(--accent-gold)] sm:py-1.5"
+                  >
+                    Edit profile
+                  </Link>
                 </div>
               )}
             </div>
