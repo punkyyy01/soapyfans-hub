@@ -121,8 +121,9 @@ export default async function ProfilePage({ params, searchParams }: Props) {
       : Promise.resolve({ data: [] }),
   ])
 
-  const filmReviews = ((filmReviewsResult.data ?? []) as unknown as RawFilmReview[])
-  const musicReviews = ((musicReviewsResult.data ?? []) as unknown as RawMusicReview[])
+  // Supabase doesn't infer nested join shapes precisely; RawFilmReview/RawMusicReview match the actual select above.
+  const filmReviews = (filmReviewsResult.data ?? []) as unknown as RawFilmReview[]
+  const musicReviews = (musicReviewsResult.data ?? []) as unknown as RawMusicReview[]
 
   const activityItems: ActivityItem[] = [
     ...filmReviews.map((r): ActivityItem => ({

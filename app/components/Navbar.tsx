@@ -1,4 +1,5 @@
 import { createClient, getUser } from '@/utils/supabase/server'
+import Image from 'next/image'
 import Link from 'next/link'
 import { logout } from '@/app/(auth)/actions'
 
@@ -68,7 +69,7 @@ export default async function Navbar() {
               <Link href={profileHref} className="group flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-[var(--accent-amber)]/40 bg-gradient-to-br from-[var(--accent-amber)] to-[#7a4108] text-xs font-semibold text-[var(--bg-base)] shadow-[0_0_18px_rgba(232,137,12,0.25)] transition-shadow group-hover:shadow-[0_0_24px_rgba(232,137,12,0.45)]">
                   {avatarUrl ? (
-                    <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+                    <Image src={avatarUrl} alt={displayHandle || 'User avatar'} width={36} height={36} className="h-full w-full object-cover" />
                   ) : (
                     avatarLetter
                   )}

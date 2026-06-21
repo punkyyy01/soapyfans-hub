@@ -32,23 +32,26 @@ export default function WhereToWatch({ providers }: Props) {
               {label}
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {list.map((p) => (
-                <span
-                  key={p.provider_id}
-                  title={p.provider_name}
-                  className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md ring-1 ring-[var(--border-subtle)]"
-                >
-                  {getTmdbImageUrl(p.logo_path, 'w185') && (
-                    <Image
-                      src={getTmdbImageUrl(p.logo_path, 'w185')!}
-                      alt={p.provider_name}
-                      width={36}
-                      height={36}
-                      className="h-full w-full object-cover"
-                    />
-                  )}
-                </span>
-              ))}
+              {list.map((p) => {
+                const logoSrc = getTmdbImageUrl(p.logo_path, 'w185')
+                return (
+                  <span
+                    key={p.provider_id}
+                    title={p.provider_name}
+                    className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md ring-1 ring-[var(--border-subtle)]"
+                  >
+                    {logoSrc && (
+                      <Image
+                        src={logoSrc}
+                        alt={p.provider_name}
+                        width={36}
+                        height={36}
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                  </span>
+                )
+              })}
             </div>
           </div>
         )

@@ -12,6 +12,12 @@ function isRateLimited(ip: string): boolean {
   const window = 60_000 // 1 minute
   const limit = 30
 
+  if (searchAttempts.size > 500) {
+    for (const [k, v] of searchAttempts) {
+      if (v.resetAt < now) searchAttempts.delete(k)
+    }
+  }
+
   const record = searchAttempts.get(ip)
   if (!record || record.resetAt < now) {
     searchAttempts.set(ip, { count: 1, resetAt: now + window })
