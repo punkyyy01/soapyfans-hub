@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { createClient, getUser } from '@/utils/supabase/server'
 import { getMovieDetails, getTvDetails, getTmdbImageUrl } from '@/utils/tmdb'
 import { sanitizeCSS } from '@/utils/sanitize-css'
-import ActivityFeed, { type ActivityItem } from '@/app/components/ActivityFeed'
+import ActivityFeed, { type ActivityItem } from '@/components/profile/ActivityFeed'
 
 interface Props {
   params: Promise<{ username: string }>

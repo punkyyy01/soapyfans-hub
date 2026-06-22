@@ -16,10 +16,10 @@ import {
 import { getUser } from '@/utils/supabase/server'
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildWebPageSchema, buildWebSiteSchema, serializeJsonLd } from '@/utils/schema'
-import Hero from '@/app/components/Hero'
-import Reveal from '@/app/components/Reveal'
-import FilmCard from '@/app/components/FilmCard'
-import MusicSection from '@/app/components/MusicSection'
+import Hero from '@/components/ui/Hero'
+import Reveal from '@/components/ui/Reveal'
+import FilmCard from '@/components/media/FilmCard'
+import MusicSection from '@/components/forms/MusicSection'
 
 export const metadata: Metadata = {
   title: `${SITE_NAME} — ${SITE_TAGLINE}`,

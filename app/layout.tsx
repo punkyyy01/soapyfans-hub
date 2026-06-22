@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { headers } from "next/headers";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
-import Navbar from "./components/Navbar";
+import Navbar from "@/components/ui/Navbar";
 import {
   SITE_DESCRIPTION,
   SITE_NAME,

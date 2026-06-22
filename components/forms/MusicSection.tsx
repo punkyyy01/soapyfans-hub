@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/server'
-import Reveal from '@/app/components/Reveal'
+import Reveal from '@/components/ui/Reveal'
 
 const RELEASE_TYPE_LABEL: Record<string, string> = {
   ep: 'EP',

@@ -11,8 +11,8 @@ import {
 import { getSophieWikidataCredits } from '@/utils/wikidata'
 import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildCollectionPageSchema, serializeJsonLd } from '@/utils/schema'
-import FilmCard from '@/app/components/FilmCard'
-import Reveal from '@/app/components/Reveal'
+import FilmCard from '@/components/media/FilmCard'
+import Reveal from '@/components/ui/Reveal'
 
 const FILMOGRAPHY_DESCRIPTION =
   "Sophie Thatcher's complete filmography and TV credits — films, series, and other on-screen work, sorted by release date. A fan-made index, unofficial and not affiliated with Sophie Thatcher."

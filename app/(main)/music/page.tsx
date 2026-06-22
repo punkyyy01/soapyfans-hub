@@ -4,9 +4,9 @@ import { createClient, getUser } from '@/utils/supabase/server'
 import { getMovieDetails, getTmdbImageUrl } from '@/utils/tmdb'
 import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildCollectionPageSchema, buildMusicReleaseSchema, serializeJsonLd } from '@/utils/schema'
-import TrackList from '@/app/components/TrackList'
-import MusicReviewForm from '@/app/components/MusicReviewForm'
-import Reveal from '@/app/components/Reveal'
+import TrackList from '@/components/media/TrackList'
+import MusicReviewForm from '@/components/forms/MusicReviewForm'
+import Reveal from '@/components/ui/Reveal'
 import Link from 'next/link'
 
 const MUSIC_DESCRIPTION =

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createClient, getUser } from '@/utils/supabase/server'
 import { getMovieDetails, getTvDetails } from '@/utils/tmdb'
-import ProfileEditForm from '@/app/components/ProfileEditForm'
+import ProfileEditForm from '@/components/profile/ProfileEditForm'
 
 export const metadata: Metadata = {
   title: 'Edit Profile',

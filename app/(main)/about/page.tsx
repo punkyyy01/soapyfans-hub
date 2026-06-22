@@ -9,8 +9,8 @@ import {
 } from '@/utils/tmdb'
 import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildWebPageSchema, serializeJsonLd } from '@/utils/schema'
-import Reveal from '@/app/components/Reveal'
-import PhotoGallery from '@/app/components/PhotoGallery'
+import Reveal from '@/components/ui/Reveal'
+import PhotoGallery from '@/components/media/PhotoGallery'
 
 // ── Constants ────────────────────────────────────────────────
 
