@@ -1,3 +1,8 @@
+[![License: Polyform NC](https://img.shields.io/badge/License-Polyform%20NC%201.0-blue.svg)](LICENSE)
+[![CI](https://github.com/punkyyy01/soapyfans-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/punkyyy01/soapyfans-hub/actions/workflows/ci.yml)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5-black?logo=next.js)](https://nextjs.org)
+[![Supabase](https://img.shields.io/badge/Supabase-SSR-3ECF8E?logo=supabase)](https://supabase.com)
+
 # SoapyFans Hub
 
 SoapyFans Hub is a fan-made “home base” for Sophie Thatcher: a living archive of credits, pages for individual films/TV entries, and a place for fans to leave short reviews.
