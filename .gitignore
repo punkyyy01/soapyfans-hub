@@ -16,13 +16,15 @@
 # next.js
 /.next/
 /out/
+/build
 
 # production
-/build
+/dist
 
 # misc
 .DS_Store
 *.pem
+*.log
 
 # debug
 npm-debug.log*
@@ -42,12 +44,19 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# graphify
+# generated files
 graphify-out/
 repomix-output.xml
 
-# editor
+# editor & IDE
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+Thumbs.db
 
 # AI assistants
 CLAUDE.md
