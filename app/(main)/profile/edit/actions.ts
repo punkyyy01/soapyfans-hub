@@ -4,6 +4,8 @@ import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { sanitizeCSS } from '@/utils/sanitize-css'
 
+import { detectImageFormat } from '@/utils/image-validation'
+
 type Supabase = Awaited<ReturnType<typeof createClient>>
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/
@@ -66,7 +68,8 @@ export async function saveProfile(
     const res = await uploadImage(
       supabase,
       avatarFile,
-      `${user.id}/${Date.now()}`,
+      user.id,
+      'avatar',
       2 * 1024 * 1024,
       currentProfile?.avatar_url,
     )
@@ -80,7 +83,8 @@ export async function saveProfile(
     const res = await uploadImage(
       supabase,
       bannerFile,
-      `banners/${user.id}/${Date.now()}`,
+      user.id,
+      'banner',
       3 * 1024 * 1024,
       currentProfile?.banner_url,
     )
@@ -117,35 +121,50 @@ export async function saveProfile(
 async function uploadImage(
   supabase: Supabase,
   file: File,
-  basePath: string,
+  userId: string,
+  type: 'avatar' | 'banner',
   maxBytes: number,
   oldUrl?: string | null,
 ): Promise<{ url: string } | { error: string }> {
-  const ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-  if (!ALLOWED.includes(file.type)) return { error: 'Image must be a JPEG, PNG, WebP, or GIF.' }
   if (file.size > maxBytes) {
-    return { error: `Image must be under ${Math.round(maxBytes / 1024 / 1024)} MB.` }
+    const maxMB = Math.round(maxBytes / (1024 * 1024))
+    return { error: `Image is too large. Maximum size is ${maxMB} MB.` }
   }
+
   const buffer = await file.arrayBuffer()
   const bytes = new Uint8Array(buffer)
-  const isValid =
-    (bytes[0] === 0xff && bytes[1] === 0xd8) ||
-    (bytes[0] === 0x89 && bytes[1] === 0x50) ||
-    (bytes[0] === 0x47 && bytes[1] === 0x49) ||
-    (bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[8] === 0x57 && bytes[9] === 0x45)
-  if (!isValid) return { error: 'Image must be a JPEG, PNG, WebP, or GIF.' }
+  const format = detectImageFormat(bytes)
 
-  const ext = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' } as Record<string, string>)[file.type]!
-  const path = `${basePath}.${ext}`
+  if (!format) {
+    return { error: 'Unsupported image format. Please upload a valid JPEG, PNG, WebP, or GIF.' }
+  }
 
-  // Banners go to a dedicated bucket; avatars remain in 'avatars'
-  const bucket = basePath.startsWith('banners/') ? 'banners' : 'avatars'
+  const filename = `${Date.now()}.${format.ext}`
+  let targetBucket = type === 'banner' ? 'banners' : 'avatars'
+  let targetPath = `${userId}/${filename}`
 
-  const { error } = await supabase.storage.from(bucket).upload(path, buffer, {
-    contentType: file.type,
+  let { error: uploadError } = await supabase.storage.from(targetBucket).upload(targetPath, buffer, {
+    contentType: format.mime,
+    cacheControl: '3600',
     upsert: true,
   })
-  if (error) return { error: 'Failed to upload image. Please try again.' }
+
+  // Resilient fallback for banners: if 'banners' bucket is not configured or fails, use 'avatars' with user-scoped banner path
+  if (uploadError && type === 'banner') {
+    targetBucket = 'avatars'
+    targetPath = `${userId}/banner-${filename}`
+    const fallbackRes = await supabase.storage.from(targetBucket).upload(targetPath, buffer, {
+      contentType: format.mime,
+      cacheControl: '3600',
+      upsert: true,
+    })
+    uploadError = fallbackRes.error
+  }
+
+  if (uploadError) {
+    console.error(`[uploadImage] Storage error for ${type}:`, uploadError.message || uploadError)
+    return { error: 'Failed to upload image. Please try again.' }
+  }
 
   // Fire-and-forget removal of the previous image
   if (oldUrl) {
@@ -153,7 +172,7 @@ async function uploadImage(
       const marker = `/storage/v1/object/public/${b}/`
       if (oldUrl.includes(marker)) {
         const oldPath = oldUrl.split(marker)[1]
-        if (oldPath && !oldPath.includes('default')) {
+        if (oldPath && !oldPath.includes('default') && oldPath.startsWith(userId)) {
           supabase.storage.from(b).remove([oldPath]).catch(() => {})
         }
         break
@@ -161,8 +180,8 @@ async function uploadImage(
     }
   }
 
-  const url = supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl
-  return { url }
+  const { data: { publicUrl } } = supabase.storage.from(targetBucket).getPublicUrl(targetPath)
+  return { url: publicUrl }
 }
 
 export async function addFavorite(

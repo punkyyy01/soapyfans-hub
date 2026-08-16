@@ -49,14 +49,6 @@ const LABEL_CLS =
 
 const FALLBACK_ACCENT = '#e8890c'
 
-const ACCENT_PRESETS = [
-  { name: 'Amber', color: '#e8890c' },
-  { name: 'Gold', color: '#ffb700' },
-  { name: 'Forest', color: '#2a5c3f' },
-  { name: 'Crimson', color: '#8b263e' },
-  { name: 'Slate', color: '#4a5568' },
-]
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ProfileEditForm({ profile, initialFavorites }: Props) {
@@ -545,61 +537,47 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
             </div>
           </div>
 
-          {/* Accent Tint Selector */}
-          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/30 p-6 space-y-4">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
+          {/* Accent Color Customization */}
+          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/30 p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
                 <label className={LABEL_CLS} htmlFor="accent_color_picker">
-                  Signature Accent Tone
+                  Profile Accent Tone
                 </label>
-                <p className="mt-0.5 text-xs text-[var(--text-secondary)]">
-                  Tint used for your avatar ring, active highlights, and profile ambient glow.
+                <p className="text-xs text-[var(--text-secondary)] text-pretty max-w-md">
+                  Customizes your avatar portrait border, fallback header ambiance, and personal profile canvas highlights.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setAccentColor(FALLBACK_ACCENT)}
-                className="self-start text-[0.65rem] uppercase tracking-[0.2em] text-[var(--text-muted)] transition-colors hover:text-[var(--accent-gold)] sm:self-auto"
-              >
-                Reset to default amber
-              </button>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              {ACCENT_PRESETS.map((preset) => {
-                const isSelected = accentColor.toLowerCase() === preset.color.toLowerCase()
-                return (
-                  <button
-                    key={preset.color}
-                    type="button"
-                    onClick={() => setAccentColor(preset.color)}
-                    className={`group relative flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs transition-all ${
-                      isSelected
-                        ? 'border-[var(--accent-amber)] bg-[var(--bg-card)] text-[var(--text-primary)] shadow-[0_0_14px_rgba(232,137,12,0.25)]'
-                        : 'border-[var(--border-subtle)] bg-[var(--bg-base)]/60 text-[var(--text-secondary)] hover:border-[var(--border-strong)]'
-                    }`}
+              <div className="flex items-center gap-3 self-start sm:self-auto">
+                <div className="flex items-center gap-2.5 rounded-full border border-[var(--border-strong)] bg-[var(--bg-base)]/80 px-3.5 py-1.5 shadow-inner">
+                  <div
+                    className="relative h-5 w-5 shrink-0 overflow-hidden rounded-full border border-black/30 shadow-xs"
+                    style={{ background: accentColor }}
                   >
-                    <span
-                      className="h-3 w-3 shrink-0 rounded-full"
-                      style={{ background: preset.color }}
+                    <input
+                      id="accent_color_picker"
+                      type="color"
+                      value={accentColor}
+                      onChange={(e) => setAccentColor(e.target.value)}
+                      className="absolute -inset-2 h-9 w-9 cursor-pointer opacity-0"
+                      aria-label="Choose profile accent color"
                     />
-                    <span className="text-[0.68rem] uppercase tracking-wider">{preset.name}</span>
-                  </button>
-                )
-              })}
+                  </div>
+                  <span className="font-mono text-xs font-medium uppercase tracking-wider text-[var(--text-primary)]">
+                    {accentColor}
+                  </span>
+                </div>
 
-              <div className="flex items-center gap-2 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-base)]/60 px-3 py-1">
-                <input
-                  id="accent_color_picker"
-                  type="color"
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  className="h-5 w-5 cursor-pointer rounded-full border-0 bg-transparent p-0"
-                  aria-label="Custom color picker"
-                />
-                <span className="font-mono text-xs uppercase text-[var(--text-muted)]">
-                  {accentColor}
-                </span>
+                {accentColor.toLowerCase() !== FALLBACK_ACCENT.toLowerCase() && (
+                  <button
+                    type="button"
+                    onClick={() => setAccentColor(FALLBACK_ACCENT)}
+                    className="rounded-full border border-[var(--border-subtle)] px-3 py-1.5 text-[0.65rem] uppercase tracking-[0.18em] text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--accent-gold)]"
+                  >
+                    Reset
+                  </button>
+                )}
               </div>
             </div>
           </div>
