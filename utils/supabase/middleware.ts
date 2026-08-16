@@ -22,7 +22,7 @@ function isRateLimited(ip: string): boolean {
   return record.count > limit
 }
 
-function buildCsp(nonce: string): string {
+export function buildCsp(nonce: string): string {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseHost = supabaseUrl ? new URL(supabaseUrl).host : 'tcskvcmtcsaxyfoselvb.supabase.co'
 
@@ -31,11 +31,11 @@ function buildCsp(nonce: string): string {
     `script-src 'self' 'nonce-${nonce}' https://va.vercel-scripts.com`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
-    `img-src 'self' data: blob: https://image.tmdb.org https://cdn.discordapp.com https://${supabaseHost}`,
-    `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://vitals.vercel-insights.com https://va.vercel-scripts.com`,
+    `img-src 'self' data: blob: https://image.tmdb.org https://cdn.discordapp.com https://lh3.googleusercontent.com https://*.googleusercontent.com https://${supabaseHost} https://*.supabase.co`,
+    `connect-src 'self' https://${supabaseHost} https://*.supabase.co wss://${supabaseHost} wss://*.supabase.co https://vitals.vercel-insights.com https://va.vercel-scripts.com`,
     "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
     "frame-ancestors 'none'",
-    "form-action 'self' https://discord.com",
+    `form-action 'self' https://${supabaseHost} https://*.supabase.co https://accounts.google.com https://discord.com https://*.discord.com`,
     "base-uri 'self'",
     "object-src 'none'",
   ].join('; ')
@@ -45,11 +45,12 @@ export async function updateSession(request: NextRequest, nonce: string = '') {
   if (request.method === 'POST') {
     const origin = request.headers.get('origin')
     const host = request.headers.get('host')
+    const forwardedHost = request.headers.get('x-forwarded-host')
 
-    if (origin && host) {
+    if (origin && (host || forwardedHost)) {
       const allowed = new Set<string>([
-        `https://${host}`,
-        `http://${host}`,
+        ...(host ? [`https://${host}`, `http://${host}`] : []),
+        ...(forwardedHost ? [`https://${forwardedHost}`, `http://${forwardedHost}`] : []),
         ...(process.env.NEXT_PUBLIC_SITE_URL
           ? [process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '')]
           : []),
@@ -75,10 +76,6 @@ export async function updateSession(request: NextRequest, nonce: string = '') {
     }
   }
 
-  const needsAuthCheck =
-    PROTECTED_PATHS.some((p) => pathname.startsWith(p)) ||
-    GUEST_ONLY_PATHS.some((p) => pathname.startsWith(p))
-
   const hasAuthCookie = request.cookies
     .getAll()
     .some((cookie) => cookie.name.startsWith('sb-'))
@@ -87,7 +84,27 @@ export async function updateSession(request: NextRequest, nonce: string = '') {
   const requestHeaders = new Headers(request.headers)
   if (nonce) requestHeaders.set('x-nonce', nonce)
 
-  if (!hasAuthCookie && !needsAuthCheck) {
+  // If there's no auth cookie, user is unauthenticated
+  if (!hasAuthCookie) {
+    if (PROTECTED_PATHS.some((p) => pathname.startsWith(p))) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      url.search = `?next=${encodeURIComponent(pathname + (request.nextUrl.search ?? ''))}`
+      return NextResponse.redirect(url)
+    }
+
+    const response = NextResponse.next({ request: { headers: requestHeaders } })
+    if (nonce) {
+      response.headers.set('x-nonce', nonce)
+      response.headers.set('Content-Security-Policy', buildCsp(nonce))
+    }
+    return response
+  }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
     const response = NextResponse.next({ request: { headers: requestHeaders } })
     if (nonce) {
       response.headers.set('x-nonce', nonce)
@@ -99,8 +116,8 @@ export async function updateSession(request: NextRequest, nonce: string = '') {
   let supabaseResponse = NextResponse.next({ request: { headers: requestHeaders } })
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {

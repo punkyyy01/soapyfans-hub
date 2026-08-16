@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { createClient } from '@/utils/supabase/server'
+import { getUser } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { login } from '../actions'
@@ -14,15 +14,14 @@ export const metadata: Metadata = {
 }
 
 interface Props {
-  searchParams: Promise<{ banned?: string; error?: string }>
+  searchParams: Promise<{ banned?: string; error?: string; next?: string }>
 }
 
 export default async function LoginPage({ searchParams }: Props) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (user) redirect('/')
 
-  const { banned, error } = await searchParams
+  const { banned, error, next } = await searchParams
   const flash = await getFlash()
 
   return (
@@ -61,8 +60,8 @@ export default async function LoginPage({ searchParams }: Props) {
           </p>
         )}
 
-        {/* OAuth Providers: Discord (New Tab) & Google (New Tab) */}
-        <OAuthButtons />
+        {/* OAuth Providers: Discord & Google */}
+        <OAuthButtons redirectTo={next} />
 
         <div className="flex items-center gap-3">
           <div className="h-px flex-1 bg-[var(--border-subtle)]" />
@@ -74,6 +73,7 @@ export default async function LoginPage({ searchParams }: Props) {
 
         {/* Email & Password Form */}
         <form action={login} className="space-y-5">
+          <input type="hidden" name="next" value={next || ''} />
           <div>
             <label
               htmlFor="email"

@@ -31,6 +31,14 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.googleusercontent.com',
+      },
+      {
+        protocol: 'https',
         hostname: process.env.NEXT_PUBLIC_SUPABASE_URL
           ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
           : 'tcskvcmtcsaxyfoselvb.supabase.co',
@@ -42,6 +50,15 @@ const nextConfig: NextConfig = {
         pathname: '/storage/v1/object/public/**',
       },
     ],
+  },
+  async redirects() {
+    return [
+      {
+        source: '/auth/login',
+        destination: '/login',
+        permanent: true,
+      },
+    ]
   },
   experimental: {
     serverActions: {

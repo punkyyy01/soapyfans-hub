@@ -21,11 +21,10 @@ export default function OAuthButtons({ redirectTo }: OAuthButtonsProps) {
 
   return (
     <div className="space-y-3">
-      {/* Discord OAuth — Opens in a new tab */}
+      {/* Discord OAuth */}
       <form
         action={`/auth/login/discord${querySuffix}`}
         method="POST"
-        target="_blank"
         onSubmit={() => handleClick('discord')}
       >
         <button
@@ -49,11 +48,10 @@ export default function OAuthButtons({ redirectTo }: OAuthButtonsProps) {
         </button>
       </form>
 
-      {/* Google OAuth — Opens in a new tab */}
+      {/* Google OAuth */}
       <form
         action={`/auth/login/google${querySuffix}`}
         method="POST"
-        target="_blank"
         onSubmit={() => handleClick('google')}
       >
         <button

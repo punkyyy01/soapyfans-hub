@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
+import { buildCsp } from '../utils/supabase/middleware'
 
 describe('OAuth Security and Provider Configuration', () => {
   const ALLOWED_PROVIDERS = ['discord', 'google'] as const
@@ -57,4 +58,26 @@ describe('OAuth Security and Provider Configuration', () => {
       assert.equal(sanitizeNext(''), '/')
     })
   })
+
+  describe('Content Security Policy for OAuth redirects and assets', () => {
+    it('includes Supabase, Google, and Discord in form-action to allow OAuth redirects', () => {
+      const csp = buildCsp('test-nonce')
+      assert.ok(csp.includes("form-action 'self'"))
+      assert.ok(csp.includes('https://accounts.google.com'))
+      assert.ok(csp.includes('https://discord.com'))
+      assert.ok(csp.includes('supabase.co'))
+    })
+
+    it('includes Google and Discord in img-src for user avatars', () => {
+      const csp = buildCsp('test-nonce')
+      assert.ok(csp.includes('https://cdn.discordapp.com'))
+      assert.ok(csp.includes('https://lh3.googleusercontent.com'))
+    })
+
+    it('includes Supabase in connect-src for auth and API requests', () => {
+      const csp = buildCsp('test-nonce')
+      assert.ok(csp.includes('https://tcskvcmtcsaxyfoselvb.supabase.co') || csp.includes('supabase.co'))
+    })
+  })
 })
+

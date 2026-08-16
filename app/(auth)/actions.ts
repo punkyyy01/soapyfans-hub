@@ -8,6 +8,12 @@ import { getSiteUrl } from '@/utils/site'
 import { setFlash } from '@/utils/flash'
 
 export async function login(formData: FormData) {
+  const nextRaw = formData.get('next') as string | null
+  const next =
+    nextRaw && nextRaw.startsWith('/') && !nextRaw.startsWith('//') && !nextRaw.includes('\\')
+      ? nextRaw
+      : '/'
+
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithPassword({
     email: formData.get('email') as string,
@@ -15,10 +21,10 @@ export async function login(formData: FormData) {
   })
   if (error) {
     await setFlash('Incorrect email or password.', 'error')
-    redirect('/login')
+    redirect(next !== '/' ? `/login?next=${encodeURIComponent(next)}` : '/login')
   }
   revalidatePath('/', 'layout')
-  redirect('/')
+  redirect(next)
 }
 
 function mapRegisterError(message: string): string {
@@ -50,27 +56,51 @@ export async function register(formData: FormData) {
   redirect('/login')
 }
 
-export async function loginWithDiscord() {
+export async function loginWithDiscord(formData?: FormData) {
+  const nextRaw = (formData?.get?.('next') as string | null) ?? null
+  const next =
+    nextRaw && nextRaw.startsWith('/') && !nextRaw.startsWith('//') && !nextRaw.includes('\\')
+      ? nextRaw
+      : '/'
+
   const supabase = await createClient()
+  const callbackUrl = new URL('/auth/callback', getSiteUrl())
+  if (next !== '/') {
+    callbackUrl.searchParams.set('next', next)
+  }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'discord',
-    options: { redirectTo: `${getSiteUrl()}/auth/callback` },
+    options: {
+      redirectTo: callbackUrl.toString(),
+      scopes: 'identify email',
+    },
   })
   if (error || !data.url) {
+    console.error('[loginWithDiscord] Error initiating Discord OAuth:', error)
     await setFlash('Could not sign in with Discord. Please try again.', 'error')
-    redirect('/login')
+    redirect(next !== '/' ? `/login?next=${encodeURIComponent(next)}` : '/login')
   }
   redirect(data.url)
 }
 
-export async function loginWithGoogle() {
+export async function loginWithGoogle(formData?: FormData) {
+  const nextRaw = (formData?.get?.('next') as string | null) ?? null
+  const next =
+    nextRaw && nextRaw.startsWith('/') && !nextRaw.startsWith('//') && !nextRaw.includes('\\')
+      ? nextRaw
+      : '/'
+
   const supabase = await createClient()
+  const callbackUrl = new URL('/auth/callback', getSiteUrl())
+  if (next !== '/') {
+    callbackUrl.searchParams.set('next', next)
+  }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${getSiteUrl()}/auth/callback`,
+      redirectTo: callbackUrl.toString(),
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
@@ -78,8 +108,9 @@ export async function loginWithGoogle() {
     },
   })
   if (error || !data.url) {
+    console.error('[loginWithGoogle] Error initiating Google OAuth:', error)
     await setFlash('Could not sign in with Google. Please try again.', 'error')
-    redirect('/login')
+    redirect(next !== '/' ? `/login?next=${encodeURIComponent(next)}` : '/login')
   }
   redirect(data.url)
 }

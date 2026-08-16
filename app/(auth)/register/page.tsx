@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { createClient } from '@/utils/supabase/server'
+import { getUser } from '@/utils/supabase/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { register } from '../actions'
@@ -14,8 +14,7 @@ export const metadata: Metadata = {
 }
 
 export default async function RegisterPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const user = await getUser()
   if (user) redirect('/')
 
   const flash = await getFlash()
