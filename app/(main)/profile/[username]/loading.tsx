@@ -1,11 +1,11 @@
 export default function Loading() {
   return (
     <div className="bg-[var(--bg-base)]">
-      <div className="h-[170px] w-full animate-pulse bg-[var(--bg-elevated)]/30 sm:h-[230px]" />
+      <div className="relative z-0 h-[170px] w-full animate-pulse bg-[var(--bg-elevated)]/30 sm:h-[230px]" />
 
-      <div className="mx-auto max-w-4xl px-6 pb-24 sm:px-10 sm:pb-32">
-        <div className="-mt-10 flex items-end gap-4 sm:-mt-12">
-          <div className="h-24 w-24 animate-pulse rounded-full bg-[var(--bg-elevated)]" />
+      <div className="relative z-10 mx-auto max-w-4xl px-6 pb-24 sm:px-10 sm:pb-32">
+        <div className="relative z-20 -mt-10 flex items-end gap-4 sm:-mt-12">
+          <div className="h-24 w-24 animate-pulse rounded-full bg-[var(--bg-elevated)] ring-4 ring-[var(--bg-base)]" />
         </div>
 
         <div className="mt-5 space-y-3">

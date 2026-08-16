@@ -201,9 +201,9 @@ export default async function ProfilePage({ params, searchParams }: Props) {
       )}
 
       <div id="profile-canvas" className="profile-canvas">
-        {/* 1. BANNER */}
+        {/* 1. BANNER & OVERLAY (Layers 1 & 2) */}
         <div
-          className="relative h-[170px] w-full overflow-hidden sm:h-[230px]"
+          className="relative z-0 h-[170px] w-full overflow-hidden sm:h-[230px]"
           style={
             !profile.banner_url
               ? {
@@ -222,42 +222,49 @@ export default async function ProfilePage({ params, searchParams }: Props) {
               priority
             />
           )}
-          {/* fade to bg at bottom so header overlaps cleanly */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--bg-base)]/60" />
+          {/* Layer 2: Banner overlay fade to bg at bottom */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--bg-base)]/60"
+          />
         </div>
 
-        <div className="mx-auto max-w-4xl px-6 pb-24 sm:px-10 sm:pb-32">
-          {/* 2. PROFILE HEADER */}
+        {/* 2. PROFILE CONTENT (Layer 3) */}
+        <div className="relative z-10 mx-auto max-w-4xl px-6 pb-24 sm:px-10 sm:pb-32">
+          {/* PROFILE HEADER */}
           <section className="mb-14">
-            {/* Avatar row — pulled up to overlap the banner */}
-            <div className="-mt-10 flex flex-wrap items-end gap-4 sm:-mt-12">
-              {/* Avatar with accent-color ring */}
+            {/* Avatar row (Layer 4) — pulled up to overlap the banner cleanly */}
+            <div className="relative z-20 -mt-10 flex flex-wrap items-end gap-4 sm:-mt-12">
+              {/* Avatar with accent-color ring — isolated, opaque, independent */}
               <div
-                className="shrink-0 rounded-full"
+                className="relative shrink-0 rounded-full isolate"
                 style={{
                   padding: '4px',
                   background: accentColor,
                   boxShadow: `0 0 0 4px var(--bg-base)`,
                 }}
               >
-                {profile.avatar_url ? (
-                  <Image
-                    src={profile.avatar_url}
-                    alt={displayName}
-                    width={96}
-                    height={96}
-                    className="rounded-full"
-                  />
-                ) : (
-                  <div
-                    className="flex h-24 w-24 items-center justify-center rounded-full text-3xl font-semibold text-[var(--bg-base)]"
-                    style={{
-                      background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}88 100%)`,
-                    }}
-                  >
-                    {avatarInitial}
-                  </div>
-                )}
+                <div className="relative h-24 w-24 overflow-hidden rounded-full bg-[var(--bg-base)]">
+                  {profile.avatar_url ? (
+                    <Image
+                      src={profile.avatar_url}
+                      alt={displayName}
+                      width={96}
+                      height={96}
+                      className="h-full w-full object-cover object-center rounded-full"
+                      priority
+                    />
+                  ) : (
+                    <div
+                      className="flex h-full w-full items-center justify-center rounded-full text-3xl font-semibold text-[var(--bg-base)]"
+                      style={{
+                        background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}88 100%)`,
+                      }}
+                    >
+                      {avatarInitial}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Edit button pushed to the right, vertically aligned with avatar base */}

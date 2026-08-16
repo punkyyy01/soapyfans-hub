@@ -110,6 +110,7 @@ export async function saveProfile(
 
   revalidatePath('/profile/edit')
   revalidatePath(`/profile/${username}`)
+  revalidatePath('/', 'layout')
   return { error: null, success: true, username }
 }
 

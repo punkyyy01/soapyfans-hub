@@ -1,25 +1,16 @@
-import { createClient, getUser } from '@/utils/supabase/server'
+import { getAuthUserWithProfile } from '@/utils/supabase/server'
 import Image from 'next/image'
 import Link from 'next/link'
 import { logout } from '@/app/(auth)/actions'
 
 export default async function Navbar() {
-  const user = await getUser()
+  const { user, profile, profileHref } = await getAuthUserWithProfile()
 
-  let profileHref: string | null = null
   let avatarUrl: string | null = null
   let avatarLetter = ''
   let displayHandle = ''
 
   if (user) {
-    const supabase = await createClient()
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('username, avatar_url')
-      .eq('id', user.id)
-      .maybeSingle()
-
-    profileHref = `/profile/${profile?.username ?? user.id}`
     avatarUrl = profile?.avatar_url ?? null
     avatarLetter = (profile?.username ?? user.email ?? 'U')[0]?.toUpperCase() ?? 'U'
     displayHandle = profile?.username ? `@${profile.username}` : ''
