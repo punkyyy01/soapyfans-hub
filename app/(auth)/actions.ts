@@ -14,7 +14,7 @@ export async function login(formData: FormData) {
     password: formData.get('password') as string,
   })
   if (error) {
-    await setFlash('Email o contraseña incorrectos.', 'error')
+    await setFlash('Incorrect email or password.', 'error')
     redirect('/login')
   }
   redirect('/')
@@ -23,15 +23,15 @@ export async function login(formData: FormData) {
 function mapRegisterError(message: string): string {
   const lower = message.toLowerCase()
   if (lower.includes('already registered') || lower.includes('already exists')) {
-    return 'Ya existe una cuenta con ese email.'
+    return 'An account with this email already exists.'
   }
   if (lower.includes('password')) {
-    return 'La contraseña debe tener al menos 6 caracteres.'
+    return 'Password must be at least 6 characters.'
   }
   if (lower.includes('email') && (lower.includes('invalid') || lower.includes('valid'))) {
-    return 'Ingresá un email válido.'
+    return 'Please enter a valid email address.'
   }
-  return 'No se pudo crear la cuenta. Intentá de nuevo.'
+  return 'Could not create account. Please try again.'
 }
 
 export async function register(formData: FormData) {
@@ -45,7 +45,7 @@ export async function register(formData: FormData) {
     redirect('/register')
   }
   if (data.session) redirect('/')
-  await setFlash('Revisá tu email para confirmar tu cuenta.', 'message')
+  await setFlash('Check your email to confirm your account.', 'message')
   redirect('/login')
 }
 
@@ -57,7 +57,7 @@ export async function loginWithDiscord() {
     options: { redirectTo: `${getSiteUrl()}/auth/callback` },
   })
   if (error || !data.url) {
-    await setFlash('No se pudo iniciar sesión con Discord. Intentá de nuevo.', 'error')
+    await setFlash('Could not sign in with Discord. Please try again.', 'error')
     redirect('/login')
   }
   redirect(data.url)
@@ -163,17 +163,35 @@ export async function submitMusicReview(formData: FormData) {
   if (reviewId) {
     const { error } = await supabase
       .from('music_reviews')
-      .update({ rating, content, updated_at: new Date().toISOString() })
+      .update({ rating, content, deleted_at: null, updated_at: new Date().toISOString() })
       .eq('id', reviewId)
       .eq('user_id', user.id)
     if (error) redirect('/music?error=Could+not+save+your+review')
   } else {
-    const { error } = await supabase
+    // Check if review already exists for this user and release
+    const { data: existing } = await supabase
       .from('music_reviews')
-      .insert({ user_id: user.id, release_id: releaseId, rating, content })
-    if (error) redirect('/music?error=Could+not+save+your+review')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('release_id', releaseId)
+      .maybeSingle()
+
+    if (existing) {
+      const { error } = await supabase
+        .from('music_reviews')
+        .update({ rating, content, deleted_at: null, updated_at: new Date().toISOString() })
+        .eq('id', existing.id)
+        .eq('user_id', user.id)
+      if (error) redirect('/music?error=Could+not+save+your+review')
+    } else {
+      const { error } = await supabase
+        .from('music_reviews')
+        .insert({ user_id: user.id, release_id: releaseId, rating, content })
+      if (error) redirect('/music?error=Could+not+save+your+review')
+    }
   }
 
+  revalidatePath('/music')
   redirect('/music')
 }
 
@@ -224,18 +242,37 @@ export async function submitReview(formData: FormData) {
   if (reviewId) {
     const { error } = await supabase
       .from('reviews')
-      .update({ rating, content, updated_at: new Date().toISOString() })
+      .update({ rating, content, deleted_at: null, updated_at: new Date().toISOString() })
       .eq('id', reviewId)
       .eq('user_id', user.id)
 
     if (error) redirect(`/films/${tmdbId}?error=Could+not+save+your+review`)
   } else {
-    const { error } = await supabase
+    // Check if review already exists for this user and film
+    const { data: existing } = await supabase
       .from('reviews')
-      .insert({ user_id: user.id, film_id: filmRow.id, rating, content })
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('film_id', filmRow.id)
+      .maybeSingle()
 
-    if (error) redirect(`/films/${tmdbId}?error=Could+not+save+your+review`)
+    if (existing) {
+      const { error } = await supabase
+        .from('reviews')
+        .update({ rating, content, deleted_at: null, updated_at: new Date().toISOString() })
+        .eq('id', existing.id)
+        .eq('user_id', user.id)
+
+      if (error) redirect(`/films/${tmdbId}?error=Could+not+save+your+review`)
+    } else {
+      const { error } = await supabase
+        .from('reviews')
+        .insert({ user_id: user.id, film_id: filmRow.id, rating, content })
+
+      if (error) redirect(`/films/${tmdbId}?error=Could+not+save+your+review`)
+    }
   }
 
+  revalidatePath(`/films/${tmdbId}`)
   redirect(`/films/${tmdbId}`)
 }

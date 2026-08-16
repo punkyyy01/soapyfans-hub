@@ -1,9 +1,31 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { SITE_OG_IMAGE, SITE_NAME, absoluteUrl } from "@/utils/site"
 
 export const metadata: Metadata = {
   title: "Copyright & Contact",
   description: "Copyright policy, DMCA takedown process, and general contact for SoapyFans Hub.",
+  alternates: { canonical: "/contact" },
+  openGraph: {
+    title: `Copyright & Contact · ${SITE_NAME}`,
+    description: "Copyright policy, DMCA takedown process, and general contact for SoapyFans Hub.",
+    url: "/contact",
+    type: "website",
+    images: [
+      {
+        url: absoluteUrl(SITE_OG_IMAGE),
+        width: 1200,
+        height: 630,
+        alt: `Copyright & Contact · ${SITE_NAME}`,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `Copyright & Contact · ${SITE_NAME}`,
+    description: "Copyright policy, DMCA takedown process, and general contact for SoapyFans Hub.",
+    images: [absoluteUrl(SITE_OG_IMAGE)],
+  },
 }
 
 const cls = {

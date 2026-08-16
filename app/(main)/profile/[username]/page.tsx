@@ -3,7 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient, getUser } from '@/utils/supabase/server'
-import { getMovieDetails, getTvDetails, getTmdbImageUrl } from '@/utils/tmdb'
+import { getMovieDetails, getTvDetails, getTmdbImageUrl, getPersonCombinedCredits, normalizeCredit } from '@/utils/tmdb'
 import { sanitizeCSS } from '@/utils/sanitize-css'
 import ActivityFeed, { type ActivityItem } from '@/components/profile/ActivityFeed'
 
@@ -14,10 +14,25 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params
+  const title = `${username} · Profile`
+  const description = `${username}'s fan profile, favorites, and reviews on SoapyFans Hub.`
+  const canonical = `/profile/${encodeURIComponent(username)}`
+
   return {
-    title: `${username} · Profile`,
-    description: `Fan profile and reviews on SoapyFans Hub.`,
-    robots: { index: false, follow: false },
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      type: 'profile',
+    },
+    twitter: {
+      card: 'summary',
+      title,
+      description,
+    },
   }
 }
 
@@ -85,22 +100,13 @@ export default async function ProfilePage({ params, searchParams }: Props) {
     .slice()
     .sort((a, b) => a.position - b.position)
 
-  // Fetch TMDB for favorites and reviews in parallel
-  const [favoriteDetails, filmReviewsResult, musicReviewsResult] = await Promise.all([
-    Promise.all(
-      sortedFavorites.map(async (fav): Promise<EnrichedFavorite> => {
-        try {
-          if (fav.media_type === 'movie') {
-            const d = await getMovieDetails(fav.tmdb_id)
-            return { ...fav, posterPath: d.poster_path, title: d.title }
-          }
-          const d = await getTvDetails(fav.tmdb_id)
-          return { ...fav, posterPath: d.poster_path, title: d.name }
-        } catch {
-          return { ...fav, posterPath: null, title: null }
-        }
-      })
-    ),
+  // Fast path: resolve favorite titles and posters from cached combined credits
+  const creditsPromise = sortedFavorites.length > 0
+    ? getPersonCombinedCredits().catch(() => ({ id: 0, cast: [], crew: [] }))
+    : Promise.resolve({ id: 0, cast: [], crew: [] })
+
+  const [combinedCredits, filmReviewsResult, musicReviewsResult] = await Promise.all([
+    creditsPromise,
     profile.show_activity
       ? supabase
           .from('reviews')
@@ -120,6 +126,34 @@ export default async function ProfilePage({ params, searchParams }: Props) {
           .limit(20)
       : Promise.resolve({ data: [] }),
   ])
+
+  const creditMap = new Map<string, { title: string; posterPath: string | null }>()
+  for (const c of combinedCredits.cast) {
+    const norm = normalizeCredit(c)
+    creditMap.set(`${norm.mediaType}:${norm.id}`, {
+      title: norm.title,
+      posterPath: norm.posterPath,
+    })
+  }
+
+  const favoriteDetails: EnrichedFavorite[] = await Promise.all(
+    sortedFavorites.map(async (fav): Promise<EnrichedFavorite> => {
+      const fromCache = creditMap.get(`${fav.media_type}:${fav.tmdb_id}`)
+      if (fromCache) {
+        return { ...fav, posterPath: fromCache.posterPath, title: fromCache.title }
+      }
+      try {
+        if (fav.media_type === 'movie') {
+          const d = await getMovieDetails(fav.tmdb_id)
+          return { ...fav, posterPath: d.poster_path, title: d.title }
+        }
+        const d = await getTvDetails(fav.tmdb_id)
+        return { ...fav, posterPath: d.poster_path, title: d.name }
+      } catch {
+        return { ...fav, posterPath: null, title: null }
+      }
+    })
+  )
 
   // Supabase doesn't infer nested join shapes precisely; RawFilmReview/RawMusicReview match the actual select above.
   const filmReviews = (filmReviewsResult.data ?? []) as unknown as RawFilmReview[]

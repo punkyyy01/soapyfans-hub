@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -102,19 +103,79 @@ function normalizeTitle(title: string): string {
   return title.toLowerCase().replace(/[^a-z0-9]/g, '')
 }
 
+function BeyondSkeleton() {
+  return (
+    <section className="mt-28 pb-32">
+      <div className="mb-10 border-b border-[var(--border-subtle)] pb-5">
+        <div className="h-2 w-28 animate-pulse rounded-full bg-[var(--bg-elevated)]" />
+        <div className="mt-3 h-8 w-64 animate-pulse rounded bg-[var(--bg-elevated)]" />
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-28 animate-pulse rounded-md bg-[var(--bg-elevated)]/60" />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+async function WikidataSection({ tmdbTitles }: { tmdbTitles: string[] }) {
+  const wikidataCredits = await getSophieWikidataCredits().catch(() => [])
+
+  const tmdbTitlesSet = new Set(tmdbTitles.map(normalizeTitle))
+  const beyondCredits = wikidataCredits.filter(
+    (c) => !tmdbTitlesSet.has(normalizeTitle(c.title)),
+  )
+
+  if (beyondCredits.length === 0) return null
+
+  return (
+    <section id="beyond" className="mt-28 scroll-mt-28 pb-32">
+      <div className="mb-10 flex items-end justify-between gap-4 border-b border-[var(--border-subtle)] pb-5">
+        <div>
+          <p className="text-[0.7rem] uppercase tracking-[0.5em] text-[var(--accent-gold)]">
+            Stage · Music · Production
+          </p>
+          <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-4xl">
+            Beyond the screen
+          </h2>
+        </div>
+        <span className="text-xs uppercase tracking-[0.28em] text-[var(--text-muted)]">
+          {beyondCredits.length.toString().padStart(2, '0')} credits
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        {beyondCredits.map((c) => (
+          <div
+            key={c.wikidataId}
+            className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-5 ring-1 ring-transparent transition-colors hover:border-[var(--accent-amber)]/40 hover:ring-[var(--accent-amber)]/10"
+          >
+            <p className="font-display text-sm font-medium leading-snug text-[var(--text-primary)]">
+              {c.title}
+            </p>
+            <p className="mt-1.5 text-xs italic text-[var(--text-muted)]">
+              {c.character ? `as ${c.character}` : ' '}
+            </p>
+            <div className="mt-4 flex items-center justify-between gap-2">
+              <span className="text-[0.65rem] uppercase tracking-[0.32em] text-[var(--text-muted)]">
+                {c.year ?? '—'}
+              </span>
+              {c.mediaType && (
+                <span className="rounded-full bg-[var(--bg-base)] px-2 py-0.5 text-[0.55rem] uppercase tracking-[0.22em] text-[var(--accent-gold)] ring-1 ring-[var(--accent-amber)]/25">
+                  {c.mediaType}
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export default async function FilmsPage() {
-  const [creditsResult, wikidataResult] = await Promise.allSettled([
-    getPersonCombinedCredits(),
-    getSophieWikidataCredits(),
-  ])
-
-  const credits =
-    creditsResult.status === 'fulfilled'
-      ? creditsResult.value
-      : { id: 0, cast: [], crew: [] }
-
-  const wikidataCredits =
-    wikidataResult.status === 'fulfilled' ? wikidataResult.value : []
+  const credits = await getPersonCombinedCredits().catch(() => ({ id: 0, cast: [], crew: [] }))
 
   const seen = new Set<string>()
   const all: NormalizedCredit[] = []
@@ -138,11 +199,6 @@ export default async function FilmsPage() {
 
   const filmList = [...films, ...undatedFilms]
   const tvList = [...tv, ...undatedTv]
-
-  const tmdbTitles = new Set(all.map((c) => normalizeTitle(c.title)))
-  const beyondCredits = wikidataCredits.filter(
-    (c) => !tmdbTitles.has(normalizeTitle(c.title))
-  )
 
   return (
     <main className="relative bg-[var(--bg-base)] pt-32">
@@ -183,14 +239,6 @@ export default async function FilmsPage() {
                 </span>{' '}
                 tv credits
               </span>
-              {beyondCredits.length > 0 && (
-                <span>
-                  <span className="text-[var(--text-secondary)]">
-                    {beyondCredits.length.toString().padStart(2, '0')}
-                  </span>{' '}
-                  beyond
-                </span>
-              )}
               {yearSpan(all) && (
                 <span>
                   <span className="text-[var(--text-secondary)]">
@@ -218,17 +266,13 @@ export default async function FilmsPage() {
               >
                 ↓ Television
               </a>
-              {beyondCredits.length > 0 && (
-                <>
-                  <span className="text-[var(--border-strong)]">·</span>
-                  <a
-                    href="#beyond"
-                    className="text-[var(--text-secondary)] underline-offset-8 transition-colors hover:text-[var(--accent-gold)] hover:underline"
-                  >
-                    ↓ Beyond the screen
-                  </a>
-                </>
-              )}
+              <span className="text-[var(--border-strong)]">·</span>
+              <a
+                href="#beyond"
+                className="text-[var(--text-secondary)] underline-offset-8 transition-colors hover:text-[var(--accent-gold)] hover:underline"
+              >
+                ↓ Beyond the screen
+              </a>
             </nav>
           </Reveal>
         </header>
@@ -278,7 +322,7 @@ export default async function FilmsPage() {
           <div className="relative border-y border-[var(--border-subtle)] py-12 text-center">
             <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[var(--bg-base)] px-6">
               <span className="text-[0.58rem] uppercase tracking-[0.5em] text-[var(--accent-forest)]">
-                Yellowjackets · 2021–2024
+                Yellowjackets · 2021–Present
               </span>
             </span>
             <p className="font-display text-[clamp(1.1rem,2.5vw,1.8rem)] font-medium italic leading-[1.2] tracking-tight text-[var(--text-primary)]">
@@ -327,51 +371,9 @@ export default async function FilmsPage() {
           )}
         </section>
 
-        {beyondCredits.length > 0 && (
-          <section id="beyond" className="mt-28 scroll-mt-28 pb-32">
-            <div className="mb-10 flex items-end justify-between gap-4 border-b border-[var(--border-subtle)] pb-5">
-              <div>
-                <p className="text-[0.7rem] uppercase tracking-[0.5em] text-[var(--accent-gold)]">
-                  Stage · Music · Production
-                </p>
-                <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-4xl">
-                  Beyond the screen
-                </h2>
-              </div>
-              <span className="text-xs uppercase tracking-[0.28em] text-[var(--text-muted)]">
-                {beyondCredits.length.toString().padStart(2, '0')} credits
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {beyondCredits.map((c) => (
-                <div
-                  key={c.wikidataId}
-                  className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-5 ring-1 ring-transparent transition-colors hover:border-[var(--accent-amber)]/40 hover:ring-[var(--accent-amber)]/10"
-                >
-                  <p className="font-display text-sm font-medium leading-snug text-[var(--text-primary)]">
-                    {c.title}
-                  </p>
-                  <p className="mt-1.5 text-xs italic text-[var(--text-muted)]">
-                    {c.character ? `as ${c.character}` : ' '}
-                  </p>
-                  <div className="mt-4 flex items-center justify-between gap-2">
-                    <span className="text-[0.65rem] uppercase tracking-[0.32em] text-[var(--text-muted)]">
-                      {c.year ?? '—'}
-                    </span>
-                    {c.mediaType && (
-                      <span className="rounded-full bg-[var(--bg-base)] px-2 py-0.5 text-[0.55rem] uppercase tracking-[0.22em] text-[var(--accent-gold)] ring-1 ring-[var(--accent-amber)]/25">
-                        {c.mediaType}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {beyondCredits.length === 0 && <div className="pb-32" />}
+        <Suspense fallback={<BeyondSkeleton />}>
+          <WikidataSection tmdbTitles={all.map((c) => c.title)} />
+        </Suspense>
       </div>
     </main>
   )

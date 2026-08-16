@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { DM_Sans, Geist_Mono, Playfair_Display } from "next/font/google";
 import Link from "next/link";
 import { Suspense } from "react";
-import { headers } from "next/headers";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import Navbar from "@/components/ui/Navbar";
@@ -20,19 +19,21 @@ const dmSans = DM_Sans({
   variable: "--font-dm-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-  style: ["normal", "italic"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
+  weight: ["400", "600", "700"],
   style: ["normal", "italic"],
+  display: "swap",
 });
 
 const siteUrl = getSiteUrl();
@@ -101,12 +102,11 @@ export const metadata: Metadata = {
   category: "entertainment",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const nonce = (await headers()).get('x-nonce') ?? undefined
   const year = new Date().getFullYear();
 
   return (
@@ -121,7 +121,6 @@ export default async function RootLayout({
           </Suspense>
           <script
             type="application/ld+json"
-            nonce={nonce}
             dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildOrganizationSchema()) }}
           />
           <div className="flex-1">{children}</div>

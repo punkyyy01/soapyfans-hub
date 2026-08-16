@@ -40,68 +40,69 @@ export default function Hero({
     const el = root.current
     if (!el) return
 
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return
+    }
+
     const ctx = gsap.context(() => {
-      const split = (selector: string) => {
-        const node = el.querySelector<HTMLElement>(selector)
-        if (!node) return [] as HTMLSpanElement[]
-        const text = node.textContent ?? ''
-        node.textContent = ''
-        const frag = document.createDocumentFragment()
-        const spans: HTMLSpanElement[] = []
-        for (const word of text.split(/(\s+)/)) {
-          if (/^\s+$/.test(word)) {
-            frag.appendChild(document.createTextNode(word))
-            continue
-          }
-          const wrap = document.createElement('span')
-          wrap.className = 'inline-block overflow-hidden align-baseline'
-          const inner = document.createElement('span')
-          inner.className = 'inline-block will-change-transform'
-          inner.textContent = word
-          wrap.appendChild(inner)
-          frag.appendChild(wrap)
-          spans.push(inner)
-        }
-        node.appendChild(frag)
-        return spans
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
+
+      tl.fromTo(
+        '[data-hero-eyebrow]',
+        { opacity: 0, y: 12 },
+        { opacity: 1, y: 0, duration: 0.6 }
+      )
+        .fromTo(
+          '[data-hero-title-a], [data-hero-title-b], [data-hero-title-c]',
+          { opacity: 0, y: 24 },
+          { opacity: 1, y: 0, duration: 0.8, stagger: 0.12 },
+          '-=0.4'
+        )
+        .fromTo(
+          '[data-hero-portrait]',
+          { opacity: 0, scale: 0.96 },
+          { opacity: 1, scale: 1, duration: 0.9, ease: 'power2.out' },
+          '-=0.7'
+        )
+        .fromTo(
+          '[data-hero-tagline]',
+          { opacity: 0, y: 16 },
+          { opacity: 1, y: 0, duration: 0.6 },
+          '-=0.5'
+        )
+        .fromTo(
+          '[data-hero-cta]',
+          { opacity: 0, y: 14 },
+          { opacity: 1, y: 0, duration: 0.5, stagger: 0.08 },
+          '-=0.4'
+        )
+        .fromTo(
+          '[data-hero-meta]',
+          { opacity: 0 },
+          { opacity: 1, duration: 0.5, stagger: 0.06 },
+          '-=0.3'
+        )
+        .fromTo(
+          '[data-hero-scroll]',
+          { opacity: 0 },
+          { opacity: 1, duration: 0.5 },
+          '-=0.2'
+        )
+
+      // Parallax scroll triggers only on desktop for smooth mobile 60fps scrolling
+      if (window.innerWidth >= 1024) {
+        gsap.to('[data-hero-bg]', {
+          yPercent: 14,
+          ease: 'none',
+          scrollTrigger: { trigger: el, start: 'top top', end: 'bottom top', scrub: true },
+        })
+
+        gsap.to('[data-hero-portrait]', {
+          yPercent: -10,
+          ease: 'none',
+          scrollTrigger: { trigger: el, start: 'top top', end: 'bottom top', scrub: true },
+        })
       }
-
-      const eyebrow = split('[data-hero-eyebrow]')
-      const titleA = split('[data-hero-title-a]')
-      const titleB = split('[data-hero-title-b]')
-      const titleC = split('[data-hero-title-c]')
-      const tagline = split('[data-hero-tagline]')
-
-      const tl = gsap.timeline({ defaults: { ease: 'expo.out' } })
-
-      tl.from(eyebrow, { yPercent: 120, opacity: 0, duration: 0.9, stagger: 0.04 })
-        .from(titleA, { yPercent: 120, opacity: 0, duration: 1.3, stagger: 0.07 }, '-=0.6')
-        .from(titleB, { yPercent: 120, opacity: 0, duration: 1.3, stagger: 0.07 }, '-=1.05')
-        .from(titleC, { yPercent: 120, opacity: 0, duration: 1.3, stagger: 0.07 }, '-=1.05')
-        .from('[data-hero-portrait]', { opacity: 0, duration: 1.5 }, '+=0.2')
-        .from(tagline, { yPercent: 120, opacity: 0, duration: 1.0, stagger: 0.03 }, '-=0.95')
-        .from('[data-hero-meta]', { opacity: 0, y: 20, duration: 0.8, stagger: 0.08 }, '-=0.6')
-        .from('[data-hero-cta]', { opacity: 0, y: 18, duration: 0.7, stagger: 0.08 }, '-=0.5')
-        .from('[data-hero-scroll]', { opacity: 0, y: 12, duration: 0.6 }, '-=0.4')
-
-      gsap.to('[data-hero-bg]', {
-        yPercent: 18,
-        ease: 'none',
-        scrollTrigger: { trigger: el, start: 'top top', end: 'bottom top', scrub: true },
-      })
-
-      gsap.to('[data-hero-portrait]', {
-        yPercent: -12,
-        ease: 'none',
-        scrollTrigger: { trigger: el, start: 'top top', end: 'bottom top', scrub: true },
-      })
-
-      gsap.to('[data-hero-content]', {
-        yPercent: -6,
-        opacity: 0.55,
-        ease: 'none',
-        scrollTrigger: { trigger: el, start: 'top top', end: 'bottom top', scrub: true },
-      })
     }, root)
 
     return () => ctx.revert()
@@ -209,19 +210,24 @@ export default function Hero({
           {portraitUrls.length > 0 && (
             <>
               <div className="relative h-72 w-full overflow-hidden lg:hidden">
-                {portraitUrls.map((url, i) => (
-                  <Image
-                    key={url}
-                    src={url}
-                    alt="Sophie Thatcher"
-                    fill
-                    priority={i === 0}
-                    sizes="100vw"
-                    className={`object-cover object-top transition-opacity duration-700 ${
-                      i === currentPortrait ? 'opacity-100' : 'opacity-0'
-                    }`}
-                  />
-                ))}
+                {portraitUrls.map((url, i) => {
+                  const isActive = i === currentPortrait
+                  const isNext = i === (currentPortrait + 1) % portraitUrls.length
+                  if (!isActive && !isNext) return null
+                  return (
+                    <Image
+                      key={url}
+                      src={url}
+                      alt="Sophie Thatcher"
+                      fill
+                      priority={i === 0}
+                      sizes="100vw"
+                      className={`object-cover object-top transition-opacity duration-700 ${
+                        isActive ? 'opacity-100' : 'opacity-0'
+                      }`}
+                    />
+                  )
+                })}
                 <span
                   aria-hidden
                   className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--bg-base)] to-transparent"
@@ -234,19 +240,24 @@ export default function Hero({
                   Portrait — via TMDB
                 </span>
 
-                {portraitUrls.map((url, i) => (
-                  <Image
-                    key={url}
-                    src={url}
-                    alt="Sophie Thatcher"
-                    fill
-                    priority={i === 0}
-                    sizes="420px"
-                    className={`object-cover object-[center_10%] sm:object-[center_15%] [filter:grayscale(0.2)_contrast(1.05)_brightness(0.92)] transition-opacity duration-700 ${
-                      i === currentPortrait ? 'opacity-100' : 'opacity-0'
-                    }`}
-                  />
-                ))}
+                {portraitUrls.map((url, i) => {
+                  const isActive = i === currentPortrait
+                  const isNext = i === (currentPortrait + 1) % portraitUrls.length
+                  if (!isActive && !isNext) return null
+                  return (
+                    <Image
+                      key={url}
+                      src={url}
+                      alt="Sophie Thatcher"
+                      fill
+                      priority={i === 0}
+                      sizes="420px"
+                      className={`object-cover object-[center_10%] sm:object-[center_15%] [filter:grayscale(0.2)_contrast(1.05)_brightness(0.92)] transition-opacity duration-700 ${
+                        isActive ? 'opacity-100' : 'opacity-0'
+                      }`}
+                    />
+                  )
+                })}
 
                 <span
                   aria-hidden

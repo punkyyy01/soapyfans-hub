@@ -31,6 +31,13 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: process.env.NEXT_PUBLIC_SUPABASE_URL
+          ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
+          : 'tcskvcmtcsaxyfoselvb.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'tcskvcmtcsaxyfoselvb.supabase.co',
         pathname: '/storage/v1/object/public/**',
       },

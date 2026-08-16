@@ -23,16 +23,19 @@ function isRateLimited(ip: string): boolean {
 }
 
 function buildCsp(nonce: string): string {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseHost = supabaseUrl ? new URL(supabaseUrl).host : 'tcskvcmtcsaxyfoselvb.supabase.co'
+
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}'`,
+    `script-src 'self' 'nonce-${nonce}' https://va.vercel-scripts.com`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data: blob: https://image.tmdb.org https://cdn.discordapp.com https://tcskvcmtcsaxyfoselvb.supabase.co",
-    "connect-src 'self' https://tcskvcmtcsaxyfoselvb.supabase.co wss://tcskvcmtcsaxyfoselvb.supabase.co",
+    `img-src 'self' data: blob: https://image.tmdb.org https://cdn.discordapp.com https://${supabaseHost}`,
+    `connect-src 'self' https://${supabaseHost} wss://${supabaseHost} https://vitals.vercel-insights.com https://va.vercel-scripts.com`,
     "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
     "frame-ancestors 'none'",
-    "form-action 'self'",
+    "form-action 'self' https://discord.com",
     "base-uri 'self'",
     "object-src 'none'",
   ].join('; ')
@@ -47,7 +50,9 @@ export async function updateSession(request: NextRequest, nonce: string = '') {
       const allowed = new Set<string>([
         `https://${host}`,
         `http://${host}`,
-        ...(process.env.NEXT_PUBLIC_SITE_URL ? [process.env.NEXT_PUBLIC_SITE_URL] : []),
+        ...(process.env.NEXT_PUBLIC_SITE_URL
+          ? [process.env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '')]
+          : []),
       ])
 
       if (!allowed.has(origin)) {

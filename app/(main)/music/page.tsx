@@ -12,6 +12,8 @@ import Link from 'next/link'
 const MUSIC_DESCRIPTION =
   "Sophie Thatcher's music — debut EP, singles, soundtracks, and tracklists, with reviews from fans. Fan-made, unofficial, not affiliated with Sophie Thatcher."
 
+export const revalidate = 3600
+
 export const metadata: Metadata = {
   title: 'Music',
   description: MUSIC_DESCRIPTION,

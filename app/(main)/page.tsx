@@ -13,13 +13,14 @@ import {
   type TmdbCombinedCredits,
   type TmdbPersonImages,
 } from '@/utils/tmdb'
-import { getUser } from '@/utils/supabase/server'
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildWebPageSchema, buildWebSiteSchema, serializeJsonLd } from '@/utils/schema'
 import Hero from '@/components/ui/Hero'
 import Reveal from '@/components/ui/Reveal'
 import FilmCard from '@/components/media/FilmCard'
 import MusicSection from '@/components/forms/MusicSection'
+
+export const revalidate = 3600
 
 export const metadata: Metadata = {
   title: `${SITE_NAME} — ${SITE_TAGLINE}`,
@@ -69,8 +70,7 @@ export default async function HomePage() {
   const portraitPromise = getPersonImages()
     .catch((): TmdbPersonImages => { return { id: 0, profiles: [] } })
 
-  const [user, credits, imagesData] = await Promise.all([
-    getUser(),
+  const [credits, imagesData] = await Promise.all([
     creditsPromise,
     portraitPromise,
   ])
@@ -300,14 +300,12 @@ export default async function HomePage() {
               Sign in to add your rating and a few lines. The archive grows one sentence at a time.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              {!user && (
-                <Link
-                  href="/login"
-                  className="rounded-full bg-[var(--accent-amber)] px-7 py-3 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-[var(--bg-base)] transition-all hover:bg-[var(--accent-gold)] hover:shadow-[0_0_40px_rgba(255,183,0,0.45)]"
-                >
-                  Sign in
-                </Link>
-              )}
+              <Link
+                href="/login"
+                className="rounded-full bg-[var(--accent-amber)] px-7 py-3 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-[var(--bg-base)] transition-all hover:bg-[var(--accent-gold)] hover:shadow-[0_0_40px_rgba(255,183,0,0.45)]"
+              >
+                Sign in
+              </Link>
               <Link
                 href="/films"
                 className="rounded-full border border-[var(--border-strong)] px-7 py-3 text-[0.72rem] uppercase tracking-[0.28em] text-[var(--text-secondary)] transition-all hover:border-[var(--accent-amber)] hover:text-[var(--accent-gold)]"

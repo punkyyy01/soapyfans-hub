@@ -498,24 +498,24 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
               rows={8}
               value={profileCss}
               onChange={(e) => setProfileCss(e.target.value)}
-              maxLength={5000}
+              maxLength={2000}
               spellCheck={false}
-              placeholder={`/* Personaliza tu perfil con CSS */
-/* Ejemplo: cambiar fondo */
+              placeholder={`/* Customize your profile with CSS */
+/* Example: change background */
 /* background: #1a0a2e; */
-/* No se permite: @import, position: fixed, javascript: */`}
+/* Disallowed: @import, position: fixed/absolute/sticky, javascript: */`}
               className={`${INPUT_CLS} font-mono text-xs leading-relaxed resize-y`}
             />
             <p
               className={`mt-1 text-right text-[0.65rem] ${
-                cssCharCount > 4800
+                cssCharCount > 1900
                   ? 'text-red-400'
-                  : cssCharCount > 4000
+                  : cssCharCount > 1600
                     ? 'text-[var(--accent-amber)]'
                     : 'text-[var(--text-muted)]'
               }`}
             >
-              {cssCharCount.toLocaleString()} / 5,000
+              {cssCharCount.toLocaleString()} / 2,000
             </p>
           </div>
         </section>

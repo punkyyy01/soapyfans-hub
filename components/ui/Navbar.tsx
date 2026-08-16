@@ -21,7 +21,7 @@ export default async function Navbar() {
 
     profileHref = `/profile/${profile?.username ?? user.id}`
     avatarUrl = profile?.avatar_url ?? null
-    avatarLetter = (profile?.username ?? '')[0]?.toUpperCase() ?? ''
+    avatarLetter = (profile?.username ?? user.email ?? 'U')[0]?.toUpperCase() ?? 'U'
     displayHandle = profile?.username ? `@${profile.username}` : ''
   }
 

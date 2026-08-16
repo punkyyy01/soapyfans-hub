@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { getMovieDetails, getTmdbImageUrl, getWatchProvidersForCountry } from '@/utils/tmdb'
 import WhereToWatch from '@/components/media/WhereToWatch'
@@ -69,18 +70,36 @@ type ReviewWithProfile = {
   profiles: { username: string | null; display_name: string | null } | null
 }
 
-export default async function FilmDetailPage({ params, searchParams }: Props) {
-  const { id } = await params
-  const { error } = await searchParams
-  const tmdbId = Number(id)
+function ReviewsSkeleton() {
+  return (
+    <section className="space-y-10">
+      <div className="flex items-end justify-between border-b border-[var(--border-subtle)] pb-5">
+        <div>
+          <div className="h-2 w-20 animate-pulse rounded-full bg-[var(--bg-elevated)]" />
+          <div className="mt-3 h-8 w-40 animate-pulse rounded bg-[var(--bg-elevated)]" />
+        </div>
+      </div>
+      <div className="h-28 animate-pulse rounded-lg bg-[var(--bg-elevated)]/40" />
+    </section>
+  )
+}
 
-  if (!Number.isFinite(tmdbId) || tmdbId <= 0) notFound()
-
+async function FilmReviewsSection({
+  tmdbId,
+  filmTitle,
+  releaseYear,
+  posterPath,
+  overview,
+  error,
+}: {
+  tmdbId: number
+  filmTitle: string
+  releaseYear: number | null
+  posterPath: string | null
+  overview: string | null
+  error?: string
+}) {
   const supabase = await createClient()
-
-  const film = await getMovieDetails(tmdbId).catch(() => null)
-  if (!film) notFound()
-
   const [user, { data: dbFilm }] = await Promise.all([
     getUser(),
     supabase
@@ -90,15 +109,136 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
       .maybeSingle(),
   ])
 
-  const poster = getTmdbImageUrl(film.poster_path, 'w500')
-  const backdrop = getTmdbImageUrl(film.backdrop_path, 'w1280')
-  const releaseYear = film.release_date ? Number(film.release_date.slice(0, 4)) : null
-
   const reviews: ReviewWithProfile[] = ((dbFilm?.reviews ?? []) as ReviewWithProfile[])
     .filter((r) => r.deleted_at === null)
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
 
   const userReview = user ? reviews.find((r) => r.user_id === user.id) : undefined
+
+  return (
+    <section className="space-y-10">
+      <div className="flex items-end justify-between border-b border-[var(--border-subtle)] pb-5">
+        <div>
+          <p className="text-[0.7rem] uppercase tracking-[0.5em] text-[var(--accent-amber)]">
+            Fan notes
+          </p>
+          <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-[var(--text-primary)]">
+            Reviews
+          </h2>
+        </div>
+        <span className="text-xs uppercase tracking-[0.28em] text-[var(--text-muted)]">
+          {reviews.length.toString().padStart(2, '0')}{' '}
+          {reviews.length === 1 ? 'voice' : 'voices'}
+        </span>
+      </div>
+
+      {error && (
+        <p className="rounded-md border border-red-900/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+          {error}
+        </p>
+      )}
+
+      {user ? (
+        <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/60 p-6 backdrop-blur">
+          <ReviewForm
+            tmdbId={tmdbId}
+            title={filmTitle}
+            releaseYear={releaseYear}
+            posterPath={posterPath}
+            overview={overview}
+            existingReview={
+              userReview
+                ? {
+                    id: userReview.id,
+                    rating: userReview.rating,
+                    content: userReview.content,
+                  }
+                : undefined
+            }
+          />
+        </div>
+      ) : (
+        <p className="rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--bg-elevated)]/40 px-5 py-4 text-sm text-[var(--text-secondary)]">
+          <Link
+            href="/login"
+            className="font-medium uppercase tracking-[0.18em] text-[var(--accent-gold)] underline-offset-4 hover:underline"
+          >
+            Sign in
+          </Link>{' '}
+          to leave a note.
+        </p>
+      )}
+
+      {reviews.length > 0 ? (
+        <ul className="space-y-6">
+          {reviews.map((review) => {
+            const author =
+              review.profiles?.display_name ??
+              review.profiles?.username ??
+              'Anonymous'
+            const isOwn = review.user_id === user?.id
+            return (
+              <li
+                key={review.id}
+                className="group relative rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]/50 px-6 py-5 transition-colors hover:border-[var(--accent-amber)]/40"
+              >
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--accent-amber)]/30 bg-[var(--bg-base)] text-xs font-semibold text-[var(--accent-gold)]">
+                    {author[0]?.toUpperCase() ?? '?'}
+                  </span>
+                  <span className="font-display text-base font-medium text-[var(--text-primary)]">
+                    {author}
+                    {isOwn && (
+                      <span className="ml-2 text-[0.6rem] uppercase tracking-[0.22em] text-[var(--accent-amber)]">
+                        · you
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-[var(--accent-gold)]" aria-label={`${review.rating} of 5 stars`}>
+                    {'★'.repeat(review.rating)}
+                    <span className="text-[var(--text-muted)]">
+                      {'★'.repeat(5 - review.rating)}
+                    </span>
+                  </span>
+                  <span className="ml-auto text-[0.65rem] uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                    {new Date(review.created_at).toLocaleDateString(undefined, {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </span>
+                </div>
+                {review.content && (
+                  <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)] text-pretty">
+                    {review.content}
+                  </p>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      ) : (
+        <p className="text-sm italic text-[var(--text-muted)]">
+          No reviews yet. Be the first one to break the silence.
+        </p>
+      )}
+    </section>
+  )
+}
+
+export default async function FilmDetailPage({ params, searchParams }: Props) {
+  const { id } = await params
+  const { error } = await searchParams
+  const tmdbId = Number(id)
+
+  if (!Number.isFinite(tmdbId) || tmdbId <= 0) notFound()
+
+  const film = await getMovieDetails(tmdbId).catch(() => null)
+  if (!film) notFound()
+
+  const poster = getTmdbImageUrl(film.poster_path, 'w500')
+  const backdrop = getTmdbImageUrl(film.backdrop_path, 'w1280')
+  const releaseYear = film.release_date ? Number(film.release_date.slice(0, 4)) : null
 
   const movieSchema = buildMovieSchema({
     tmdbId,
@@ -108,7 +248,7 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
     posterUrl: poster,
     genres: film.genres,
     runtime: film.runtime,
-    reviews,
+    reviews: [],
   })
 
   return (
@@ -219,113 +359,16 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
               alternativeTitles={film.alternativeTitles}
             />
 
-            <section className="space-y-10">
-              <div className="flex items-end justify-between border-b border-[var(--border-subtle)] pb-5">
-                <div>
-                  <p className="text-[0.7rem] uppercase tracking-[0.5em] text-[var(--accent-amber)]">
-                    Fan notes
-                  </p>
-                  <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-[var(--text-primary)]">
-                    Reviews
-                  </h2>
-                </div>
-                <span className="text-xs uppercase tracking-[0.28em] text-[var(--text-muted)]">
-                  {reviews.length.toString().padStart(2, '0')}{' '}
-                  {reviews.length === 1 ? 'voice' : 'voices'}
-                </span>
-              </div>
-
-              {error && (
-                <p className="rounded-md border border-red-900/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">
-                  {error}
-                </p>
-              )}
-
-              {user ? (
-                <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/60 p-6 backdrop-blur">
-                  <ReviewForm
-                    tmdbId={tmdbId}
-                    title={film.title}
-                    releaseYear={releaseYear}
-                    posterPath={film.poster_path}
-                    overview={film.overview}
-                    existingReview={
-                      userReview
-                        ? {
-                            id: userReview.id,
-                            rating: userReview.rating,
-                            content: userReview.content,
-                          }
-                        : undefined
-                    }
-                  />
-                </div>
-              ) : (
-                <p className="rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--bg-elevated)]/40 px-5 py-4 text-sm text-[var(--text-secondary)]">
-                  <Link
-                    href="/login"
-                    className="font-medium uppercase tracking-[0.18em] text-[var(--accent-gold)] underline-offset-4 hover:underline"
-                  >
-                    Sign in
-                  </Link>{' '}
-                  to leave a note.
-                </p>
-              )}
-
-              {reviews.length > 0 ? (
-                <ul className="space-y-6">
-                  {reviews.map((review) => {
-                    const author =
-                      review.profiles?.display_name ??
-                      review.profiles?.username ??
-                      'Anonymous'
-                    const isOwn = review.user_id === user?.id
-                    return (
-                      <li
-                        key={review.id}
-                        className="group relative rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]/50 px-6 py-5 transition-colors hover:border-[var(--accent-amber)]/40"
-                      >
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--accent-amber)]/30 bg-[var(--bg-base)] text-xs font-semibold text-[var(--accent-gold)]">
-                            {author[0]?.toUpperCase() ?? '?'}
-                          </span>
-                          <span className="font-display text-base font-medium text-[var(--text-primary)]">
-                            {author}
-                            {isOwn && (
-                              <span className="ml-2 text-[0.6rem] uppercase tracking-[0.22em] text-[var(--accent-amber)]">
-                                · you
-                              </span>
-                            )}
-                          </span>
-                          <span className="text-[var(--accent-gold)]" aria-label={`${review.rating} of 5 stars`}>
-                            {'★'.repeat(review.rating)}
-                            <span className="text-[var(--text-muted)]">
-                              {'★'.repeat(5 - review.rating)}
-                            </span>
-                          </span>
-                          <span className="ml-auto text-[0.65rem] uppercase tracking-[0.22em] text-[var(--text-muted)]">
-                            {new Date(review.created_at).toLocaleDateString(undefined, {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })}
-                          </span>
-                        </div>
-                        {review.content && (
-                          <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)] text-pretty">
-                            {review.content}
-                          </p>
-                        )}
-                      </li>
-                    )
-                  })}
-                </ul>
-              ) : (
-                <p className="text-sm italic text-[var(--text-muted)]">
-                  No reviews yet. Be the first one to break the silence.
-                </p>
-              )}
-            </section>
+            <Suspense fallback={<ReviewsSkeleton />}>
+              <FilmReviewsSection
+                tmdbId={tmdbId}
+                filmTitle={film.title}
+                releaseYear={releaseYear}
+                posterPath={film.poster_path}
+                overview={film.overview}
+                error={error}
+              />
+            </Suspense>
           </div>
         </div>
       </div>

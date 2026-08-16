@@ -66,7 +66,8 @@ export default async function TvDetailPage({ params }: Props) {
 
   if (!Number.isFinite(tvId) || tvId <= 0) notFound()
 
-  const tv = await getTvDetails(tvId).catch(() => notFound())
+  const tv = await getTvDetails(tvId).catch(() => null)
+  if (!tv) notFound()
 
   const poster = getTmdbImageUrl(tv.poster_path, 'w500')
   const backdrop = getTmdbImageUrl(tv.backdrop_path, 'w1280')

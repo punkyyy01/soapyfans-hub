@@ -1,9 +1,31 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { SITE_OG_IMAGE, SITE_NAME, absoluteUrl } from "@/utils/site"
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description: "How SoapyFans Hub collects, uses, and protects your data.",
+  alternates: { canonical: "/privacy" },
+  openGraph: {
+    title: `Privacy Policy · ${SITE_NAME}`,
+    description: "How SoapyFans Hub collects, uses, and protects your data.",
+    url: "/privacy",
+    type: "website",
+    images: [
+      {
+        url: absoluteUrl(SITE_OG_IMAGE),
+        width: 1200,
+        height: 630,
+        alt: `Privacy Policy · ${SITE_NAME}`,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `Privacy Policy · ${SITE_NAME}`,
+    description: "How SoapyFans Hub collects, uses, and protects your data.",
+    images: [absoluteUrl(SITE_OG_IMAGE)],
+  },
 }
 
 const cls = {

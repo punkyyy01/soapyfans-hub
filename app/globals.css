@@ -52,11 +52,9 @@ body {
   position: relative;
 }
 
-/* Hand-made feel: site-wide noise overlay sitting above the bg gradients
-   but below content. ~3.5% opacity keeps it subliminal. */
 body::before {
   content: "";
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
@@ -64,6 +62,8 @@ body::before {
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch' seed='4'/><feColorMatrix type='matrix' values='0 0 0 0 1  0 0 0 0 0.86  0 0 0 0 0.62  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   background-size: 220px 220px;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 body > * {

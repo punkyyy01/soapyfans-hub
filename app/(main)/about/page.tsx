@@ -14,6 +14,8 @@ import PhotoGallery from '@/components/media/PhotoGallery'
 
 // ── Constants ────────────────────────────────────────────────
 
+export const revalidate = 3600
+
 const ABOUT_DESCRIPTION =
   "An editorial profile of Sophie Thatcher — her Chicago roots, family of artists, and the career that made her one of her generation's most compelling performers."
 
