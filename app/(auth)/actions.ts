@@ -64,6 +64,26 @@ export async function loginWithDiscord() {
   redirect(data.url)
 }
 
+export async function loginWithGoogle() {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${getSiteUrl()}/auth/callback`,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      },
+    },
+  })
+  if (error || !data.url) {
+    await setFlash('Could not sign in with Google. Please try again.', 'error')
+    redirect('/login')
+  }
+  redirect(data.url)
+}
+
 export type ReviewUpdateState = { error: string | null }
 
 export async function updateReview(
