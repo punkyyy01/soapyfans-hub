@@ -1,8 +1,8 @@
 export const SITE_NAME = 'SoapyFans Hub'
-export const SITE_TAGLINE = 'A luminous fan archive of Sophie Thatcher'
+export const SITE_TAGLINE = 'Unofficial Sophie Thatcher Fan Archive & Community'
 
 export const SITE_DESCRIPTION =
-  'A luminous fan archive of Sophie Thatcher, spanning filmography, TV credits, music releases, and fan reviews. Unofficial and unaffiliated.'
+  'SoapyFans Hub is an unofficial fan archive dedicated to Sophie Thatcher, compiling her complete filmography, television credits, music releases, and fan reviews.'
 
 export const SITE_OG_IMAGE = '/og.svg'
 

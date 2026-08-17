@@ -136,69 +136,75 @@ export default function Hero({
         <div className="order-last col-span-12 flex flex-col justify-end lg:order-first lg:col-span-8 lg:justify-center">
           <p
             data-hero-eyebrow
-            className="mb-8 text-[0.68rem] uppercase tracking-[0.55em] text-[var(--accent-gold)] ember"
+            className="mb-6 flex flex-wrap items-center gap-2 text-[0.7rem] uppercase tracking-[0.35em] text-[var(--accent-gold)]"
           >
-            SoapyFans Hub · a fan-made index · est. 2026
+            <span className="rounded-full border border-[var(--accent-amber)]/40 bg-[var(--bg-elevated)]/60 px-3.5 py-1 font-semibold text-[var(--accent-amber)]">
+              SoapyFans Hub
+            </span>
+            <span className="text-[var(--border-strong)]">·</span>
+            <span className="text-[var(--text-secondary)]">Unofficial Sophie Thatcher Fan Archive</span>
           </p>
 
-          <h1 className="font-display font-semibold leading-[0.86] tracking-[-0.02em] text-[var(--text-primary)]">
+          <h1 className="font-display font-semibold leading-[0.9] tracking-[-0.02em] text-[var(--text-primary)]">
             <span
               data-hero-title-a
-              className="block text-[clamp(3.2rem,10vw,9rem)]"
+              className="block text-[clamp(2.8rem,7.5vw,6.4rem)] text-[var(--text-primary)]"
             >
-              A living
+              SoapyFans Hub
             </span>
             <span
               data-hero-title-b
-              className="block pl-[8%] text-[clamp(2.6rem,8vw,7rem)] italic text-[var(--accent-amber)]"
+              className="block text-[clamp(2.1rem,5.5vw,4.6rem)] italic font-normal text-[var(--accent-amber)]"
             >
-              field guide
+              An unofficial fan archive
             </span>
             <span
               data-hero-title-c
-              className="block text-[clamp(3.6rem,11vw,10.5rem)] tracking-[-0.035em]"
+              className="block text-[clamp(2.3rem,6vw,5.2rem)] tracking-[-0.03em] text-[var(--text-primary)]"
             >
-              to Sophie Thatcher.
+              for Sophie Thatcher.
             </span>
           </h1>
 
           <p
             data-hero-tagline
-            className="mt-10 max-w-md text-sm leading-[1.7] text-[var(--text-secondary)] text-pretty sm:text-base"
+            className="mt-8 max-w-xl text-sm leading-[1.75] text-[var(--text-secondary)] text-pretty sm:text-base"
           >
-            Credits for the curious. Reviews for the people who rewatch.
-            <span className="text-[var(--text-primary)]"> A home tab for fans.</span>
+            A dedicated community database organizing the complete work of actress and musician Sophie Thatcher. Explore her filmography, television credits, and discography, or sign in to rate titles and share fan reviews.
           </p>
 
-          <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4">
+          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
             <Link
               data-hero-cta
               href="/films"
               className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full bg-[var(--accent-amber)] px-7 py-3 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-[var(--bg-base)] transition-all hover:bg-[var(--accent-gold)] hover:shadow-[0_0_40px_rgba(255,183,0,0.45)]"
             >
-              <span>Browse the index</span>
+              <span>Browse filmography</span>
               <span aria-hidden className="transition-transform duration-500 group-hover:translate-x-1">→</span>
             </Link>
             <Link
               data-hero-cta
               href="/login"
-              className="text-[0.7rem] uppercase tracking-[0.32em] text-[var(--text-secondary)] underline-offset-8 transition-colors hover:text-[var(--accent-gold)] hover:underline"
+              className="rounded-full border border-[var(--border-strong)] px-6 py-3 text-[0.7rem] uppercase tracking-[0.28em] text-[var(--text-secondary)] transition-all hover:border-[var(--accent-amber)] hover:text-[var(--accent-gold)]"
             >
-              Create a profile
+              Sign in / Create profile
             </Link>
           </div>
 
-          <div className="mt-14 hidden flex-wrap items-center gap-x-10 gap-y-4 border-t border-[var(--border-subtle)] pt-6 text-[0.68rem] uppercase tracking-[0.34em] text-[var(--text-muted)] sm:flex">
+          <div className="mt-12 hidden flex-wrap items-center gap-x-10 gap-y-4 border-t border-[var(--border-subtle)] pt-6 text-[0.68rem] uppercase tracking-[0.34em] text-[var(--text-muted)] sm:flex">
             <span data-hero-meta>
-              <span className="text-[var(--text-secondary)]">
+              <span className="text-[var(--text-secondary)] font-medium">
                 {filmCount.toString().padStart(2, '0')}
               </span>{' '}
               titles indexed
             </span>
             <span data-hero-meta>
               Featured today ·{' '}
-              <span className="text-[var(--accent-gold)]">{featuredTitle}</span>
+              <span className="text-[var(--accent-gold)] font-medium">{featuredTitle}</span>
               {featuredYear ? ` · ${featuredYear}` : ''}
+            </span>
+            <span data-hero-meta className="text-[var(--text-secondary)]">
+              Unofficial fan project
             </span>
           </div>
         </div>

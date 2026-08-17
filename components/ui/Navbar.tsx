@@ -22,6 +22,7 @@ export default async function Navbar() {
         <div className="flex items-center gap-8">
           <Link
             href="/"
+            aria-label="SoapyFans Hub Home"
             className="group flex items-baseline gap-2 font-display text-[1.35rem] font-semibold tracking-tight text-[var(--text-primary)]"
           >
             <span className="relative">

@@ -23,7 +23,9 @@ import MusicSection from '@/components/forms/MusicSection'
 export const revalidate = 3600
 
 export const metadata: Metadata = {
-  title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+  title: {
+    absolute: `${SITE_NAME} — ${SITE_TAGLINE}`,
+  },
   description: SITE_DESCRIPTION,
   alternates: { canonical: '/' },
   openGraph: {
@@ -173,6 +175,82 @@ export default async function HomePage() {
         </section>
       )}
 
+      {/* ── ABOUT SOAPYFANS HUB & PURPOSE ────────────────────────────── */}
+      <section className="relative mx-auto max-w-7xl px-6 pb-28 sm:px-10">
+        <Reveal stagger={0.12} y={32}>
+          <div className="rounded-3xl border border-[var(--border-subtle)] bg-gradient-to-b from-[var(--bg-elevated)]/40 to-[var(--bg-elevated)]/10 p-8 sm:p-12">
+            <div className="max-w-3xl">
+              <p className="text-[0.68rem] uppercase tracking-[0.55em] text-[var(--accent-amber)] font-medium">
+                About SoapyFans Hub · Application Purpose
+              </p>
+              <h2 className="mt-4 font-display text-[clamp(2.2rem,4.5vw,3.8rem)] font-medium leading-[1.02] tracking-[-0.02em] text-[var(--text-primary)] text-balance">
+                What is <span className="italic text-[var(--accent-gold)]">SoapyFans Hub</span>?
+              </h2>
+              <p className="mt-5 text-base leading-[1.8] text-[var(--text-secondary)] text-pretty">
+                <strong className="font-semibold text-[var(--text-primary)]">SoapyFans Hub</strong> is an unofficial, community-driven fan archive dedicated to archiving, organizing, and discussing the career of actress and musician <strong className="font-semibold text-[var(--text-primary)]">Sophie Thatcher</strong>.
+              </p>
+              <p className="mt-3 text-base leading-[1.8] text-[var(--text-secondary)] text-pretty">
+                Our application gathers comprehensive film and television credits, original music releases, press appearances, and community reviews in a single, accessible hub. Visitors can explore the public archive freely without an account, or sign in using <strong className="font-semibold text-[var(--text-primary)]">Google OAuth</strong> or Discord to rate titles and publish their own reviews.
+              </p>
+            </div>
+
+            <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
+              <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/80 p-6 backdrop-blur transition-colors hover:border-[var(--accent-amber)]/40">
+                <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-amber)]/10 text-[var(--accent-gold)] font-display text-lg">
+                  🎬
+                </div>
+                <h3 className="font-display text-lg font-semibold text-[var(--text-primary)]">
+                  Film &amp; TV Archive
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
+                  Full filmography and television credits powered by TMDB, covering breakout performances in <em>Yellowjackets</em>, <em>Heretic</em>, <em>Companion</em>, <em>Prospect</em>, and more.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/80 p-6 backdrop-blur transition-colors hover:border-[var(--accent-amber)]/40">
+                <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-amber)]/10 text-[var(--accent-gold)] font-display text-lg">
+                  🎵
+                </div>
+                <h3 className="font-display text-lg font-semibold text-[var(--text-primary)]">
+                  Music &amp; Releases
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
+                  Discography database with tracklists, music videos, and streaming links for Sophie Thatcher&apos;s debut EP <em>Pivot &amp; Scrape</em>, singles, and soundtrack features.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)]/80 p-6 backdrop-blur transition-colors hover:border-[var(--accent-amber)]/40">
+                <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-amber)]/10 text-[var(--accent-gold)] font-display text-lg">
+                  ⭐
+                </div>
+                <h3 className="font-display text-lg font-semibold text-[var(--text-primary)]">
+                  Fan Reviews &amp; Ratings
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
+                  Sign in securely with Google to create a fan profile, leave star ratings, write reviews, and contribute to the community collection.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border-subtle)] pt-6 text-xs text-[var(--text-muted)]">
+              <p className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-[var(--accent-forest)]" />
+                <span>Unofficial fan project · Not affiliated with or endorsed by Sophie Thatcher.</span>
+              </p>
+              <div className="flex items-center gap-4 text-[0.68rem] uppercase tracking-[0.24em]">
+                <Link href="/privacy" className="text-[var(--text-secondary)] hover:text-[var(--accent-gold)] underline-offset-4 hover:underline">
+                  Privacy Policy
+                </Link>
+                <span className="text-[var(--border-strong)]">·</span>
+                <Link href="/terms" className="text-[var(--text-secondary)] hover:text-[var(--accent-gold)] underline-offset-4 hover:underline">
+                  Terms of Service
+                </Link>
+              </div>
+            </div>
+          </div>
+        </Reveal>
+      </section>
+
       <section className="relative mx-auto max-w-7xl px-6 pb-28 sm:px-10">
         <Reveal stagger={0.12}>
           <div className="relative border-y border-[var(--border-subtle)] py-20 sm:py-24">
@@ -186,11 +264,13 @@ export default async function HomePage() {
               A fan-made index, built for deep dives: credits you can browse, and a floor where fans leave notes worth keeping.
             </p>
             <div className="mt-10 flex flex-wrap items-baseline gap-x-6 gap-y-2 text-[0.66rem] uppercase tracking-[0.42em] text-[var(--text-muted)]">
-              <span className="text-[var(--accent-gold)]">SoapyFans Hub</span>
+              <span className="text-[var(--accent-gold)] font-medium">SoapyFans Hub</span>
+              <span className="h-px w-12 bg-[var(--border-strong)]" />
+              <span>Sophie Thatcher Archive</span>
               <span className="h-px w-12 bg-[var(--border-strong)]" />
               <span>Credits via TMDB</span>
               <span className="h-px w-12 bg-[var(--border-strong)]" />
-              <span>Reviews by fans</span>
+              <span>Fan Reviews</span>
             </div>
           </div>
         </Reveal>
@@ -290,27 +370,27 @@ export default async function HomePage() {
       <section className="relative border-t border-[var(--border-subtle)] bg-gradient-to-b from-transparent to-[rgba(42,92,63,0.08)]">
         <div className="mx-auto max-w-5xl px-6 py-28 text-center sm:px-10">
           <Reveal stagger={0.14}>
-            <p className="text-[0.68rem] uppercase tracking-[0.55em] text-[var(--accent-amber)]">
-              The floor
+            <p className="text-[0.68rem] uppercase tracking-[0.55em] text-[var(--accent-amber)] font-medium">
+              Join the SoapyFans Hub community
             </p>
             <h2 className="mt-6 font-display text-[clamp(2.4rem,5vw,4rem)] font-medium leading-[1.02] tracking-[-0.02em] text-[var(--text-primary)] text-balance">
               Leave a note worth <span className="italic text-[var(--accent-gold)]">keeping</span>.
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-base leading-[1.7] text-[var(--text-secondary)] text-pretty">
-              Sign in to add your rating and a few lines. The archive grows one sentence at a time.
+              Sign in with your Google or Discord account to add star ratings and share reviews across filmography and music releases in the archive.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Link
                 href="/login"
                 className="rounded-full bg-[var(--accent-amber)] px-7 py-3 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-[var(--bg-base)] transition-all hover:bg-[var(--accent-gold)] hover:shadow-[0_0_40px_rgba(255,183,0,0.45)]"
               >
-                Sign in
+                Sign in with Google
               </Link>
               <Link
                 href="/films"
                 className="rounded-full border border-[var(--border-strong)] px-7 py-3 text-[0.72rem] uppercase tracking-[0.28em] text-[var(--text-secondary)] transition-all hover:border-[var(--accent-amber)] hover:text-[var(--accent-gold)]"
               >
-                Browse the index
+                Browse the archive
               </Link>
             </div>
           </Reveal>

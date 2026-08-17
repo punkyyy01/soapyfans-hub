@@ -15,7 +15,7 @@ const FAN_PUBLISHER = {
   name: SITE_NAME,
   url: absoluteUrl('/'),
   description:
-    'Fan-made website — unofficial, not affiliated with or endorsed by Sophie Thatcher.',
+    'SoapyFans Hub — Unofficial fan archive dedicated to Sophie Thatcher, featuring her filmography, music, and community fan reviews.',
 }
 
 export function buildOrganizationSchema() {

@@ -50,6 +50,8 @@ export const metadata: Metadata = {
   creator: SITE_NAME,
   publisher: SITE_NAME,
   keywords: [
+    "SoapyFans Hub",
+    "SoapyFans",
     "Sophie Thatcher",
     "Sophie Thatcher filmography",
     "Sophie Thatcher reviews",

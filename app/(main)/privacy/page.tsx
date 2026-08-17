@@ -58,12 +58,12 @@ export default function PrivacyPage() {
       <section>
         <h2 className={cls.h2}>Who We Are</h2>
         <p className={cls.p}>
-          SoapyFans Hub is an unofficial, fan-made archive dedicated to the filmography, music, and
+          SoapyFans Hub (<a href="https://soapyhub.fans" className={cls.a}>soapyhub.fans</a>) is an unofficial, fan-made archive dedicated to the filmography, music, and
           work of actress Sophie Thatcher. This site is not affiliated with, endorsed by, or
           connected to Sophie Thatcher or her representatives in any way.
         </p>
         <p className={`${cls.p} mt-3`}>
-          This site is operated by an individual fan. Contact:{" "}
+          This site is operated by an individual fan for non-commercial community purposes. Contact:{" "}
           <a href="mailto:contacto.frambuesa.proyecto@gmail.com" className={cls.a}>
             contacto.frambuesa.proyecto@gmail.com
           </a>
@@ -77,14 +77,14 @@ export default function PrivacyPage() {
         <ul className={cls.ul}>
           <li className={cls.li}>
             <strong className={cls.strong}>Email address</strong> — if you register with email and
-            password
+            password, or sign in via Google / Discord OAuth
           </li>
           <li className={cls.li}>
             <strong className={cls.strong}>Display name, username, and bio</strong> — set by you in
             your profile
           </li>
           <li className={cls.li}>
-            <strong className={cls.strong}>Avatar image</strong> — uploaded by you (optional)
+            <strong className={cls.strong}>Avatar image</strong> — uploaded by you or provided by your OAuth provider (optional)
           </li>
           <li className={cls.li}>
             <strong className={cls.strong}>Review content</strong> — text and star ratings you
@@ -97,9 +97,9 @@ export default function PrivacyPage() {
         <div className="mt-4 space-y-4">
           <p className={cls.p}>
             <strong className={cls.strong}>Supabase (database and authentication)</strong>
-            {" "}Your email address, hashed password (never stored in plain text), and session tokens
-            are managed by Supabase. When you sign in with Discord, Supabase receives your Discord
-            username, avatar URL, and email from Discord's OAuth flow. Supabase is
+            {" "}Your email address, hashed password (if registering with email/password), and session tokens
+            are managed securely by Supabase. When you sign in with Google or Discord, Supabase receives your
+            username, avatar URL, and email from the respective OAuth flow. Supabase is
             GDPR-compliant.{" "}
             <a
               href="https://supabase.com/privacy"
@@ -111,9 +111,21 @@ export default function PrivacyPage() {
             </a>
           </p>
           <p className={cls.p}>
+            <strong className={cls.strong}>Google OAuth</strong>
+            {" "}If you choose &ldquo;Continue with Google&rdquo;, Google provides your email address, display name, and avatar image to authenticate your session and create your fan account. We only use this information to maintain your profile and allow you to rate titles and publish reviews. We do not request or access any other Google services or personal data.{" "}
+            <a
+              href="https://policies.google.com/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cls.a}
+            >
+              Google Privacy Policy
+            </a>
+          </p>
+          <p className={cls.p}>
             <strong className={cls.strong}>Discord OAuth</strong>
-            {" "}If you choose "Continue with Discord," Discord shares your username, avatar, and
-            email with us. We only use this to create your account. We do not access your Discord
+            {" "}If you choose &ldquo;Continue with Discord&rdquo;, Discord shares your username, avatar, and
+            email with us. We only use this to create and authenticate your account. We do not access your Discord
             messages, servers, or any other Discord data.{" "}
             <a
               href="https://discord.com/privacy"
