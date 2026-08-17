@@ -1,12 +1,61 @@
 /**
- * Image binary magic-bytes validation.
+ * Image binary magic-bytes validation and size limits.
  * Unforgeable format detection that inspects file header bytes directly,
  * preventing MIME spoofing and corrupted uploads.
  */
 
+export const MAX_AVATAR_BYTES = 2 * 1024 * 1024 // 2 MB
+export const MAX_BANNER_BYTES = 3 * 1024 * 1024 // 3 MB
+export const MAX_COMBINED_BYTES = 5 * 1024 * 1024 // 5 MB
+
+export const ALLOWED_IMAGE_MIMES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+] as const
+
 export type SupportedImageFormat = {
   mime: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
   ext: 'jpg' | 'png' | 'gif' | 'webp'
+}
+
+/**
+ * Validates individual image file size based on image type (avatar or banner).
+ */
+export function validateImageSize(
+  size: number,
+  type: 'avatar' | 'banner',
+): { valid: boolean; error?: string } {
+  const maxBytes = type === 'avatar' ? MAX_AVATAR_BYTES : MAX_BANNER_BYTES
+  const maxMB = type === 'avatar' ? 2 : 3
+  const label = type === 'avatar' ? 'Avatar' : 'Banner'
+
+  if (size > maxBytes) {
+    return {
+      valid: false,
+      error: `${label} image is too large. Maximum size is ${maxMB} MB.`,
+    }
+  }
+
+  return { valid: true }
+}
+
+/**
+ * Validates combined file size for simultaneous avatar and banner uploads.
+ */
+export function validateCombinedImageSizes(
+  avatarSize: number,
+  bannerSize: number,
+): { valid: boolean; error?: string } {
+  const total = avatarSize + bannerSize
+  if (total > MAX_COMBINED_BYTES) {
+    return {
+      valid: false,
+      error: 'Combined image size exceeds the 5 MB limit. Please select smaller images.',
+    }
+  }
+  return { valid: true }
 }
 
 /**
@@ -59,3 +108,4 @@ export function detectImageFormat(bytes: Uint8Array): SupportedImageFormat | nul
 
   return null
 }
+

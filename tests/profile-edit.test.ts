@@ -93,3 +93,104 @@ describe('Accent Color Validation', () => {
     assert.equal(sanitizeColor('#2a5c3f'), '#2a5c3f')
   })
 })
+
+describe('Image Upload Size and Payload Limits', () => {
+  const {
+    validateImageSize,
+    validateCombinedImageSizes,
+    MAX_AVATAR_BYTES,
+    MAX_BANNER_BYTES,
+    MAX_COMBINED_BYTES,
+  } = require('../utils/image-validation')
+
+  it('validates avatar size boundary (max 2 MB)', () => {
+    assert.deepEqual(validateImageSize(500 * 1024, 'avatar'), { valid: true })
+    assert.deepEqual(validateImageSize(MAX_AVATAR_BYTES, 'avatar'), { valid: true })
+    assert.deepEqual(validateImageSize(MAX_AVATAR_BYTES + 1, 'avatar'), {
+      valid: false,
+      error: 'Avatar image is too large. Maximum size is 2 MB.',
+    })
+  })
+
+  it('validates banner size boundary (max 3 MB)', () => {
+    assert.deepEqual(validateImageSize(1.5 * 1024 * 1024, 'banner'), { valid: true })
+    assert.deepEqual(validateImageSize(MAX_BANNER_BYTES, 'banner'), { valid: true })
+    assert.deepEqual(validateImageSize(MAX_BANNER_BYTES + 1, 'banner'), {
+      valid: false,
+      error: 'Banner image is too large. Maximum size is 3 MB.',
+    })
+  })
+
+  it('validates combined avatar + banner size limits (max 5 MB total)', () => {
+    // Valid combined payloads
+    assert.deepEqual(
+      validateCombinedImageSizes(1.5 * 1024 * 1024, 2.5 * 1024 * 1024), // 4.0 MB
+      { valid: true },
+    )
+    assert.deepEqual(
+      validateCombinedImageSizes(MAX_AVATAR_BYTES, MAX_BANNER_BYTES), // 5.0 MB
+      { valid: true },
+    )
+
+    // Invalid combined payloads (> 5.0 MB)
+    assert.deepEqual(
+      validateCombinedImageSizes(2.5 * 1024 * 1024, 3 * 1024 * 1024), // 5.5 MB
+      {
+        valid: false,
+        error: 'Combined image size exceeds the 5 MB limit. Please select smaller images.',
+      },
+    )
+  })
+})
+
+describe('Storage Old-Image Cleanup Path Protection', () => {
+  function getSafeCleanupPath(userId: string, oldUrl: string): { bucket: string; path: string } | null {
+    for (const b of ['avatars', 'banners'] as const) {
+      const marker = `/storage/v1/object/public/${b}/`
+      if (oldUrl.includes(marker)) {
+        const oldPath = oldUrl.split(marker)[1]
+        if (oldPath && !oldPath.includes('default') && oldPath.startsWith(userId)) {
+          return { bucket: b, path: oldPath }
+        }
+        break
+      }
+    }
+    return null
+  }
+
+  it('allows deletion of valid user-owned avatar files', () => {
+    const userId = 'usr_abc123'
+    const url = 'https://tcskvcmtcsaxyfoselvb.supabase.co/storage/v1/object/public/avatars/usr_abc123/1720000000.jpg'
+    const res = getSafeCleanupPath(userId, url)
+    assert.deepEqual(res, { bucket: 'avatars', path: 'usr_abc123/1720000000.jpg' })
+  })
+
+  it('allows deletion of valid user-owned banner files', () => {
+    const userId = 'usr_abc123'
+    const url = 'https://tcskvcmtcsaxyfoselvb.supabase.co/storage/v1/object/public/banners/usr_abc123/1720000000.png'
+    const res = getSafeCleanupPath(userId, url)
+    assert.deepEqual(res, { bucket: 'banners', path: 'usr_abc123/1720000000.png' })
+  })
+
+  it('blocks deletion of default assets', () => {
+    const userId = 'usr_abc123'
+    const url = 'https://tcskvcmtcsaxyfoselvb.supabase.co/storage/v1/object/public/avatars/usr_abc123/default-avatar.png'
+    const res = getSafeCleanupPath(userId, url)
+    assert.equal(res, null)
+  })
+
+  it('blocks deletion of other users assets (path traversal / hijacking)', () => {
+    const userId = 'usr_abc123'
+    const victimUrl = 'https://tcskvcmtcsaxyfoselvb.supabase.co/storage/v1/object/public/avatars/victim_user_999/profile.jpg'
+    const res = getSafeCleanupPath(userId, victimUrl)
+    assert.equal(res, null)
+  })
+
+  it('ignores non-supabase external URLs', () => {
+    const userId = 'usr_abc123'
+    const externalUrl = 'https://cdn.discordapp.com/avatars/123/456.png'
+    const res = getSafeCleanupPath(userId, externalUrl)
+    assert.equal(res, null)
+  })
+})
+

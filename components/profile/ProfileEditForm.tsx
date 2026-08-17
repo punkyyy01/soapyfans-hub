@@ -7,6 +7,11 @@ import { saveProfile, addFavorite, removeFavorite, reorderFavorites } from '@/ap
 import type { SaveProfileState } from '@/app/(main)/profile/edit/actions'
 import type { EnrichedFavorite } from '@/app/(main)/profile/edit/page'
 import { sanitizeCSS } from '@/utils/sanitize-css'
+import {
+  ALLOWED_IMAGE_MIMES,
+  validateImageSize,
+  validateCombinedImageSizes,
+} from '@/utils/image-validation'
 import { getTmdbImageUrl } from '@/utils/tmdb'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
@@ -152,6 +157,30 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
   function onAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+
+    if (!ALLOWED_IMAGE_MIMES.includes(file.type as typeof ALLOWED_IMAGE_MIMES[number])) {
+      setToast({ type: 'error', msg: 'Unsupported image format. Please select JPEG, PNG, WebP, or GIF.' })
+      if (avatarInputRef.current) avatarInputRef.current.value = ''
+      return
+    }
+
+    const sizeValidation = validateImageSize(file.size, 'avatar')
+    if (!sizeValidation.valid) {
+      setToast({ type: 'error', msg: sizeValidation.error! })
+      if (avatarInputRef.current) avatarInputRef.current.value = ''
+      return
+    }
+
+    const currentBannerFile = bannerInputRef.current?.files?.[0]
+    if (currentBannerFile) {
+      const combinedValidation = validateCombinedImageSizes(file.size, currentBannerFile.size)
+      if (!combinedValidation.valid) {
+        setToast({ type: 'error', msg: combinedValidation.error! })
+        if (avatarInputRef.current) avatarInputRef.current.value = ''
+        return
+      }
+    }
+
     if (avatarPreview?.startsWith('blob:')) URL.revokeObjectURL(avatarPreview)
     setAvatarPreview(URL.createObjectURL(file))
   }
@@ -159,6 +188,30 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
   function onBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+
+    if (!ALLOWED_IMAGE_MIMES.includes(file.type as typeof ALLOWED_IMAGE_MIMES[number])) {
+      setToast({ type: 'error', msg: 'Unsupported image format. Please select JPEG, PNG, WebP, or GIF.' })
+      if (bannerInputRef.current) bannerInputRef.current.value = ''
+      return
+    }
+
+    const sizeValidation = validateImageSize(file.size, 'banner')
+    if (!sizeValidation.valid) {
+      setToast({ type: 'error', msg: sizeValidation.error! })
+      if (bannerInputRef.current) bannerInputRef.current.value = ''
+      return
+    }
+
+    const currentAvatarFile = avatarInputRef.current?.files?.[0]
+    if (currentAvatarFile) {
+      const combinedValidation = validateCombinedImageSizes(currentAvatarFile.size, file.size)
+      if (!combinedValidation.valid) {
+        setToast({ type: 'error', msg: combinedValidation.error! })
+        if (bannerInputRef.current) bannerInputRef.current.value = ''
+        return
+      }
+    }
+
     if (bannerPreview?.startsWith('blob:')) URL.revokeObjectURL(bannerPreview)
     setBannerPreview(URL.createObjectURL(file))
   }
@@ -224,6 +277,40 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
 
   const profileSlug = username || profile.username || profile.id
   const cssCharCount = profileCss.length
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    const avatarFile = avatarInputRef.current?.files?.[0]
+    const bannerFile = bannerInputRef.current?.files?.[0]
+    const avatarSize = avatarFile?.size ?? 0
+    const bannerSize = bannerFile?.size ?? 0
+
+    if (avatarFile) {
+      const val = validateImageSize(avatarSize, 'avatar')
+      if (!val.valid) {
+        e.preventDefault()
+        setToast({ type: 'error', msg: val.error! })
+        return
+      }
+    }
+
+    if (bannerFile) {
+      const val = validateImageSize(bannerSize, 'banner')
+      if (!val.valid) {
+        e.preventDefault()
+        setToast({ type: 'error', msg: val.error! })
+        return
+      }
+    }
+
+    if (avatarFile && bannerFile) {
+      const comb = validateCombinedImageSizes(avatarSize, bannerSize)
+      if (!comb.valid) {
+        e.preventDefault()
+        setToast({ type: 'error', msg: comb.error! })
+        return
+      }
+    }
+  }
 
   return (
     <>
@@ -322,7 +409,7 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
       </header>
 
       {/* ── Form Body ────────────────────────────────────────────────────── */}
-      <form action={formAction} className="space-y-16">
+      <form action={formAction} onSubmit={handleSubmit} className="space-y-16">
         {/* Hidden controlled fields */}
         <input type="hidden" name="accent_color" value={accentColor} />
         <input type="hidden" name="profile_css"  value={profileCss} />
