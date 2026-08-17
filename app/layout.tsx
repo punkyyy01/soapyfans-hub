@@ -19,7 +19,6 @@ import { buildOrganizationSchema, serializeJsonLd } from "@/utils/schema";
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -32,8 +31,6 @@ const geistMono = Geist_Mono({
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  style: ["normal", "italic"],
   display: "swap",
 });
 
