@@ -6,6 +6,8 @@ import { createClient, getUser } from '@/utils/supabase/server'
 import { getMovieDetails, getTvDetails, getTmdbImageUrl, getPersonCombinedCredits, normalizeCredit } from '@/utils/tmdb'
 import { sanitizeCSS } from '@/utils/sanitize-css'
 import ActivityFeed, { type ActivityItem } from '@/components/profile/ActivityFeed'
+import SectionHeader from '@/components/ui/SectionHeader'
+import Button from '@/components/ui/Button'
 
 interface Props {
   params: Promise<{ username: string }>
@@ -155,7 +157,6 @@ export default async function ProfilePage({ params, searchParams }: Props) {
     })
   )
 
-  // Supabase doesn't infer nested join shapes precisely; RawFilmReview/RawMusicReview match the actual select above.
   const filmReviews = (filmReviewsResult.data ?? []) as unknown as RawFilmReview[]
   const musicReviews = (musicReviewsResult.data ?? []) as unknown as RawMusicReview[]
 
@@ -195,19 +196,24 @@ export default async function ProfilePage({ params, searchParams }: Props) {
   }
 
   return (
-    <>
+    <main className="min-h-screen bg-[var(--bg-base)] px-4 pb-24 pt-20 sm:px-6 sm:pb-32 sm:pt-24">
+      {/* ── Scoped Custom CSS (Strictly Isolated to Canvas) ──── */}
       {sanitizedCss && (
-        <style>{`.profile-canvas { ${sanitizedCss} }`}</style>
+        <style>{`#profile-canvas { ${sanitizedCss} }`}</style>
       )}
 
-      <div id="profile-canvas" className="profile-canvas">
-        {/* 1. BANNER & OVERLAY (Layers 1 & 2) */}
+      {/* ── USER PROFILE CANVAS ─────────────────────────────── */}
+      <div
+        id="profile-canvas"
+        className="profile-canvas mx-auto max-w-5xl overflow-hidden rounded-3xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/80 shadow-2xl"
+      >
+        {/* 1. BANNER & GRADIENT OVERLAY */}
         <div
-          className="relative z-0 h-[170px] w-full overflow-hidden sm:h-[230px]"
+          className="relative z-0 h-[180px] w-full overflow-hidden sm:h-[240px]"
           style={
             !profile.banner_url
               ? {
-                  background: `linear-gradient(135deg, ${accentColor}2a 0%, ${accentColor}0f 55%, transparent 100%)`,
+                  background: `linear-gradient(135deg, ${accentColor}33 0%, ${accentColor}12 60%, transparent 100%)`,
                 }
               : undefined
           }
@@ -217,48 +223,48 @@ export default async function ProfilePage({ params, searchParams }: Props) {
               src={profile.banner_url}
               alt=""
               fill
-              sizes="100vw"
+              sizes="(max-width: 1024px) 100vw, 1024px"
               className="object-cover object-center"
               priority
             />
           )}
-          {/* Layer 2: Banner overlay fade to bg at bottom */}
+          {/* Subtle bottom vignette */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--bg-base)]/60"
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[var(--bg-surface)] via-transparent to-transparent opacity-90"
           />
         </div>
 
-        {/* 2. PROFILE CONTENT (Layer 3) */}
-        <div className="relative z-10 mx-auto max-w-4xl px-6 pb-24 sm:px-10 sm:pb-32">
-          {/* PROFILE HEADER */}
-          <section className="mb-14">
-            {/* Avatar row (Layer 4) — pulled up to overlap the banner cleanly */}
-            <div className="relative z-20 -mt-10 flex flex-wrap items-end gap-4 sm:-mt-12">
-              {/* Avatar with accent-color ring — isolated, opaque, independent */}
+        {/* 2. PROFILE CONTENT */}
+        <div className="relative z-10 px-6 pb-16 pt-0 sm:px-10 sm:pb-20">
+          {/* PROFILE IDENTITY HEADER */}
+          <header className="mb-14 border-b border-[var(--border-subtle)] pb-10">
+            {/* Avatar & Action Row */}
+            <div className="relative z-20 -mt-12 flex flex-wrap items-end justify-between gap-4 sm:-mt-16">
+              {/* 4-Layer Isolated Avatar Architecture */}
               <div
                 className="relative shrink-0 rounded-full isolate"
                 style={{
                   padding: '4px',
                   background: accentColor,
-                  boxShadow: `0 0 0 4px var(--bg-base)`,
+                  boxShadow: `0 0 0 4px var(--bg-surface)`,
                 }}
               >
-                <div className="relative h-24 w-24 overflow-hidden rounded-full bg-[var(--bg-base)]">
+                <div className="relative h-24 w-24 overflow-hidden rounded-full bg-[var(--bg-base)] sm:h-28 sm:w-28">
                   {profile.avatar_url ? (
                     <Image
                       src={profile.avatar_url}
                       alt={displayName}
-                      width={96}
-                      height={96}
+                      width={112}
+                      height={112}
                       className="h-full w-full object-cover object-center rounded-full"
                       priority
                     />
                   ) : (
                     <div
-                      className="flex h-full w-full items-center justify-center rounded-full text-3xl font-semibold text-[var(--bg-base)]"
+                      className="flex h-full w-full items-center justify-center rounded-full font-display text-3xl font-medium text-[var(--bg-base)] sm:text-4xl"
                       style={{
-                        background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}88 100%)`,
+                        background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}99 100%)`,
                       }}
                     >
                       {avatarInitial}
@@ -267,32 +273,31 @@ export default async function ProfilePage({ params, searchParams }: Props) {
                 </div>
               </div>
 
-              {/* Edit button pushed to the right, vertically aligned with avatar base */}
+              {/* Owner Action Button */}
               {isOwner && (
-                <div className="ml-auto">
-                  <Link
-                    href="/profile/edit"
-                    className="inline-block rounded-full border border-[var(--border-strong)] px-4 py-2 text-xs uppercase tracking-[0.18em] text-[var(--text-secondary)] transition-all hover:border-[var(--accent-amber)] hover:text-[var(--accent-gold)] sm:py-1.5"
-                  >
-                    Edit profile
-                  </Link>
+                <div className="pb-1">
+                  <Button href="/profile/edit" variant="secondary" size="sm">
+                    Edit Profile Atelier ↗
+                  </Button>
                 </div>
               )}
             </div>
 
-            {/* Name, pronouns, bio, metadata */}
-            <div className="mt-5 space-y-3">
+            {/* Name, Handle, Pronouns, Bio & Metadata */}
+            <div className="mt-5 space-y-4">
               <div>
-                <h1 className="font-display text-3xl font-semibold tracking-tight text-[var(--text-primary)]">
+                <h1 className="font-display text-3xl font-medium tracking-tight text-[var(--text-primary)] sm:text-4xl">
                   {displayName}
                 </h1>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
                   {profile.username && (
-                    <span className="text-sm text-[var(--text-muted)]">@{profile.username}</span>
+                    <span className="font-mono text-sm text-[var(--text-muted)]">
+                      @{profile.username}
+                    </span>
                   )}
                   {profile.pronouns && (
                     <>
-                      <span className="text-[var(--border-strong)]" aria-hidden>·</span>
+                      <span className="text-[var(--border-subtle)]" aria-hidden="true">·</span>
                       <span className="text-xs italic text-[var(--text-muted)]">
                         {profile.pronouns}
                       </span>
@@ -302,16 +307,16 @@ export default async function ProfilePage({ params, searchParams }: Props) {
               </div>
 
               {profile.bio && (
-                <p className="max-w-xl text-sm leading-relaxed text-[var(--text-secondary)] text-pretty">
+                <p className="max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-base">
                   {profile.bio}
                 </p>
               )}
 
-              {/* Inline metadata */}
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
+              {/* Documentary Metadata Row */}
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1 font-mono text-xs text-[var(--text-muted)]">
                 {profile.location_text && (
-                  <span className="text-[0.75rem] text-[var(--text-muted)]">
-                    {profile.location_text}
+                  <span>
+                    📍 {profile.location_text}
                   </span>
                 )}
                 {websiteHost && profile.website_url && (
@@ -319,34 +324,34 @@ export default async function ProfilePage({ params, searchParams }: Props) {
                     href={profile.website_url}
                     target="_blank"
                     rel="noopener noreferrer nofollow"
-                    className="text-[0.75rem] text-[var(--text-muted)] transition-colors hover:text-[var(--accent-gold)]"
+                    className="inline-flex items-center gap-1 transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
                   >
-                    {websiteHost} ↗
+                    <span>🔗 {websiteHost}</span>
+                    <span aria-hidden="true">↗</span>
                   </a>
                 )}
-                <span className="text-[0.65rem] uppercase tracking-[0.28em] text-[var(--text-muted)]">
+                <span>
                   Member since {joinYear}
                 </span>
               </div>
             </div>
+          </header>
 
-            <div className="mt-10 border-b border-[var(--border-subtle)]" />
-          </section>
-
-          {/* 3. SOPHIE PICKS */}
+          {/* 3. SOPHIE PICKS (FAVORITES) */}
           {favoriteDetails.length > 0 && (
-            <section className="mb-16 space-y-7">
-              <div>
-                <p className="text-[0.7rem] uppercase tracking-[0.5em] text-[var(--accent-amber)]">
-                  Sophie Picks
-                </p>
-                <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
-                  Favorites
-                </h2>
-              </div>
+            <section id="favorites" className="mb-16 space-y-6">
+              <SectionHeader
+                kicker="Sophie Picks"
+                title="Curated Favorites"
+                action={
+                  <span className="font-mono text-xs uppercase tracking-wider text-[var(--text-muted)]">
+                    {favoriteDetails.length} {favoriteDetails.length === 1 ? 'Title' : 'Titles'}
+                  </span>
+                }
+              />
 
-              <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-                {favoriteDetails.map((fav) => {
+              <div className="grid grid-cols-3 gap-3.5 sm:grid-cols-6 sm:gap-4">
+                {favoriteDetails.map((fav, i) => {
                   const posterUrl = fav.posterPath
                     ? getTmdbImageUrl(fav.posterPath, 'w342')
                     : null
@@ -359,7 +364,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
                     <Link
                       key={fav.id}
                       href={href}
-                      className="group relative block aspect-[2/3] overflow-hidden rounded-lg border border-[var(--border-subtle)] transition-all duration-300 hover:border-[var(--accent-amber)]/50 hover:shadow-[0_8px_32px_rgba(0,0,0,0.5)]"
+                      className="group relative block aspect-[2/3] overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] transition-all duration-300 hover:border-[var(--accent-amber)]/60 hover:shadow-lg focus-ring"
                     >
                       {posterUrl ? (
                         <Image
@@ -370,18 +375,24 @@ export default async function ProfilePage({ params, searchParams }: Props) {
                           sizes="(max-width: 640px) 33vw, 15vw"
                         />
                       ) : (
-                        <div className="absolute inset-0 flex items-center justify-center bg-[var(--bg-elevated)] text-[var(--text-muted)]">
+                        <div className="absolute inset-0 flex items-center justify-center font-mono text-xs text-[var(--text-muted)]">
                           ?
                         </div>
                       )}
+
+                      {/* Rank indicator badge */}
+                      <div className="absolute left-2 top-2 rounded-full border border-black/30 bg-black/75 px-2 py-0.5 font-mono text-[0.62rem] text-white/90 backdrop-blur-xs">
+                        #{i + 1}
+                      </div>
+
                       {/* Hover overlay with title */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                        <div className="absolute bottom-0 left-0 right-0 p-2">
-                          <p className="text-[0.65rem] font-medium leading-tight text-white line-clamp-2">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                          <p className="font-display text-xs font-medium leading-tight text-white line-clamp-2">
                             {fav.title}
                           </p>
                           {fav.media_type === 'tv' && (
-                            <span className="text-[0.5rem] uppercase tracking-wider text-white/50">
+                            <span className="font-mono text-[0.55rem] uppercase tracking-wider text-white/70">
                               Series
                             </span>
                           )}
@@ -394,26 +405,22 @@ export default async function ProfilePage({ params, searchParams }: Props) {
             </section>
           )}
 
-          {/* 4. ACTIVITY */}
+          {/* 4. ACTIVITY (Conditional on show_activity) */}
           {profile.show_activity && (
-            <section className="space-y-8">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-[0.7rem] uppercase tracking-[0.5em] text-[var(--accent-amber)]">
-                    Archive
-                  </p>
-                  <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
-                    Activity
-                  </h2>
-                </div>
-                <span className="text-xs uppercase tracking-[0.28em] text-[var(--text-muted)]">
-                  {activityItems.length.toString().padStart(2, '0')}{' '}
-                  {activityItems.length === 1 ? 'entry' : 'entries'}
-                </span>
-              </div>
+            <section id="activity" className="mb-14 space-y-6">
+              <SectionHeader
+                kicker="Archive Feed"
+                title="Recent Activity"
+                action={
+                  <span className="font-mono text-xs uppercase tracking-wider text-[var(--text-muted)]">
+                    {activityItems.length.toString().padStart(2, '0')}{' '}
+                    {activityItems.length === 1 ? 'entry' : 'entries'}
+                  </span>
+                }
+              />
 
               {error && (
-                <p className="rounded-md border border-red-900/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+                <p className="rounded-xl border border-red-900/40 bg-red-950/40 px-4 py-3 text-xs text-red-300">
                   {error}
                 </p>
               )}
@@ -425,8 +432,27 @@ export default async function ProfilePage({ params, searchParams }: Props) {
               />
             </section>
           )}
+
+          {/* 5. MINIMAL PROFILE CLOSURE */}
+          <footer className="mt-14 border-t border-[var(--border-subtle)] pt-8">
+            <div className="flex flex-wrap items-center justify-between gap-4 font-mono text-xs text-[var(--text-muted)]">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-[var(--text-secondary)]">SoapyFans Hub</span>
+                <span className="text-[var(--border-subtle)]">·</span>
+                <span>Fan Archive Profile</span>
+              </div>
+
+              <Link
+                href="/films"
+                className="transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
+              >
+                Explore Filmography Archive →
+              </Link>
+            </div>
+          </footer>
         </div>
       </div>
-    </>
+    </main>
   )
 }
+

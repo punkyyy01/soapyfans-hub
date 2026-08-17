@@ -1,16 +1,20 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
+import Link from 'next/link'
 import { createClient, getUser } from '@/utils/supabase/server'
-import { getMovieDetails, getTmdbImageUrl } from '@/utils/tmdb'
 import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildCollectionPageSchema, buildMusicReleaseSchema, serializeJsonLd } from '@/utils/schema'
 import TrackList from '@/components/media/TrackList'
 import MusicReviewForm from '@/components/forms/MusicReviewForm'
-import Reveal from '@/components/ui/Reveal'
-import Link from 'next/link'
+import PageContainer from '@/components/ui/PageContainer'
+import PageHeader from '@/components/ui/PageHeader'
+import SectionHeader from '@/components/ui/SectionHeader'
+import Badge from '@/components/ui/Badge'
+import Button from '@/components/ui/Button'
+import EmptyState from '@/components/ui/EmptyState'
 
 const MUSIC_DESCRIPTION =
-  "Sophie Thatcher's music — debut EP, singles, soundtracks, and tracklists, with reviews from fans. Fan-made, unofficial, not affiliated with Sophie Thatcher."
+  "Sophie Thatcher's music archive — debut EP 'Pivot & Scrape', cinematic singles, soundtrack appearances, and tracklists with community notes."
 
 export const revalidate = 3600
 
@@ -72,22 +76,21 @@ type MusicReviewWithProfile = {
 }
 
 const TYPE_LABEL: Record<string, string> = {
-  ep: 'EP',
+  ep: 'Debut EP',
   single: 'Single',
   soundtrack: 'Soundtrack',
   album: 'Album',
 }
 
-const HERETIC_TMDB_ID = 1087388
-
 const SOPHIE_QUOTES: Record<string, { quote: string; attribution: string }> = {
   'Pivot & Scrape': {
-    quote: 'The imagery and lyrics were inspired by dreams I kept having about throwing myself into glass. It felt guttural and like a strong juxtaposition with the dreaminess of the sound.',
+    quote:
+      'The imagery and lyrics were inspired by dreams I kept having about throwing myself into glass. It felt guttural and like a strong juxtaposition with the dreaminess of the sound.',
     attribution: 'Sophie Thatcher, 2024',
   },
   "Knockin' on Heaven's Door": {
     quote: 'The cover feels very melancholic and feminine, more dreamy and atmospheric.',
-    attribution: 'Sophie Thatcher',
+    attribution: 'Sophie Thatcher (Heretic OST)',
   },
 }
 
@@ -120,7 +123,7 @@ export default async function MusicPage({ searchParams }: Props) {
   const { error } = await searchParams
   const supabase = await createClient()
 
-  const [user, releasesResult, hereticResult] = await Promise.all([
+  const [user, releasesResult] = await Promise.all([
     getUser(),
     supabase
       .from('releases')
@@ -128,12 +131,7 @@ export default async function MusicPage({ searchParams }: Props) {
         'id, title, release_type, release_date, cover_art_url, spotify_url, bandcamp_url, twitter_url, description, tracks(id, title, duration_ms, track_number, youtube_video_id), music_reviews(id, user_id, release_id, rating, content, created_at, deleted_at, profiles(username, display_name))',
       )
       .order('release_date', { ascending: false }),
-    getMovieDetails(HERETIC_TMDB_ID).catch(() => null),
   ])
-
-  const heroBackdropUrl = hereticResult?.backdrop_path
-    ? getTmdbImageUrl(hereticResult.backdrop_path, 'w1280')
-    : null
 
   if (releasesResult.error) {
     console.error('[music page] releases query error:', releasesResult.error)
@@ -160,6 +158,14 @@ export default async function MusicPage({ searchParams }: Props) {
     .filter((r) => r.deleted_at === null)
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
 
+  // Determine the primary/featured release
+  const featuredRelease =
+    releaseList.find(
+      (r) => r.release_type === 'ep' || r.release_type === 'album' || r.title.includes('Pivot'),
+    ) ?? releaseList[0]
+
+  const otherReleases = releaseList.filter((r) => r.id !== featuredRelease?.id)
+
   const releaseSchemas = releaseList.map((release) =>
     buildMusicReleaseSchema({
       ...release,
@@ -168,7 +174,8 @@ export default async function MusicPage({ searchParams }: Props) {
   )
 
   return (
-    <main className="bg-[var(--bg-base)]">
+    <main className="min-h-screen bg-[var(--bg-base)] pt-24 sm:pt-28">
+      {/* ── Structured Data (SEO JSON-LD) ────────────────────── */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -188,269 +195,520 @@ export default async function MusicPage({ searchParams }: Props) {
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }}
         />
       ))}
-      <section className="relative h-[60vh] min-h-[380px] overflow-hidden">
-        {heroBackdropUrl && (
-          <Image
-            src={heroBackdropUrl}
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-[center_30%]"
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-base)] via-[rgba(8,7,4,0.65)] to-[rgba(8,7,4,0.35)]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-base)] via-[rgba(8,7,4,0.4)] to-transparent" />
-        {!heroBackdropUrl && (
-          <div className="absolute inset-0 bg-gradient-to-b from-[rgba(232,137,12,0.07)] via-transparent to-[var(--bg-base)]" />
-        )}
-        <div className="absolute inset-0 flex flex-col justify-end pb-16 pt-28">
-          <div className="mx-auto max-w-7xl px-6 sm:px-10">
-            <Reveal immediate stagger={0.1} y={24}>
-              <p className="text-[0.7rem] uppercase tracking-[0.5em] text-[var(--accent-amber)]">
-                Sophie Thatcher
-              </p>
-              <h1 className="mt-4 font-display text-[clamp(3rem,8vw,6rem)] font-semibold leading-[0.92] tracking-tight text-[var(--text-primary)]">
-                The Sound of Her
-              </h1>
-              <p className="mt-6 max-w-xl leading-relaxed text-[var(--text-secondary)] text-pretty">
-                Debut EP. A film credit cover. A soundtrack. Music that sits in the same space as her acting — quiet, precise, slightly unsettling.
-              </p>
-            </Reveal>
-          </div>
-        </div>
-      </section>
 
-      <div className="mx-auto max-w-6xl space-y-24 px-6 pb-32 sm:px-10">
+      <PageContainer size="default">
+        {/* ── 01 — Music Page Header ──────────────────────────── */}
+        <PageHeader
+          eyebrow="Archive Index · Discography"
+          title="Music"
+          description="Debut EP, cinematic singles, and soundtrack contributions — Sophie Thatcher's sonic archive sits in the same emotional register as her acting: quiet, textured, and slightly unsettling."
+          meta={
+            <>
+              <span>
+                <strong className="font-medium text-[var(--text-primary)]">
+                  {releaseList.length.toString().padStart(2, '0')}
+                </strong>{' '}
+                Releases Recorded
+              </span>
+              <span>
+                Primary Format · <strong className="font-medium text-[var(--text-primary)]">Debut EP</strong>
+              </span>
+              <span>
+                Artist · <strong className="font-medium text-[var(--accent-amber)]">Sophie Thatcher</strong>
+              </span>
+              <span className="hidden sm:inline">
+                Labels · <span className="text-[var(--text-secondary)]">Self-released / A24 Music</span>
+              </span>
+            </>
+          }
+        />
+
         {error && (
-          <p className="rounded-md border border-red-900/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+          <p className="mb-10 rounded-xl border border-red-900/40 bg-red-950/40 px-5 py-3 text-sm text-red-300">
             {error}
           </p>
         )}
 
         {releasesResult.error && (
-          <p className="rounded-lg border border-[var(--border-strong)] bg-[var(--bg-elevated)]/40 px-5 py-4 text-sm text-[var(--text-secondary)]">
-            We couldn’t load releases right now.{' '}
-            <Link
-              href="/"
-              className="font-medium uppercase tracking-[0.18em] text-[var(--accent-gold)] underline-offset-4 hover:underline"
-            >
-              Back to home →
-            </Link>
-          </p>
+          <div className="mb-12">
+            <EmptyState
+              title="Music archive unavailable"
+              description="Could not load releases from the database at this moment."
+              action={
+                <Button href="/" variant="secondary" size="sm">
+                  Return to Home
+                </Button>
+              }
+            />
+          </div>
         )}
 
         {releaseList.length === 0 && !releasesResult.error && (
-          <p className="rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--bg-elevated)]/30 px-5 py-4 text-sm text-[var(--text-secondary)]">
-            No releases yet — check back soon.
-          </p>
+          <div className="mb-12">
+            <EmptyState
+              title="No music releases recorded yet"
+              description="Music titles will appear here once cataloged in the archive."
+            />
+          </div>
         )}
 
-        {releaseList.map((release) => {
-          const reviews = allReviews.filter((r) => r.release_id === release.id)
-          const userReview = user ? reviews.find((r) => r.user_id === user.id) : undefined
-          const typeLabel = TYPE_LABEL[release.release_type] ?? release.release_type
-          const spotifyUrl = safeExternalUrl(release.spotify_url, ['open.spotify.com', 'spotify.com'])
-          const bandcampUrl = safeExternalUrl(release.bandcamp_url, ['bandcamp.com'])
-          const twitterUrl = safeExternalUrl(release.twitter_url, ['x.com', 'twitter.com'])
+        <div className="space-y-28 pb-32">
+          {/* ── 02 — Featured Release: Primary Work ───────────── */}
+          {featuredRelease && (
+            <section id="featured-release" className="scroll-mt-28 space-y-8">
+              <SectionHeader
+                kicker="Primary Archival Work"
+                title="Featured Release"
+                action={
+                  <Badge variant="music" size="md">
+                    {TYPE_LABEL[featuredRelease.release_type] ?? featuredRelease.release_type}
+                  </Badge>
+                }
+              />
 
-          return (
-            <section key={release.id} className="scroll-mt-24">
-              <Reveal stagger={0.08}>
-                <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--border-subtle)] pb-6">
-                  <div>
-                    <div className="mb-3 flex items-center gap-3">
-                      <span className="rounded-full border border-[var(--accent-amber)]/40 px-3 py-0.5 text-[0.6rem] uppercase tracking-[0.28em] text-[var(--accent-amber)]">
-                        {typeLabel}
-                      </span>
-                      <span className="text-[0.65rem] uppercase tracking-[0.22em] text-[var(--text-muted)]">
-                        {formatReleaseDate(release.release_date)}
-                      </span>
-                    </div>
-                    <h2 className="font-display text-[clamp(1.8rem,4vw,3rem)] font-semibold leading-tight tracking-tight text-[var(--text-primary)]">
-                      {release.title}
-                    </h2>
-                  </div>
+              {(() => {
+                const reviews = allReviews.filter((r) => r.release_id === featuredRelease.id)
+                const userReview = user ? reviews.find((r) => r.user_id === user.id) : undefined
+                const quoteObj = SOPHIE_QUOTES[featuredRelease.title]
+                const spotifyUrl = safeExternalUrl(featuredRelease.spotify_url, [
+                  'open.spotify.com',
+                  'spotify.com',
+                ])
+                const bandcampUrl = safeExternalUrl(featuredRelease.bandcamp_url, ['bandcamp.com'])
+                const twitterUrl = safeExternalUrl(featuredRelease.twitter_url, [
+                  'x.com',
+                  'twitter.com',
+                ])
 
-                </div>
-
-                {release.description && (
-                  <p className="mt-6 max-w-2xl leading-relaxed text-[var(--text-secondary)] text-pretty">
-                    {release.description}
-                  </p>
-                )}
-
-                {(spotifyUrl || bandcampUrl || twitterUrl) && (
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    {spotifyUrl && (
-                      <a
-                        href={spotifyUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex items-center gap-3 rounded-lg border border-[#1DB954]/25 bg-[rgba(29,185,84,0.08)] px-5 py-3 transition-all hover:border-[#1DB954]/60 hover:bg-[rgba(29,185,84,0.15)]"
-                      >
-                        <div className="text-left">
-                          <p className="text-[0.52rem] uppercase tracking-[0.3em] text-[#1DB954]/70">Stream on</p>
-                          <p className="text-sm font-semibold text-[#1DB954]">Spotify</p>
+                return (
+                  <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-6 backdrop-blur-xs sm:p-10">
+                    <div className="grid gap-10 lg:grid-cols-[340px_1fr] lg:gap-14">
+                      {/* Left: Artwork & Release Factsheet */}
+                      <div className="space-y-6">
+                        <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] shadow-xl">
+                          {featuredRelease.cover_art_url ? (
+                            <Image
+                              src={featuredRelease.cover_art_url}
+                              alt={featuredRelease.title}
+                              fill
+                              priority
+                              sizes="(max-width: 1024px) 100vw, 340px"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full flex-col items-center justify-center p-6 text-center font-display italic text-[var(--text-muted)]">
+                              <span className="text-3xl mb-2 text-[var(--accent-amber)]/40">♫</span>
+                              <span>Artwork not available</span>
+                            </div>
+                          )}
                         </div>
-                        <span className="ml-1 text-[#1DB954]/60 transition-transform group-hover:translate-x-1">→</span>
-                      </a>
-                    )}
-                    {bandcampUrl && (
-                      <a
-                        href={bandcampUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex items-center gap-3 rounded-lg border border-[#1DA0C3]/25 bg-[rgba(29,160,195,0.08)] px-5 py-3 transition-all hover:border-[#1DA0C3]/60 hover:bg-[rgba(29,160,195,0.15)]"
-                      >
-                        <div className="text-left">
-                          <p className="text-[0.52rem] uppercase tracking-[0.3em] text-[#1DA0C3]/70">Buy on</p>
-                          <p className="text-sm font-semibold text-[#1DA0C3]">Bandcamp</p>
-                        </div>
-                        <span className="ml-1 text-[#1DA0C3]/60 transition-transform group-hover:translate-x-1">→</span>
-                      </a>
-                    )}
-                    {twitterUrl && (
-                      <a
-                        href={twitterUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex items-center gap-3 rounded-lg border border-[var(--border-strong)] bg-[var(--bg-elevated)]/60 px-5 py-3 transition-all hover:border-[var(--accent-amber)]/50 hover:bg-[var(--bg-elevated)]"
-                      >
-                        <div className="text-left">
-                          <p className="text-[0.52rem] uppercase tracking-[0.3em] text-[var(--text-muted)]">Follow</p>
-                          <p className="text-sm font-semibold text-[var(--text-secondary)] group-hover:text-[var(--accent-gold)]">@sophiebthatcher</p>
-                        </div>
-                        <span className="ml-1 text-[var(--text-muted)] transition-transform group-hover:translate-x-1">→</span>
-                      </a>
-                    )}
-                  </div>
-                )}
 
-                {SOPHIE_QUOTES[release.title] && (
-                  <blockquote className="relative my-8 border-l-2 border-[var(--accent-amber)]/60 pl-6">
-                    <p className="font-display text-lg italic leading-relaxed text-[var(--text-secondary)] text-pretty">
-                      &ldquo;{SOPHIE_QUOTES[release.title].quote}&rdquo;
-                    </p>
-                    <cite className="mt-3 block text-[0.62rem] not-italic uppercase tracking-[0.32em] text-[var(--accent-amber)]">
-                      — {SOPHIE_QUOTES[release.title].attribution}
-                    </cite>
-                  </blockquote>
-                )}
-              </Reveal>
-
-              {release.tracks.length > 0 && (
-                <div className="mt-8">
-                  <p className="mb-3 text-[0.65rem] uppercase tracking-[0.32em] text-[var(--text-muted)]">
-                    Tracklist · {release.tracks.length}{' '}
-                    {release.tracks.length === 1 ? 'track' : 'tracks'}
-                  </p>
-                  <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/40 py-2">
-                    <TrackList tracks={release.tracks} />
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-14 space-y-8">
-                <div className="flex items-end justify-between border-b border-[var(--border-subtle)] pb-5">
-                  <div>
-                    <p className="text-[0.7rem] uppercase tracking-[0.5em] text-[var(--accent-amber)]">
-                      The Fan Floor
-                    </p>
-                    <h3 className="mt-2 font-display text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
-                      Reviews
-                    </h3>
-                  </div>
-                  <span className="text-xs uppercase tracking-[0.28em] text-[var(--text-muted)]">
-                    {reviews.length.toString().padStart(2, '0')}{' '}
-                    {reviews.length === 1 ? 'voice' : 'voices'}
-                  </span>
-                </div>
-
-                {user ? (
-                  <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/60 p-6 backdrop-blur">
-                    <MusicReviewForm
-                      releaseId={release.id}
-                      existingReview={
-                        userReview
-                          ? { id: userReview.id, rating: userReview.rating, content: userReview.content }
-                          : undefined
-                      }
-                    />
-                  </div>
-                ) : (
-                  <p className="rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--bg-elevated)]/40 px-5 py-4 text-sm text-[var(--text-secondary)]">
-                    <Link
-                      href="/login"
-                      className="font-medium uppercase tracking-[0.18em] text-[var(--accent-gold)] underline-offset-4 hover:underline"
-                    >
-                      Sign in
-                    </Link>{' '}
-                    to leave a review.
-                  </p>
-                )}
-
-                {reviews.length > 0 ? (
-                  <ul className="space-y-6">
-                    {reviews.map((review) => {
-                      const author =
-                        review.profiles?.display_name ??
-                        review.profiles?.username ??
-                        'Anonymous'
-                      const isOwn = review.user_id === user?.id
-                      return (
-                        <li
-                          key={review.id}
-                          className="group relative rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]/50 px-6 py-5 transition-colors hover:border-[var(--accent-amber)]/40"
-                        >
-                          <div className="flex flex-wrap items-center gap-3">
-                            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--accent-amber)]/30 bg-[var(--bg-base)] text-xs font-semibold text-[var(--accent-gold)]">
-                              {author[0]?.toUpperCase() ?? '?'}
-                            </span>
-                            <span className="font-display text-base font-medium text-[var(--text-primary)]">
-                              {author}
-                              {isOwn && (
-                                <span className="ml-2 text-[0.6rem] uppercase tracking-[0.22em] text-[var(--accent-amber)]">
-                                  · you
-                                </span>
-                              )}
-                            </span>
-                            <span
-                              className="text-[var(--accent-gold)]"
-                              aria-label={`${review.rating} of 5 stars`}
-                            >
-                              {'★'.repeat(review.rating)}
-                              <span className="text-[var(--text-muted)]">
-                                {'★'.repeat(5 - review.rating)}
-                              </span>
-                            </span>
-                            <span className="ml-auto text-[0.65rem] uppercase tracking-[0.22em] text-[var(--text-muted)]">
-                              {new Date(review.created_at).toLocaleDateString(undefined, {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                              })}
+                        {/* Metadata Box */}
+                        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/40 p-4 space-y-2.5 font-mono text-xs">
+                          <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2">
+                            <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">Artist</span>
+                            <span className="font-medium text-[var(--text-primary)]">Sophie Thatcher</span>
+                          </div>
+                          <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2">
+                            <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">Release Date</span>
+                            <span className="text-[var(--text-secondary)]">
+                              {formatReleaseDate(featuredRelease.release_date)}
                             </span>
                           </div>
-                          {review.content && (
-                            <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)] text-pretty">
-                              {review.content}
+                          <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2">
+                            <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">Tracks</span>
+                            <span className="text-[var(--text-secondary)]">
+                              {featuredRelease.tracks.length} {featuredRelease.tracks.length === 1 ? 'track' : 'tracks'}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">Community</span>
+                            <span className="font-medium text-[var(--accent-gold)]">
+                              {reviews.length} {reviews.length === 1 ? 'note' : 'notes'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* External Streaming Access */}
+                        {(spotifyUrl || bandcampUrl || twitterUrl) && (
+                          <div className="space-y-2 pt-2">
+                            <p className="text-eyebrow">
+                              Listen &amp; Connect
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {spotifyUrl && (
+                                <a
+                                  href={spotifyUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer nofollow"
+                                  className="inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-1.5 font-mono text-xs uppercase tracking-[0.14em] text-[var(--text-secondary)] transition-all hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] focus-ring"
+                                >
+                                  <span className="text-[#1DB954]" aria-hidden="true">●</span>
+                                  <span>Spotify</span>
+                                  <span className="text-[var(--text-muted)]" aria-hidden="true">↗</span>
+                                </a>
+                              )}
+                              {bandcampUrl && (
+                                <a
+                                  href={bandcampUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer nofollow"
+                                  className="inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-1.5 font-mono text-xs uppercase tracking-[0.14em] text-[var(--text-secondary)] transition-all hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] focus-ring"
+                                >
+                                  <span className="text-[#1DA0C3]" aria-hidden="true">●</span>
+                                  <span>Bandcamp</span>
+                                  <span className="text-[var(--text-muted)]" aria-hidden="true">↗</span>
+                                </a>
+                              )}
+                              {twitterUrl && (
+                                <a
+                                  href={twitterUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer nofollow"
+                                  className="inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-1.5 font-mono text-xs uppercase tracking-[0.14em] text-[var(--text-secondary)] transition-all hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] focus-ring"
+                                >
+                                  <span>@sophiebthatcher</span>
+                                  <span className="text-[var(--text-muted)]" aria-hidden="true">↗</span>
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right: Title, Overview, Tracklist & Reviews */}
+                      <div className="space-y-10">
+                        <div className="space-y-3">
+                          <h2 className="font-display text-3xl font-medium tracking-tight text-[var(--text-primary)] sm:text-4xl">
+                            {featuredRelease.title}
+                          </h2>
+                          {featuredRelease.description && (
+                            <p className="max-w-2xl font-display text-lg leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-xl">
+                              {featuredRelease.description}
                             </p>
                           )}
-                        </li>
-                      )
-                    })}
-                  </ul>
-                ) : (
-                  <p className="text-sm italic text-[var(--text-muted)]">
-                    No reviews yet. Be the first one to break the silence.
-                  </p>
-                )}
+                        </div>
+
+                        {/* Editorial Quote Annotation */}
+                        {quoteObj && (
+                          <blockquote className="rounded-xl border-l-2 border-[var(--accent-amber)] bg-[var(--bg-surface)]/80 p-5 pl-6">
+                            <p className="font-display text-base italic leading-relaxed text-[var(--text-secondary)] text-pretty">
+                              &ldquo;{quoteObj.quote}&rdquo;
+                            </p>
+                            <cite className="mt-3 block font-mono text-[0.68rem] not-italic uppercase tracking-[0.16em] text-[var(--accent-amber)]">
+                              — {quoteObj.attribution}
+                            </cite>
+                          </blockquote>
+                        )}
+
+                        {/* Tracklist */}
+                        {featuredRelease.tracks.length > 0 && (
+                          <div className="space-y-3">
+                            <p className="text-eyebrow">
+                              Tracklist · {featuredRelease.tracks.length} Tracks
+                            </p>
+                            <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/80">
+                              <TrackList tracks={featuredRelease.tracks} />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Reviews for Featured Release */}
+                        <div className="space-y-6 pt-4">
+                          <SectionHeader
+                            kicker="Fan Floor · Notes &amp; Reviews"
+                            title="Community Impressions"
+                            action={
+                              <span className="font-mono text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                                {reviews.length} {reviews.length === 1 ? 'voice' : 'voices'}
+                              </span>
+                            }
+                          />
+
+                          {user ? (
+                            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 backdrop-blur-xs">
+                              <MusicReviewForm
+                                releaseId={featuredRelease.id}
+                                existingReview={
+                                  userReview
+                                    ? {
+                                        id: userReview.id,
+                                        rating: userReview.rating,
+                                        content: userReview.content,
+                                      }
+                                    : undefined
+                                }
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-6 sm:flex-row sm:items-center">
+                              <div className="space-y-1">
+                                <p className="font-display text-base font-medium text-[var(--text-primary)]">
+                                  Have you listened to {featuredRelease.title}?
+                                </p>
+                                <p className="text-xs text-[var(--text-secondary)]">
+                                  Sign in to rate this release and add your thoughts to the fan archive.
+                                </p>
+                              </div>
+                              <Button href="/login" variant="secondary" size="sm">
+                                Sign in to review
+                              </Button>
+                            </div>
+                          )}
+
+                          {reviews.length > 0 ? (
+                            <ul className="space-y-4">
+                              {reviews.map((review) => {
+                                const author =
+                                  review.profiles?.display_name ??
+                                  review.profiles?.username ??
+                                  'Anonymous Fan'
+                                const isOwn = review.user_id === user?.id
+                                return (
+                                  <li
+                                    key={review.id}
+                                    className="group relative rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-6 transition-all hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface)]"
+                                  >
+                                    <div className="flex flex-wrap items-center gap-3">
+                                      <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--accent-amber)]/40 bg-[var(--bg-card)] font-mono text-xs font-semibold text-[var(--accent-amber)]">
+                                        {author[0]?.toUpperCase() ?? '?'}
+                                      </span>
+                                      <span className="font-display text-base font-medium text-[var(--text-primary)]">
+                                        {author}
+                                        {isOwn && (
+                                          <span className="ml-2 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-[var(--accent-amber)]">
+                                            (You)
+                                          </span>
+                                        )}
+                                      </span>
+                                      <span
+                                        className="font-mono text-xs text-[var(--accent-gold)]"
+                                        aria-label={`${review.rating} of 5 stars`}
+                                      >
+                                        {'★'.repeat(review.rating)}
+                                        <span className="text-[var(--text-muted)]">
+                                          {'★'.repeat(5 - review.rating)}
+                                        </span>
+                                      </span>
+                                      <span className="ml-auto font-mono text-xs text-[var(--text-muted)]">
+                                        {new Date(review.created_at).toLocaleDateString(undefined, {
+                                          year: 'numeric',
+                                          month: 'short',
+                                          day: 'numeric',
+                                        })}
+                                      </span>
+                                    </div>
+                                    {review.content && (
+                                      <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)] text-pretty">
+                                        {review.content}
+                                      </p>
+                                    )}
+                                  </li>
+                                )
+                              })}
+                            </ul>
+                          ) : (
+                            <EmptyState
+                              title="No fan notes yet"
+                              description="Be the first person to leave a note and star rating for this release."
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
+            </section>
+          )}
+
+          {/* ── 03 — Other Releases / Singles & Soundtracks ──── */}
+          {otherReleases.length > 0 && (
+            <section id="other-releases" className="scroll-mt-28 space-y-10">
+              <SectionHeader
+                kicker="Singles · Soundtracks · Appearances"
+                title="Other Releases"
+                action={
+                  <span className="font-mono text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                    {otherReleases.length} {otherReleases.length === 1 ? 'entry' : 'entries'}
+                  </span>
+                }
+              />
+
+              <div className="space-y-12">
+                {otherReleases.map((release) => {
+                  const reviews = allReviews.filter((r) => r.release_id === release.id)
+                  const userReview = user ? reviews.find((r) => r.user_id === user.id) : undefined
+                  const typeLabel = TYPE_LABEL[release.release_type] ?? release.release_type
+                  const quoteObj = SOPHIE_QUOTES[release.title]
+                  const spotifyUrl = safeExternalUrl(release.spotify_url, [
+                    'open.spotify.com',
+                    'spotify.com',
+                  ])
+                  const bandcampUrl = safeExternalUrl(release.bandcamp_url, ['bandcamp.com'])
+                  const twitterUrl = safeExternalUrl(release.twitter_url, ['x.com', 'twitter.com'])
+
+                  return (
+                    <article
+                      key={release.id}
+                      className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-6 backdrop-blur-xs sm:p-8 space-y-8"
+                    >
+                      <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3">
+                            <Badge variant="music" size="sm">
+                              {typeLabel}
+                            </Badge>
+                            <span className="font-mono text-xs text-[var(--text-muted)]">
+                              {formatReleaseDate(release.release_date)}
+                            </span>
+                          </div>
+                          <h3 className="font-display text-2xl font-medium tracking-tight text-[var(--text-primary)] sm:text-3xl">
+                            {release.title}
+                          </h3>
+                        </div>
+
+                        {/* Streaming Buttons */}
+                        {(spotifyUrl || bandcampUrl || twitterUrl) && (
+                          <div className="flex flex-wrap gap-2 sm:self-start">
+                            {spotifyUrl && (
+                              <a
+                                href={spotifyUrl}
+                                target="_blank"
+                                rel="noopener noreferrer nofollow"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-[var(--text-secondary)] transition-all hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] focus-ring"
+                              >
+                                <span className="text-[#1DB954]" aria-hidden="true">●</span>
+                                <span>Spotify ↗</span>
+                              </a>
+                            )}
+                            {bandcampUrl && (
+                              <a
+                                href={bandcampUrl}
+                                target="_blank"
+                                rel="noopener noreferrer nofollow"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-[var(--text-secondary)] transition-all hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] focus-ring"
+                              >
+                                <span className="text-[#1DA0C3]" aria-hidden="true">●</span>
+                                <span>Bandcamp ↗</span>
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {release.description && (
+                        <p className="max-w-2xl font-display text-base leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-lg">
+                          {release.description}
+                        </p>
+                      )}
+
+                      {quoteObj && (
+                        <blockquote className="rounded-xl border-l-2 border-[var(--accent-amber)] bg-[var(--bg-surface)]/80 p-4 pl-5">
+                          <p className="font-display text-sm italic leading-relaxed text-[var(--text-secondary)]">
+                            &ldquo;{quoteObj.quote}&rdquo;
+                          </p>
+                          <cite className="mt-2 block font-mono text-[0.65rem] not-italic uppercase tracking-[0.16em] text-[var(--accent-amber)]">
+                            — {quoteObj.attribution}
+                          </cite>
+                        </blockquote>
+                      )}
+
+                      {/* Tracklist if available */}
+                      {release.tracks.length > 0 && (
+                        <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/80">
+                          <TrackList tracks={release.tracks} />
+                        </div>
+                      )}
+
+                      {/* Integrated Reviews for Secondary Release */}
+                      <div className="border-t border-[var(--border-subtle)] pt-6 space-y-6">
+                        <div className="flex items-center justify-between">
+                          <p className="text-eyebrow">
+                            Fan Notes ({reviews.length})
+                          </p>
+                          {!user && (
+                            <Link
+                              href="/login"
+                              className="font-mono text-xs uppercase tracking-[0.14em] text-[var(--accent-amber)] hover:underline focus-ring rounded-xs"
+                            >
+                              Sign in to review →
+                            </Link>
+                          )}
+                        </div>
+
+                        {user && (
+                          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5">
+                            <MusicReviewForm
+                              releaseId={release.id}
+                              existingReview={
+                                userReview
+                                  ? {
+                                      id: userReview.id,
+                                      rating: userReview.rating,
+                                      content: userReview.content,
+                                    }
+                                  : undefined
+                              }
+                            />
+                          </div>
+                        )}
+
+                        {reviews.length > 0 ? (
+                          <ul className="space-y-3">
+                            {reviews.map((review) => {
+                              const author =
+                                review.profiles?.display_name ??
+                                review.profiles?.username ??
+                                'Anonymous Fan'
+                              const isOwn = review.user_id === user?.id
+                              return (
+                                <li
+                                  key={review.id}
+                                  className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/40 p-4 transition-colors hover:bg-[var(--bg-surface)]"
+                                >
+                                  <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                                    <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--accent-amber)]/40 bg-[var(--bg-card)] font-mono text-[0.65rem] font-semibold text-[var(--accent-amber)]">
+                                      {author[0]?.toUpperCase() ?? '?'}
+                                    </span>
+                                    <span className="font-display font-medium text-[var(--text-primary)]">
+                                      {author} {isOwn && '(You)'}
+                                    </span>
+                                    <span className="font-mono text-[var(--accent-gold)]">
+                                      {'★'.repeat(review.rating)}
+                                    </span>
+                                    <span className="ml-auto font-mono text-[var(--text-muted)]">
+                                      {new Date(review.created_at).toLocaleDateString(undefined, {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                      })}
+                                    </span>
+                                  </div>
+                                  {review.content && (
+                                    <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">
+                                      {review.content}
+                                    </p>
+                                  )}
+                                </li>
+                              )
+                            })}
+                          </ul>
+                        ) : (
+                          <p className="text-xs italic text-[var(--text-muted)]">
+                            No fan notes yet for this release.
+                          </p>
+                        )}
+                      </div>
+                    </article>
+                  )
+                })}
               </div>
             </section>
-          )
-        })}
-      </div>
+          )}
+        </div>
+      </PageContainer>
     </main>
   )
 }
+

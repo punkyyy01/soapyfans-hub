@@ -3,9 +3,10 @@ import { redirect } from 'next/navigation'
 import { createClient, getUser } from '@/utils/supabase/server'
 import { getMovieDetails, getTvDetails } from '@/utils/tmdb'
 import ProfileEditForm from '@/components/profile/ProfileEditForm'
+import PageContainer from '@/components/ui/PageContainer'
 
 export const metadata: Metadata = {
-  title: 'Edit Profile',
+  title: 'Edit Profile Atelier',
   robots: { index: false, follow: false },
 }
 
@@ -59,8 +60,11 @@ export default async function ProfileEditPage() {
   )
 
   return (
-    <main className="mx-auto max-w-4xl px-6 pb-24 pt-24 sm:px-8 sm:pb-32 sm:pt-28">
-      <ProfileEditForm profile={profile} initialFavorites={favorites} />
+    <main className="min-h-screen bg-[var(--bg-base)] pb-32 pt-24 sm:pt-28">
+      <PageContainer size="narrow">
+        <ProfileEditForm profile={profile} initialFavorites={favorites} />
+      </PageContainer>
     </main>
   )
 }
+

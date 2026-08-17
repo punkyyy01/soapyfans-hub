@@ -18,29 +18,34 @@ export default function WhereToWatch({ providers }: Props) {
   if (!hasAny) return null
 
   return (
-    <div className="mt-6 space-y-4 border-t border-[var(--border-subtle)] pt-6">
-      <p className="text-[0.65rem] uppercase tracking-[0.32em] text-[var(--text-muted)]">
-        Where to watch
-      </p>
+    <div className="space-y-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-5 backdrop-blur-xs">
+      <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2.5">
+        <p className="text-eyebrow">
+          Where to Watch
+        </p>
+        <span className="font-mono text-[0.62rem] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+          JustWatch
+        </span>
+      </div>
 
       {GROUPS.map(({ key, label }) => {
         const list = providers[key]
         if (!list || list.length === 0) return null
         return (
-          <div key={key}>
-            <p className="text-[0.6rem] uppercase tracking-[0.28em] text-[var(--text-secondary)]">
+          <div key={key} className="space-y-2">
+            <p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-[var(--text-secondary)] font-medium">
               {label}
             </p>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2">
               {list.map((p) => {
                 const logoSrc = getTmdbImageUrl(p.logo_path, 'w185')
                 return (
                   <span
                     key={p.provider_id}
                     title={p.provider_name}
-                    className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md ring-1 ring-[var(--border-subtle)]"
+                    className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-[var(--border-default)] bg-[var(--bg-elevated)] transition-all hover:border-[var(--border-strong)]"
                   >
-                    {logoSrc && (
+                    {logoSrc ? (
                       <Image
                         src={logoSrc}
                         alt={p.provider_name}
@@ -48,6 +53,10 @@ export default function WhereToWatch({ providers }: Props) {
                         height={36}
                         className="h-full w-full object-cover"
                       />
+                    ) : (
+                      <span className="text-[0.6rem] text-[var(--text-muted)] font-mono">
+                        {p.provider_name.slice(0, 2).toUpperCase()}
+                      </span>
                     )}
                   </span>
                 )
@@ -58,19 +67,19 @@ export default function WhereToWatch({ providers }: Props) {
       })}
 
       {providers.link && (
-        <a
-          href={providers.link}
-          target="_blank"
-          rel="noopener noreferrer nofollow"
-          className="inline-flex items-center gap-1 text-[0.6rem] uppercase tracking-[0.24em] text-[var(--accent-gold)] underline-offset-4 hover:underline"
-        >
-          See all options →
-        </a>
+        <div className="border-t border-[var(--border-subtle)] pt-3 text-right">
+          <a
+            href={providers.link}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="inline-flex items-center gap-1 font-mono text-[0.65rem] uppercase tracking-[0.16em] text-[var(--accent-amber)] transition-colors hover:underline focus-ring rounded-xs"
+          >
+            <span>All streaming options</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
       )}
-
-      <p className="text-[0.55rem] uppercase tracking-[0.2em] text-[var(--text-muted)]">
-        Streaming data by JustWatch
-      </p>
     </div>
   )
 }
+

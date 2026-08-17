@@ -8,13 +8,25 @@ export const getUser = cache(async () => {
   const cookieStore = await cookies()
   const hasAuthCookie = cookieStore
     .getAll()
-    .some((cookie) => cookie.name.startsWith('sb-'))
+    .some(
+      (cookie) =>
+        cookie.name.startsWith('sb-') &&
+        Boolean(cookie.value) &&
+        cookie.value.trim() !== '' &&
+        cookie.value !== '""' &&
+        cookie.value !== '[]'
+    )
 
   if (!hasAuthCookie) return null
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error } = await supabase.auth.getUser()
+    if (error || !user) return null
+    return user
+  } catch {
+    return null
+  }
 })
 
 export type AuthUserWithProfile = {

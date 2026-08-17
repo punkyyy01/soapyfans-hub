@@ -1,15 +1,19 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
+import Image from 'next/image'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import { getMovieDetails, getTmdbImageUrl, getWatchProvidersForCountry } from '@/utils/tmdb'
 import WhereToWatch from '@/components/media/WhereToWatch'
 import MediaDetailTabs from '@/components/media/MediaDetailTabs'
 import { createClient, getUser } from '@/utils/supabase/server'
 import { buildMovieSchema, serializeJsonLd } from '@/utils/schema'
 import ReviewForm from '@/components/forms/ReviewForm'
-import Reveal from '@/components/ui/Reveal'
-import Image from 'next/image'
-import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import PageContainer from '@/components/ui/PageContainer'
+import SectionHeader from '@/components/ui/SectionHeader'
+import Badge from '@/components/ui/Badge'
+import Button from '@/components/ui/Button'
+import EmptyState from '@/components/ui/EmptyState'
 
 export const revalidate = 3600
 
@@ -28,8 +32,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const year = film.release_date ? film.release_date.slice(0, 4) : null
     const titleWithYear = year ? `${film.title} (${year})` : film.title
     const description = film.overview
-      ? `${film.overview.slice(0, 200)}${film.overview.length > 200 ? '…' : ''} · A Sophie Thatcher credit on SoapyFans Hub — fan-made, unofficial.`
-      : `${titleWithYear} — a Sophie Thatcher film credit on SoapyFans Hub. Fan-made, unofficial, not affiliated with Sophie Thatcher.`
+      ? `${film.overview.slice(0, 200)}${film.overview.length > 200 ? '…' : ''} · A Sophie Thatcher credit on SoapyFans Hub.`
+      : `${titleWithYear} — a Sophie Thatcher film credit on SoapyFans Hub.`
     const ogImage = getTmdbImageUrl(film.backdrop_path, 'w1280') ?? getTmdbImageUrl(film.poster_path, 'w780')
     const canonical = `/films/${tmdbId}`
 
@@ -72,14 +76,9 @@ type ReviewWithProfile = {
 
 function ReviewsSkeleton() {
   return (
-    <section className="space-y-10">
-      <div className="flex items-end justify-between border-b border-[var(--border-subtle)] pb-5">
-        <div>
-          <div className="h-2 w-20 animate-pulse rounded-full bg-[var(--bg-elevated)]" />
-          <div className="mt-3 h-8 w-40 animate-pulse rounded bg-[var(--bg-elevated)]" />
-        </div>
-      </div>
-      <div className="h-28 animate-pulse rounded-lg bg-[var(--bg-elevated)]/40" />
+    <section className="space-y-6">
+      <div className="h-8 w-40 animate-pulse rounded bg-[var(--bg-elevated)]" />
+      <div className="h-28 animate-pulse rounded-xl bg-[var(--bg-elevated)]/40" />
     </section>
   )
 }
@@ -116,30 +115,26 @@ async function FilmReviewsSection({
   const userReview = user ? reviews.find((r) => r.user_id === user.id) : undefined
 
   return (
-    <section className="space-y-10">
-      <div className="flex items-end justify-between border-b border-[var(--border-subtle)] pb-5">
-        <div>
-          <p className="text-[0.7rem] uppercase tracking-[0.5em] text-[var(--accent-amber)]">
-            Fan notes
-          </p>
-          <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-[var(--text-primary)]">
-            Reviews
-          </h2>
-        </div>
-        <span className="text-xs uppercase tracking-[0.28em] text-[var(--text-muted)]">
-          {reviews.length.toString().padStart(2, '0')}{' '}
-          {reviews.length === 1 ? 'voice' : 'voices'}
-        </span>
-      </div>
+    <section className="space-y-8">
+      <SectionHeader
+        kicker="Community Archive"
+        title="Fan Reviews"
+        action={
+          <span className="font-mono text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
+            {reviews.length} {reviews.length === 1 ? 'voice' : 'voices'}
+          </span>
+        }
+      />
 
       {error && (
-        <p className="rounded-md border border-red-900/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+        <p className="rounded-xl border border-red-900/40 bg-red-950/40 px-4 py-3 text-sm text-red-300">
           {error}
         </p>
       )}
 
+      {/* Review Form or Auth Gate */}
       {user ? (
-        <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/60 p-6 backdrop-blur">
+        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 backdrop-blur-xs">
           <ReviewForm
             tmdbId={tmdbId}
             title={filmTitle}
@@ -158,49 +153,54 @@ async function FilmReviewsSection({
           />
         </div>
       ) : (
-        <p className="rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--bg-elevated)]/40 px-5 py-4 text-sm text-[var(--text-secondary)]">
-          <Link
-            href="/login"
-            className="font-medium uppercase tracking-[0.18em] text-[var(--accent-gold)] underline-offset-4 hover:underline"
-          >
-            Sign in
-          </Link>{' '}
-          to leave a note.
-        </p>
+        <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-6 sm:flex-row sm:items-center">
+          <div className="space-y-1">
+            <p className="font-display text-base font-medium text-[var(--text-primary)]">
+              Have you watched this title?
+            </p>
+            <p className="text-xs text-[var(--text-secondary)]">
+              Sign in to rate this film and add your thoughts to the fan archive.
+            </p>
+          </div>
+          <Button href="/login" variant="secondary" size="sm">
+            Sign in to review
+          </Button>
+        </div>
       )}
 
+      {/* Review List */}
       {reviews.length > 0 ? (
-        <ul className="space-y-6">
+        <ul className="space-y-4">
           {reviews.map((review) => {
             const author =
               review.profiles?.display_name ??
               review.profiles?.username ??
-              'Anonymous'
+              'Anonymous Fan'
             const isOwn = review.user_id === user?.id
             return (
               <li
                 key={review.id}
-                className="group relative rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-card)]/50 px-6 py-5 transition-colors hover:border-[var(--accent-amber)]/40"
+                className="group relative rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-6 transition-all hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface)]"
               >
                 <div className="flex flex-wrap items-center gap-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--accent-amber)]/30 bg-[var(--bg-base)] text-xs font-semibold text-[var(--accent-gold)]">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--accent-amber)]/40 bg-[var(--bg-card)] font-mono text-xs font-semibold text-[var(--accent-amber)]">
                     {author[0]?.toUpperCase() ?? '?'}
                   </span>
                   <span className="font-display text-base font-medium text-[var(--text-primary)]">
                     {author}
                     {isOwn && (
-                      <span className="ml-2 text-[0.6rem] uppercase tracking-[0.22em] text-[var(--accent-amber)]">
-                        · you
+                      <span className="ml-2 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-[var(--accent-amber)]">
+                        (You)
                       </span>
                     )}
                   </span>
-                  <span className="text-[var(--accent-gold)]" aria-label={`${review.rating} of 5 stars`}>
+                  <span className="font-mono text-xs text-[var(--accent-gold)]" aria-label={`${review.rating} of 5 stars`}>
                     {'★'.repeat(review.rating)}
                     <span className="text-[var(--text-muted)]">
                       {'★'.repeat(5 - review.rating)}
                     </span>
                   </span>
-                  <span className="ml-auto text-[0.65rem] uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                  <span className="ml-auto font-mono text-xs text-[var(--text-muted)]">
                     {new Date(review.created_at).toLocaleDateString(undefined, {
                       year: 'numeric',
                       month: 'short',
@@ -218,9 +218,10 @@ async function FilmReviewsSection({
           })}
         </ul>
       ) : (
-        <p className="text-sm italic text-[var(--text-muted)]">
-          No reviews yet. Be the first one to break the silence.
-        </p>
+        <EmptyState
+          title="No fan reviews yet"
+          description="Be the first person to leave a note and star rating for this entry in the archive."
+        />
       )}
     </section>
   )
@@ -240,6 +241,15 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
   const backdrop = getTmdbImageUrl(film.backdrop_path, 'w1280')
   const releaseYear = film.release_date ? Number(film.release_date.slice(0, 4)) : null
 
+  // Locate Sophie's character in cast
+  const sophieCastMember = film.credits.cast.find(
+    (c) =>
+      c.name.toLowerCase().includes('sophie thatcher') ||
+      c.id === 2099307 ||
+      c.name.toLowerCase() === 'sophie thatcher',
+  )
+  const sophieCharacter = sophieCastMember?.character?.trim() || null
+
   const movieSchema = buildMovieSchema({
     tmdbId,
     title: film.title,
@@ -252,12 +262,15 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
   })
 
   return (
-    <main className="relative bg-[var(--bg-base)]">
+    <main className="min-h-screen bg-[var(--bg-base)]">
+      {/* ── Structured Data (SEO JSON-LD) ────────────────────── */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(movieSchema) }}
       />
-      <section className="relative h-[420px] sm:h-[480px] w-full overflow-hidden grain">
+
+      {/* ── Contained Backdrop Header ───────────────────────── */}
+      <section className="relative h-48 w-full overflow-hidden sm:h-64">
         {backdrop && (
           <Image
             src={backdrop}
@@ -265,88 +278,144 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
             fill
             priority
             sizes="100vw"
-            className="object-cover object-[center_22%]"
+            className="object-cover object-[center_20%] opacity-40"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-base)] via-[rgba(8,7,4,0.55)] to-[rgba(8,7,4,0.2)]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-base)] via-[rgba(8,7,4,0.3)] to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-base)] via-[rgba(8,7,4,0.7)] to-[rgba(8,7,4,0.3)]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-base)] via-[rgba(8,7,4,0.5)] to-transparent" />
       </section>
 
-      <section className="relative z-10 mx-auto -mt-6 max-w-6xl px-6 pt-4 sm:-mt-8 sm:px-10">
-        <Link
-          href="/films"
-          className="group inline-flex items-center gap-2 text-[0.7rem] uppercase tracking-[0.32em] text-[var(--text-secondary)] transition-colors hover:text-[var(--accent-gold)]"
-        >
-          <span className="transition-transform group-hover:-translate-x-1">←</span>
-          Back to the index
-        </Link>
-        <Reveal immediate stagger={0.1} y={28}>
-          <p className="mt-2 text-[0.7rem] uppercase tracking-[0.5em] text-[var(--accent-amber)]">
-            {releaseYear ?? '—'}
-            {film.runtime ? ` · ${film.runtime} min` : ''}
-            {film.status ? ` · ${film.status}` : ''}
-          </p>
-          <h1 className="mt-3 max-w-4xl font-display text-[clamp(2.4rem,6vw,4.8rem)] font-semibold leading-[0.95] tracking-tight text-[var(--text-primary)] text-balance">
+      {/* ── Header Title Block ──────────────────────────────── */}
+      <PageContainer size="default" className="relative z-10 -mt-16 sm:-mt-24">
+        <div className="mb-10 space-y-4">
+          <Link
+            href="/films"
+            className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.16em] text-[var(--text-secondary)] transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs py-1"
+          >
+            <span aria-hidden="true">←</span>
+            <span>Back to filmography</span>
+          </Link>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge variant="film" size="md">
+              Feature Film
+            </Badge>
+            {releaseYear && (
+              <span className="font-mono text-xs text-[var(--text-muted)]">
+                {releaseYear}
+              </span>
+            )}
+            {film.runtime && (
+              <span className="font-mono text-xs text-[var(--text-muted)]">
+                · {film.runtime} min
+              </span>
+            )}
+            {film.status && (
+              <span className="font-mono text-xs text-[var(--text-muted)]">
+                · {film.status}
+              </span>
+            )}
+          </div>
+
+          <h1 className="font-display text-[clamp(2.4rem,5.5vw,4.5rem)] font-medium leading-[0.98] tracking-tight text-[var(--text-primary)] text-balance">
             {film.title}
           </h1>
+
           {film.tagline && (
-            <p className="mt-5 max-w-2xl font-display text-lg italic text-[var(--text-secondary)] text-pretty sm:text-xl">
-              “{film.tagline}”
+            <p className="max-w-2xl font-display text-lg italic text-[var(--text-secondary)] text-pretty sm:text-xl">
+              &ldquo;{film.tagline}&rdquo;
             </p>
           )}
-        </Reveal>
-      </section>
+        </div>
 
-      <div className="mx-auto max-w-6xl px-6 pb-32 pt-10 sm:px-10">
-        <div className="grid gap-12 lg:grid-cols-[280px_1fr]">
-          <aside className="lg:sticky lg:top-28 lg:self-start">
-            <div className="mt-6 overflow-hidden rounded-md bg-[var(--bg-elevated)] ring-1 ring-[var(--border-strong)] shadow-[0_24px_60px_-20px_rgba(0,0,0,0.8)]">
+        {/* ── Dossier Grid (Sidebar + Main Content) ──────────── */}
+        <div className="grid gap-10 pb-32 lg:grid-cols-[280px_1fr] lg:gap-14">
+          {/* Left Column: Dossier Sidebar */}
+          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+            {/* Primary Media (Poster) */}
+            <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] shadow-lg">
               {poster ? (
                 <Image
                   src={poster}
                   alt={film.title}
-                  width={500}
-                  height={750}
-                  className="w-full"
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 280px"
+                  className="object-cover"
                 />
               ) : (
-                <div className="flex h-[420px] items-center justify-center font-display italic text-[var(--text-muted)]">
-                  Poster missing.
+                <div className="flex h-full w-full items-center justify-center p-6 text-center font-display text-sm italic text-[var(--text-muted)]">
+                  Poster not available in archive
                 </div>
               )}
             </div>
 
-            <div className="mt-6 space-y-4 text-xs uppercase tracking-[0.28em] text-[var(--text-muted)]">
-              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
-                <span>TMDB rating</span>
-                <span className="text-[var(--accent-gold)]">
-                  ★ {film.vote_average.toFixed(1)} / 10
+            {/* Sophie Connection Card */}
+            <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 space-y-1.5">
+              <p className="text-eyebrow">
+                Archive Subject
+              </p>
+              <p className="font-display text-lg font-medium text-[var(--text-primary)]">
+                Sophie Thatcher
+              </p>
+              {sophieCharacter ? (
+                <p className="text-xs italic text-[var(--accent-amber)] font-medium">
+                  as {sophieCharacter}
+                </p>
+              ) : (
+                <p className="text-xs text-[var(--text-secondary)]">
+                  Cast Credit
+                </p>
+              )}
+            </div>
+
+            {/* Factsheet Metadata Table */}
+            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-5 space-y-3 font-mono text-xs">
+              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2.5">
+                <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">TMDB Rating</span>
+                <span className="font-medium text-[var(--accent-gold)]">
+                  ★ {film.vote_average ? film.vote_average.toFixed(1) : '—'} / 10
                 </span>
               </div>
-              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
-                <span>Release date</span>
+              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2.5">
+                <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">Release Date</span>
                 <span className="text-[var(--text-secondary)]">
                   {film.release_date || '—'}
                 </span>
               </div>
               {film.runtime && (
-                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
-                  <span>Runtime</span>
+                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2.5">
+                  <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">Runtime</span>
                   <span className="text-[var(--text-secondary)]">{film.runtime} min</span>
+                </div>
+              )}
+              {film.genres && film.genres.length > 0 && (
+                <div className="flex items-start justify-between">
+                  <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">Genres</span>
+                  <span className="text-right text-[var(--text-secondary)]">
+                    {film.genres.map((g) => g.name).join(', ')}
+                  </span>
                 </div>
               )}
             </div>
 
+            {/* Where to Watch */}
             <WhereToWatch providers={getWatchProvidersForCountry(film.watchProvidersByCountry)} />
           </aside>
 
-          <div className="space-y-16 pt-10 lg:pt-12">
-            <Reveal immediate stagger={0.1}>
-              <p className="font-display text-[1.35rem] font-medium leading-relaxed text-[var(--text-primary)] text-pretty sm:text-2xl">
-                {film.overview || 'No synopsis yet.'}
+          {/* Right Column: Main Content */}
+          <div className="space-y-14">
+            {/* Synopsis */}
+            <div className="space-y-3">
+              <p className="text-eyebrow">
+                Synopsis
               </p>
-            </Reveal>
+              <p className="max-w-2xl font-display text-xl font-normal leading-relaxed text-[var(--text-primary)] text-pretty sm:text-2xl">
+                {film.overview || 'No synopsis recorded for this title.'}
+              </p>
+            </div>
 
+            {/* Media Detail Tabs */}
             <MediaDetailTabs
               tmdbId={tmdbId}
               mediaType="movie"
@@ -359,6 +428,7 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
               alternativeTitles={film.alternativeTitles}
             />
 
+            {/* Reviews Section */}
             <Suspense fallback={<ReviewsSkeleton />}>
               <FilmReviewsSection
                 tmdbId={tmdbId}
@@ -371,7 +441,8 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
             </Suspense>
           </div>
         </div>
-      </div>
+      </PageContainer>
     </main>
   )
 }
+

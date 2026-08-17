@@ -79,5 +79,56 @@ describe('OAuth Security and Provider Configuration', () => {
       assert.ok(csp.includes('https://tcskvcmtcsaxyfoselvb.supabase.co') || csp.includes('supabase.co'))
     })
   })
+
+  describe('Auth Cookie State Validation', () => {
+    function hasValidAuthCookie(cookies: Array<{ name: string; value: string }>): boolean {
+      return cookies.some(
+        (cookie) =>
+          cookie.name.startsWith('sb-') &&
+          Boolean(cookie.value) &&
+          cookie.value.trim() !== '' &&
+          cookie.value !== '""' &&
+          cookie.value !== '[]'
+      )
+    }
+
+    it('identifies genuine Supabase auth tokens as authenticated', () => {
+      const cookies = [
+        { name: 'sb-tcskvcmtcsaxyfoselvb-auth-token', value: 'base64-access-token-string' },
+        { name: 'theme', value: 'dark' },
+      ]
+      assert.equal(hasValidAuthCookie(cookies), true)
+    })
+
+    it('rejects empty, deleted, or cleared Supabase cookies after logout', () => {
+      const emptyCookies = [
+        { name: 'sb-tcskvcmtcsaxyfoselvb-auth-token', value: '' },
+      ]
+      const whitespaceCookies = [
+        { name: 'sb-tcskvcmtcsaxyfoselvb-auth-token', value: '   ' },
+      ]
+      const quotedEmptyCookies = [
+        { name: 'sb-tcskvcmtcsaxyfoselvb-auth-token', value: '""' },
+      ]
+      const emptyArrayCookies = [
+        { name: 'sb-tcskvcmtcsaxyfoselvb-auth-token', value: '[]' },
+      ]
+
+      assert.equal(hasValidAuthCookie(emptyCookies), false)
+      assert.equal(hasValidAuthCookie(whitespaceCookies), false)
+      assert.equal(hasValidAuthCookie(quotedEmptyCookies), false)
+      assert.equal(hasValidAuthCookie(emptyArrayCookies), false)
+    })
+
+    it('returns false when no sb- cookies exist', () => {
+      const normalCookies = [
+        { name: 'ga_session', value: '12345' },
+        { name: 'preferences', value: 'compact' },
+      ]
+      assert.equal(hasValidAuthCookie(normalCookies), false)
+      assert.equal(hasValidAuthCookie([]), false)
+    })
+  })
 })
+
 

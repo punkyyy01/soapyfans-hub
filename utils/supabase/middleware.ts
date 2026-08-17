@@ -78,7 +78,14 @@ export async function updateSession(request: NextRequest, nonce: string = '') {
 
   const hasAuthCookie = request.cookies
     .getAll()
-    .some((cookie) => cookie.name.startsWith('sb-'))
+    .some(
+      (cookie) =>
+        cookie.name.startsWith('sb-') &&
+        Boolean(cookie.value) &&
+        cookie.value.trim() !== '' &&
+        cookie.value !== '""' &&
+        cookie.value !== '[]'
+    )
 
   // Forward nonce to Server Components via request headers
   const requestHeaders = new Headers(request.headers)

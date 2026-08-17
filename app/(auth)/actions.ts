@@ -193,7 +193,11 @@ export async function deleteReview(formData: FormData) {
 
 export async function logout() {
   const supabase = await createClient()
-  await supabase.auth.signOut()
+  try {
+    await supabase.auth.signOut({ scope: 'local' })
+  } catch (err) {
+    console.warn('[logout] Non-fatal signOut warning:', err)
+  }
   revalidatePath('/', 'layout')
   redirect('/')
 }

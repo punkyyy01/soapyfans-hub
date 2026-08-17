@@ -31,7 +31,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'genres', label: 'Genres' },
 ]
 
-// TMDB jobs are very granular — small overrides so common roles read better
 const JOB_LABEL_OVERRIDES: Record<string, string> = {
   'Director of Photography': 'Cinematography',
   'Original Music Composer': 'Music',
@@ -80,10 +79,10 @@ function dedupeCrew(members: TmdbCrewMember[]) {
 }
 
 const PILL_CLS =
-  'rounded-full border border-[var(--border-strong)] px-3 py-1.5 text-xs text-[var(--text-secondary)]'
+  'rounded-md border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
 
 const ROW_LABEL_CLS =
-  'w-40 shrink-0 text-[0.65rem] uppercase tracking-[0.24em] text-[var(--text-muted)]'
+  'w-36 shrink-0 font-mono text-[0.68rem] uppercase tracking-[0.16em] text-[var(--text-muted)]'
 
 export default function MediaDetailTabs({
   tmdbId,
@@ -101,17 +100,26 @@ export default function MediaDetailTabs({
   const tmdbUrl = `https://www.themoviedb.org/${mediaType}/${tmdbId}`
 
   return (
-    <div className="border-t border-[var(--border-subtle)] pt-8">
-      <div className="flex flex-wrap gap-x-8 gap-y-2 border-b border-[var(--border-subtle)] pb-3">
+    <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-6 backdrop-blur-xs sm:p-8">
+      {/* ── Accessible Tablist ─────────────────────────────── */}
+      <div
+        role="tablist"
+        aria-label="Media information tabs"
+        className="flex flex-wrap gap-2 border-b border-[var(--border-subtle)] pb-4"
+      >
         {TABS.map((t) => (
           <button
             key={t.id}
             type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            aria-controls={`panel-${t.id}`}
+            id={`tab-${t.id}`}
             onClick={() => setTab(t.id)}
-            className={`text-[0.7rem] uppercase tracking-[0.28em] transition-colors ${
+            className={`rounded-full px-4 py-1.5 font-mono text-xs uppercase tracking-[0.14em] font-medium transition-all focus-ring cursor-pointer select-none ${
               tab === t.id
-                ? 'text-[var(--accent-gold)]'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                ? 'bg-[var(--accent-amber-dim)] text-[var(--accent-amber)] shadow-xs ring-1 ring-[var(--accent-amber)]/40'
+                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]'
             }`}
           >
             {t.label}
@@ -119,25 +127,40 @@ export default function MediaDetailTabs({
         ))}
       </div>
 
-      <div className="mt-6">
+      {/* ── Tab Panels ────────────────────────────────────── */}
+      <div
+        id={`panel-${tab}`}
+        role="tabpanel"
+        aria-labelledby={`tab-${tab}`}
+        className="mt-6 min-h-[140px]"
+      >
         {tab === 'cast' &&
           (cast.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {cast.slice(0, 24).map((c) => (
-                <span key={`${c.id}-${c.character}`} className={PILL_CLS} title={c.character}>
-                  {c.name}
+                <span
+                  key={`${c.id}-${c.character}`}
+                  className={PILL_CLS}
+                  title={c.character ? `as ${c.character}` : undefined}
+                >
+                  <strong className="font-medium text-[var(--text-primary)]">{c.name}</strong>
+                  {c.character && (
+                    <span className="ml-1.5 italic text-[var(--text-muted)]">
+                      as {c.character}
+                    </span>
+                  )}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-sm italic text-[var(--text-muted)]">No cast info yet.</p>
+            <p className="text-sm italic text-[var(--text-muted)]">No cast information available.</p>
           ))}
 
         {tab === 'crew' &&
           (groupedCrew.length > 0 ? (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {groupedCrew.map(([job, members]) => (
-                <div key={job} className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-6">
+                <div key={job} className="flex flex-col gap-1.5 sm:flex-row sm:items-baseline sm:gap-6">
                   <p className={ROW_LABEL_CLS}>{job}</p>
                   <div className="flex flex-wrap gap-2">
                     {dedupeCrew(members).map((m) => (
@@ -150,13 +173,13 @@ export default function MediaDetailTabs({
               ))}
             </div>
           ) : (
-            <p className="text-sm italic text-[var(--text-muted)]">No crew info yet.</p>
+            <p className="text-sm italic text-[var(--text-muted)]">No crew information available.</p>
           ))}
 
         {tab === 'details' && (
-          <div className="space-y-5">
+          <div className="space-y-4">
             {productionCompanies.length > 0 && (
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-6">
+              <div className="flex flex-col gap-1.5 sm:flex-row sm:items-baseline sm:gap-6">
                 <p className={ROW_LABEL_CLS}>Studios</p>
                 <div className="flex flex-wrap gap-2">
                   {productionCompanies.map((c) => (
@@ -166,8 +189,8 @@ export default function MediaDetailTabs({
               </div>
             )}
             {productionCountries.length > 0 && (
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-6">
-                <p className={ROW_LABEL_CLS}>Country</p>
+              <div className="flex flex-col gap-1.5 sm:flex-row sm:items-baseline sm:gap-6">
+                <p className={ROW_LABEL_CLS}>Countries</p>
                 <div className="flex flex-wrap gap-2">
                   {productionCountries.map((c) => (
                     <span key={c.iso_3166_1} className={PILL_CLS}>{c.name}</span>
@@ -176,7 +199,7 @@ export default function MediaDetailTabs({
               </div>
             )}
             {spokenLanguages.length > 0 && (
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-6">
+              <div className="flex flex-col gap-1.5 sm:flex-row sm:items-baseline sm:gap-6">
                 <p className={ROW_LABEL_CLS}>Languages</p>
                 <div className="flex flex-wrap gap-2">
                   {spokenLanguages.map((l) => (
@@ -186,8 +209,8 @@ export default function MediaDetailTabs({
               </div>
             )}
             {alternativeTitles.length > 0 && (
-              <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
-                <p className={ROW_LABEL_CLS}>Alternative titles</p>
+              <div className="flex flex-col gap-1.5 sm:flex-row sm:gap-6">
+                <p className={ROW_LABEL_CLS}>Alt. Titles</p>
                 <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
                   {alternativeTitles.map((t) => t.title).join(', ')}
                 </p>
@@ -197,7 +220,7 @@ export default function MediaDetailTabs({
               productionCountries.length === 0 &&
               spokenLanguages.length === 0 &&
               alternativeTitles.length === 0 && (
-                <p className="text-sm italic text-[var(--text-muted)]">No details yet.</p>
+                <p className="text-sm italic text-[var(--text-muted)]">No additional metadata recorded.</p>
               )}
           </div>
         )}
@@ -214,14 +237,18 @@ export default function MediaDetailTabs({
           ))}
       </div>
 
-      <a
-        href={tmdbUrl}
-        target="_blank"
-        rel="noopener noreferrer nofollow"
-        className="mt-8 inline-block text-[0.65rem] uppercase tracking-[0.24em] text-[var(--text-muted)] underline-offset-4 hover:text-[var(--accent-gold)] hover:underline"
-      >
-        More at TMDB ↗
-      </a>
+      <div className="mt-8 border-t border-[var(--border-subtle)] pt-4 text-right">
+        <a
+          href={tmdbUrl}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          className="inline-flex items-center gap-1 font-mono text-[0.68rem] uppercase tracking-[0.16em] text-[var(--text-muted)] transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
+        >
+          <span>Complete TMDB credits</span>
+          <span aria-hidden="true">↗</span>
+        </a>
+      </div>
     </div>
   )
 }
+

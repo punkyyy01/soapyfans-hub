@@ -1,10 +1,7 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
-import Image from 'next/image'
-import Link from 'next/link'
 import {
   getPersonCombinedCredits,
-  getTmdbImageUrl,
   normalizeCredit,
   sortByDateDesc,
   type NormalizedCredit,
@@ -12,11 +9,13 @@ import {
 import { getSophieWikidataCredits } from '@/utils/wikidata'
 import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildCollectionPageSchema, serializeJsonLd } from '@/utils/schema'
-import FilmCard from '@/components/media/FilmCard'
-import Reveal from '@/components/ui/Reveal'
+import PageContainer from '@/components/ui/PageContainer'
+import PageHeader from '@/components/ui/PageHeader'
+import SectionHeader from '@/components/ui/SectionHeader'
+import FilmographySearch from '@/components/media/FilmographySearch'
 
 const FILMOGRAPHY_DESCRIPTION =
-  "Sophie Thatcher's complete filmography and TV credits — films, series, and other on-screen work, sorted by release date. A fan-made index, unofficial and not affiliated with Sophie Thatcher."
+  "Sophie Thatcher's complete filmography and TV credits — films, series, and on-screen work, organized by release chronology."
 
 export const revalidate = 3600
 
@@ -45,50 +44,6 @@ export const metadata: Metadata = {
   },
 }
 
-function FeaturedFilmCard({ credit }: { credit: NormalizedCredit }) {
-  const href = `/${credit.mediaType === 'tv' ? 'tv' : 'films'}/${credit.id}`
-  const backdropSrc = getTmdbImageUrl(credit.backdropPath, 'w1280')
-    ?? getTmdbImageUrl(credit.posterPath, 'w780')
-  const character = credit.character?.trim()
-
-  return (
-    <Link href={href} className="group relative mb-14 block">
-      <div className="relative h-[52vh] min-h-[320px] overflow-hidden rounded-xl ring-1 ring-[var(--border-subtle)]">
-        {backdropSrc && (
-          <Image
-            src={backdropSrc}
-            alt={credit.title}
-            fill
-            priority
-            sizes="(max-width: 1280px) 100vw, 1280px"
-            className="object-cover object-[center_22%] transition-transform duration-[1.2s] ease-out group-hover:scale-[1.04]"
-          />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-base)] via-[rgba(8,7,4,0.4)] to-[rgba(8,7,4,0.1)]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-base)] via-[rgba(8,7,4,0.2)] to-transparent" />
-        <div className="absolute left-5 top-5 rounded-full border border-[var(--accent-amber)]/40 bg-[var(--bg-base)]/60 px-3 py-1 text-[0.6rem] uppercase tracking-[0.3em] text-[var(--accent-amber)] backdrop-blur-sm">
-          Most recent · {credit.year ?? '—'}
-        </div>
-        <div className="absolute inset-x-6 bottom-8 sm:inset-x-10">
-          <p className="text-[0.62rem] uppercase tracking-[0.45em] text-[var(--accent-amber)]">Film</p>
-          <h3 className="mt-2 font-display text-[clamp(1.8rem,4.5vw,3.6rem)] font-semibold leading-[0.95] tracking-tight text-[var(--text-primary)]">
-            {credit.title}
-          </h3>
-          {character && (
-            <p className="mt-3 font-display text-base italic text-[var(--text-secondary)]">
-              as {character}
-            </p>
-          )}
-          <span className="mt-5 inline-flex items-center gap-2 text-[0.62rem] uppercase tracking-[0.32em] text-[var(--accent-gold)] transition-all group-hover:gap-3">
-            Read more <span className="transition-transform group-hover:translate-x-1">→</span>
-          </span>
-        </div>
-        <span className="pointer-events-none absolute inset-x-0 bottom-0 h-px origin-center scale-x-0 bg-gradient-to-r from-transparent via-[var(--accent-amber)] to-transparent opacity-0 transition-all duration-700 group-hover:scale-x-100 group-hover:opacity-100" />
-      </div>
-    </Link>
-  )
-}
-
 function yearSpan(credits: NormalizedCredit[]): string | null {
   const years = credits
     .map((c) => Number(c.year))
@@ -105,14 +60,11 @@ function normalizeTitle(title: string): string {
 
 function BeyondSkeleton() {
   return (
-    <section className="mt-28 pb-32">
-      <div className="mb-10 border-b border-[var(--border-subtle)] pb-5">
-        <div className="h-2 w-28 animate-pulse rounded-full bg-[var(--bg-elevated)]" />
-        <div className="mt-3 h-8 w-64 animate-pulse rounded bg-[var(--bg-elevated)]" />
-      </div>
+    <section className="mt-24 pb-32">
+      <div className="mb-8 h-8 w-48 animate-pulse rounded bg-[var(--bg-elevated)]" />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-28 animate-pulse rounded-md bg-[var(--bg-elevated)]/60" />
+          <div key={i} className="h-28 animate-pulse rounded-xl bg-[var(--bg-elevated)]/60" />
         ))}
       </div>
     </section>
@@ -130,39 +82,36 @@ async function WikidataSection({ tmdbTitles }: { tmdbTitles: string[] }) {
   if (beyondCredits.length === 0) return null
 
   return (
-    <section id="beyond" className="mt-28 scroll-mt-28 pb-32">
-      <div className="mb-10 flex items-end justify-between gap-4 border-b border-[var(--border-subtle)] pb-5">
-        <div>
-          <p className="text-[0.7rem] uppercase tracking-[0.5em] text-[var(--accent-gold)]">
-            Stage · Music · Production
-          </p>
-          <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-4xl">
-            Beyond the screen
-          </h2>
-        </div>
-        <span className="text-xs uppercase tracking-[0.28em] text-[var(--text-muted)]">
-          {beyondCredits.length.toString().padStart(2, '0')} credits
-        </span>
-      </div>
+    <section id="beyond" className="mt-24 scroll-mt-28 pb-32">
+      <SectionHeader
+        kicker="Stage · Music · Appearances"
+        title="Beyond the Screen"
+        action={
+          <span className="font-mono text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
+            {beyondCredits.length} {beyondCredits.length === 1 ? 'credit' : 'credits'}
+          </span>
+        }
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {beyondCredits.map((c) => (
           <div
             key={c.wikidataId}
-            className="rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)] p-5 ring-1 ring-transparent transition-colors hover:border-[var(--accent-amber)]/40 hover:ring-[var(--accent-amber)]/10"
+            className="flex flex-col justify-between rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5 transition-all duration-200 hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)]"
           >
-            <p className="font-display text-sm font-medium leading-snug text-[var(--text-primary)]">
-              {c.title}
-            </p>
-            <p className="mt-1.5 text-xs italic text-[var(--text-muted)]">
-              {c.character ? `as ${c.character}` : ' '}
-            </p>
-            <div className="mt-4 flex items-center justify-between gap-2">
-              <span className="text-[0.65rem] uppercase tracking-[0.32em] text-[var(--text-muted)]">
-                {c.year ?? '—'}
-              </span>
+            <div>
+              <p className="font-display text-base font-medium leading-snug text-[var(--text-primary)]">
+                {c.title}
+              </p>
+              <p className="mt-1 text-xs italic text-[var(--text-muted)]">
+                {c.character ? `as ${c.character}` : 'Special appearance'}
+              </p>
+            </div>
+
+            <div className="mt-5 flex items-center justify-between border-t border-[var(--border-subtle)] pt-3 text-xs text-metadata">
+              <span>{c.year ?? '—'}</span>
               {c.mediaType && (
-                <span className="rounded-full bg-[var(--bg-base)] px-2 py-0.5 text-[0.55rem] uppercase tracking-[0.22em] text-[var(--accent-gold)] ring-1 ring-[var(--accent-amber)]/25">
+                <span className="rounded-full bg-[var(--accent-amber-dim)] px-2 py-0.5 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-[var(--accent-amber)] ring-1 ring-[var(--accent-amber)]/30">
                   {c.mediaType}
                 </span>
               )}
@@ -201,7 +150,8 @@ export default async function FilmsPage() {
   const tvList = [...tv, ...undatedTv]
 
   return (
-    <main className="relative bg-[var(--bg-base)] pt-32">
+    <main className="min-h-screen bg-[var(--bg-base)] pt-24 sm:pt-28">
+      {/* ── Structured Data (SEO JSON-LD) ────────────────────── */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -214,167 +164,72 @@ export default async function FilmsPage() {
           ),
         }}
       />
-      <div className="mx-auto max-w-7xl px-6 sm:px-10">
-        <header className="mb-20 border-b border-[var(--border-subtle)] pb-10">
-          <Reveal immediate stagger={0.1} y={24}>
-            <p className="text-[0.7rem] uppercase tracking-[0.5em] text-[var(--accent-amber)]">
-              The Index
-            </p>
-            <h1 className="mt-5 font-display text-5xl font-semibold leading-[0.95] tracking-tight text-[var(--text-primary)] sm:text-6xl">
-              Filmography
-            </h1>
-            <p className="mt-6 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)] text-pretty">
-              A clean list of credits, deduped and sorted by release date. Film pages also have a fan floor for reviews.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-x-10 gap-y-3 text-xs uppercase tracking-[0.32em] text-[var(--text-muted)]">
+
+      <PageContainer size="default">
+        {/* ── Page Header ─────────────────────────────────────── */}
+        <PageHeader
+          eyebrow="Archive Index · Screen Credits"
+          title="Filmography"
+          description="A curated catalog of Sophie Thatcher's feature films, television series, and on-screen work, organized by release chronology."
+          meta={
+            <>
               <span>
-                <span className="text-[var(--text-secondary)]">
+                <strong className="font-medium text-[var(--text-primary)]">
                   {filmList.length.toString().padStart(2, '0')}
-                </span>{' '}
-                films
+                </strong>{' '}
+                Feature Films
               </span>
               <span>
-                <span className="text-[var(--text-secondary)]">
+                <strong className="font-medium text-[var(--text-primary)]">
                   {tvList.length.toString().padStart(2, '0')}
-                </span>{' '}
-                tv credits
+                </strong>{' '}
+                Television Series
               </span>
               {yearSpan(all) && (
                 <span>
-                  <span className="text-[var(--text-secondary)]">
-                    {yearSpan(all)}
-                  </span>{' '}
-                  span
+                  Timeline <strong className="font-medium text-[var(--text-primary)]">{yearSpan(all)}</strong>
                 </span>
               )}
               <span className="hidden sm:inline">
-                Order ·{' '}
-                <span className="text-[var(--accent-gold)]">most recent first</span>
+                Order · <span className="font-medium text-[var(--accent-amber)]">Most recent first</span>
               </span>
-            </div>
-            <nav className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-[0.7rem] uppercase tracking-[0.28em]">
+            </>
+          }
+          actions={
+            <nav
+              aria-label="Jump to archival section"
+              className="flex flex-wrap items-center gap-2"
+            >
               <a
                 href="#films"
-                className="text-[var(--text-secondary)] underline-offset-8 transition-colors hover:text-[var(--accent-gold)] hover:underline"
+                className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-1 text-xs uppercase tracking-[0.14em] font-mono text-[var(--text-secondary)] transition-colors hover:border-[var(--accent-amber)] hover:text-[var(--text-primary)] focus-ring"
               >
-                ↓ Films
+                Films ↓
               </a>
-              <span className="text-[var(--border-strong)]">·</span>
               <a
                 href="#television"
-                className="text-[var(--text-secondary)] underline-offset-8 transition-colors hover:text-[var(--accent-gold)] hover:underline"
+                className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-1 text-xs uppercase tracking-[0.14em] font-mono text-[var(--text-secondary)] transition-colors hover:border-[var(--accent-forest)] hover:text-[var(--text-primary)] focus-ring"
               >
-                ↓ Television
+                Television ↓
               </a>
-              <span className="text-[var(--border-strong)]">·</span>
               <a
                 href="#beyond"
-                className="text-[var(--text-secondary)] underline-offset-8 transition-colors hover:text-[var(--accent-gold)] hover:underline"
+                className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3.5 py-1 text-xs uppercase tracking-[0.14em] font-mono text-[var(--text-secondary)] transition-colors hover:border-[var(--accent-gold)] hover:text-[var(--text-primary)] focus-ring"
               >
-                ↓ Beyond the screen
+                Beyond ↓
               </a>
             </nav>
-          </Reveal>
-        </header>
+          }
+        />
 
-        <section id="films" className="scroll-mt-28">
-          <div className="mb-10 flex items-end justify-between gap-4 border-b border-[var(--border-subtle)] pb-5">
-            <div>
-              <p className="text-[0.7rem] uppercase tracking-[0.5em] text-[var(--accent-amber)]">
-                On the big screen
-              </p>
-              <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-4xl">
-                Films
-              </h2>
-            </div>
-            <span className="text-xs uppercase tracking-[0.28em] text-[var(--text-muted)]">
-              {filmList.length.toString().padStart(2, '0')} titles
-            </span>
-          </div>
+        {/* ── Search Bar & Filtered Catalog ───────────────────── */}
+        <FilmographySearch filmList={filmList} tvList={tvList} />
 
-          {filmList.length > 0 ? (
-            <>
-              <FeaturedFilmCard credit={filmList[0]} />
-              {filmList.length > 1 && (
-                <Reveal
-                  selector="[data-film-card]"
-                  stagger={0.045}
-                  y={36}
-                  immediate
-                  className="grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-                >
-                  {filmList.slice(1).map((c, i) => (
-                    <div key={`movie-${c.id}`} data-film-card>
-                      <FilmCard credit={c} priority={i < 4} />
-                    </div>
-                  ))}
-                </Reveal>
-              )}
-            </>
-          ) : (
-            <p className="text-sm italic text-[var(--text-muted)]">
-              No film credits yet.
-            </p>
-          )}
-        </section>
-
-        <div className="relative my-16">
-          <div className="relative border-y border-[var(--border-subtle)] py-12 text-center">
-            <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[var(--bg-base)] px-6">
-              <span className="text-[0.58rem] uppercase tracking-[0.5em] text-[var(--accent-forest)]">
-                Yellowjackets · 2021–Present
-              </span>
-            </span>
-            <p className="font-display text-[clamp(1.1rem,2.5vw,1.8rem)] font-medium italic leading-[1.2] tracking-tight text-[var(--text-primary)]">
-              29 episodes as Natalie Scatorccio.
-            </p>
-            <p className="mt-2 font-display text-[clamp(0.9rem,2vw,1.4rem)] italic text-[var(--text-secondary)]">
-              The role that changed everything.
-            </p>
-          </div>
-        </div>
-
-        <section id="television" className="mt-28 scroll-mt-28">
-          <div className="mb-10 flex items-end justify-between gap-4 border-b border-[var(--border-subtle)] pb-5">
-            <div>
-              <p className="inline-flex items-center gap-2 text-[0.7rem] uppercase tracking-[0.5em] text-[var(--text-secondary)]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-forest)]" />
-                On the small screen
-              </p>
-              <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-4xl">
-                Television
-              </h2>
-            </div>
-            <span className="text-xs uppercase tracking-[0.28em] text-[var(--text-muted)]">
-              {tvList.length.toString().padStart(2, '0')} series
-            </span>
-          </div>
-
-          {tvList.length > 0 ? (
-            <Reveal
-              selector="[data-film-card]"
-              stagger={0.045}
-              y={36}
-              immediate
-              className="grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
-            >
-              {tvList.map((c, i) => (
-                <div key={`tv-${c.id}`} data-film-card>
-                  <FilmCard credit={c} priority={i < 3} />
-                </div>
-              ))}
-            </Reveal>
-          ) : (
-            <p className="text-sm italic text-[var(--text-muted)]">
-              No TV credits yet.
-            </p>
-          )}
-        </section>
-
+        {/* ── Beyond the Screen (Wikidata) ────────────────────── */}
         <Suspense fallback={<BeyondSkeleton />}>
           <WikidataSection tmdbTitles={all.map((c) => c.title)} />
         </Suspense>
-      </div>
+      </PageContainer>
     </main>
   )
 }

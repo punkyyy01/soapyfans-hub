@@ -1,12 +1,15 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
+import Link from 'next/link'
+import { notFound } from 'next/navigation'
 import { getTvDetails, getTmdbImageUrl, getWatchProvidersForCountry } from '@/utils/tmdb'
 import WhereToWatch from '@/components/media/WhereToWatch'
 import MediaDetailTabs from '@/components/media/MediaDetailTabs'
 import { buildTvSeriesSchema, serializeJsonLd } from '@/utils/schema'
-import Reveal from '@/components/ui/Reveal'
-import Image from 'next/image'
-import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import PageContainer from '@/components/ui/PageContainer'
+import SectionHeader from '@/components/ui/SectionHeader'
+import Badge from '@/components/ui/Badge'
+import Button from '@/components/ui/Button'
 
 export const revalidate = 3600
 
@@ -29,8 +32,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         : firstYear ?? ''
     const titleWithYear = yearLabel ? `${tv.name} (${yearLabel})` : tv.name
     const description = tv.overview
-      ? `${tv.overview.slice(0, 200)}${tv.overview.length > 200 ? '…' : ''} · A Sophie Thatcher TV credit on SoapyFans Hub — fan-made, unofficial.`
-      : `${titleWithYear} — a Sophie Thatcher TV credit on SoapyFans Hub. Fan-made, unofficial, not affiliated with Sophie Thatcher.`
+      ? `${tv.overview.slice(0, 200)}${tv.overview.length > 200 ? '…' : ''} · A Sophie Thatcher TV credit on SoapyFans Hub.`
+      : `${titleWithYear} — a Sophie Thatcher TV credit on SoapyFans Hub.`
     const ogImage = getTmdbImageUrl(tv.backdrop_path, 'w1280') ?? getTmdbImageUrl(tv.poster_path, 'w780')
     const canonical = `/tv/${tvId}`
 
@@ -78,6 +81,15 @@ export default async function TvDetailPage({ params }: Props) {
       ? `${firstYear} — ${tv.in_production ? 'present' : lastYear}`
       : firstYear ?? '—'
 
+  // Locate Sophie's character in TV cast
+  const sophieCastMember = tv.credits?.cast?.find(
+    (c) =>
+      c.name.toLowerCase().includes('sophie thatcher') ||
+      c.id === 2099307 ||
+      c.name.toLowerCase() === 'sophie thatcher',
+  )
+  const sophieCharacter = sophieCastMember?.character?.trim() || null
+
   const avgRuntime = tv.episode_run_time?.[0] ?? null
 
   const seriesSchema = buildTvSeriesSchema({
@@ -93,12 +105,15 @@ export default async function TvDetailPage({ params }: Props) {
   })
 
   return (
-    <main className="relative bg-[var(--bg-base)]">
+    <main className="min-h-screen bg-[var(--bg-base)]">
+      {/* ── Structured Data (SEO JSON-LD) ────────────────────── */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(seriesSchema) }}
       />
-      <section className="relative h-[420px] sm:h-[480px] w-full overflow-hidden grain">
+
+      {/* ── Contained Backdrop Header ───────────────────────── */}
+      <section className="relative h-48 w-full overflow-hidden sm:h-64">
         {backdrop && (
           <Image
             src={backdrop}
@@ -106,136 +121,168 @@ export default async function TvDetailPage({ params }: Props) {
             fill
             priority
             sizes="100vw"
-            className="object-cover object-[center_22%]"
+            className="object-cover object-[center_20%] opacity-40"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-base)] via-[rgba(8,7,4,0.55)] to-[rgba(8,7,4,0.2)]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-base)] via-[rgba(8,7,4,0.3)] to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-base)] via-[rgba(8,7,4,0.7)] to-[rgba(8,7,4,0.3)]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-base)] via-[rgba(8,7,4,0.5)] to-transparent" />
       </section>
 
-      <section className="relative z-10 mx-auto -mt-6 max-w-6xl px-6 pt-4 sm:-mt-8 sm:px-10">
-        <Link
-          href="/films#television"
-          className="group inline-flex items-center gap-2 text-[0.7rem] uppercase tracking-[0.32em] text-[var(--text-secondary)] transition-colors hover:text-[var(--accent-gold)]"
-        >
-          <span className="transition-transform group-hover:-translate-x-1">←</span>
-          Back to TV index
-        </Link>
-        <Reveal immediate stagger={0.1} y={28}>
-          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.7rem] uppercase tracking-[0.5em]">
-            <span className="rounded-full bg-[var(--accent-forest-dim)] px-2.5 py-0.5 text-[var(--text-primary)] ring-1 ring-[var(--border-strong)]">
-              Series
+      {/* ── Header Title Block ──────────────────────────────── */}
+      <PageContainer size="default" className="relative z-10 -mt-16 sm:-mt-24">
+        <div className="mb-10 space-y-4">
+          <Link
+            href="/films#television"
+            className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.16em] text-[var(--text-secondary)] transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs py-1"
+          >
+            <span aria-hidden="true">←</span>
+            <span>Back to television index</span>
+          </Link>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge variant="tv" size="md">
+              Television Series
+            </Badge>
+            <span className="font-mono text-xs text-[var(--text-muted)]">
+              {yearLabel}
             </span>
-            <span className="text-[var(--accent-amber)]">{yearLabel}</span>
             {tv.number_of_seasons > 0 && (
-              <span className="text-[var(--text-muted)]">
-                · {tv.number_of_seasons}{' '}
-                {tv.number_of_seasons === 1 ? 'season' : 'seasons'}
+              <span className="font-mono text-xs text-[var(--text-muted)]">
+                · {tv.number_of_seasons} {tv.number_of_seasons === 1 ? 'season' : 'seasons'}
               </span>
             )}
             {tv.number_of_episodes > 0 && (
-              <span className="text-[var(--text-muted)]">
+              <span className="font-mono text-xs text-[var(--text-muted)]">
                 · {tv.number_of_episodes} eps
               </span>
             )}
             {avgRuntime && (
-              <span className="text-[var(--text-muted)]">· ~{avgRuntime} min</span>
+              <span className="font-mono text-xs text-[var(--text-muted)]">
+                · ~{avgRuntime} min
+              </span>
             )}
             {tv.status && (
-              <span className="text-[var(--text-muted)]">· {tv.status}</span>
+              <span className="font-mono text-xs text-[var(--text-muted)]">
+                · {tv.status}
+              </span>
             )}
-          </p>
-          <h1 className="mt-3 max-w-4xl font-display text-[clamp(2.4rem,6vw,4.8rem)] font-semibold leading-[0.95] tracking-tight text-[var(--text-primary)] text-balance">
+          </div>
+
+          <h1 className="font-display text-[clamp(2.4rem,5.5vw,4.5rem)] font-medium leading-[0.98] tracking-tight text-[var(--text-primary)] text-balance">
             {tv.name}
           </h1>
+
           {tv.tagline && (
-            <p className="mt-5 max-w-2xl font-display text-lg italic text-[var(--text-secondary)] text-pretty sm:text-xl">
-              “{tv.tagline}”
+            <p className="max-w-2xl font-display text-lg italic text-[var(--text-secondary)] text-pretty sm:text-xl">
+              &ldquo;{tv.tagline}&rdquo;
             </p>
           )}
-        </Reveal>
-      </section>
+        </div>
 
-      <div className="mx-auto max-w-6xl px-6 pb-32 pt-10 sm:px-10">
-        <div className="grid gap-12 lg:grid-cols-[280px_1fr]">
-          <aside className="lg:sticky lg:top-28 lg:self-start">
-            <div className="mt-6 overflow-hidden rounded-md bg-[var(--bg-elevated)] ring-1 ring-[var(--border-strong)] shadow-[0_24px_60px_-20px_rgba(0,0,0,0.8)]">
+        {/* ── Dossier Grid (Sidebar + Main Content) ──────────── */}
+        <div className="grid gap-10 pb-32 lg:grid-cols-[280px_1fr] lg:gap-14">
+          {/* Left Column: Dossier Sidebar */}
+          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+            {/* Primary Media (Poster) */}
+            <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] shadow-lg">
               {poster ? (
                 <Image
                   src={poster}
                   alt={tv.name}
-                  width={500}
-                  height={750}
-                  className="w-full"
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 280px"
+                  className="object-cover"
                 />
               ) : (
-                <div className="flex h-[420px] items-center justify-center font-display italic text-[var(--text-muted)]">
-                  Poster missing.
+                <div className="flex h-full w-full items-center justify-center p-6 text-center font-display text-sm italic text-[var(--text-muted)]">
+                  Poster not available in archive
                 </div>
               )}
             </div>
 
-            <div className="mt-6 space-y-4 text-xs uppercase tracking-[0.28em] text-[var(--text-muted)]">
-              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
-                <span>TMDB rating</span>
-                <span className="text-[var(--accent-gold)]">
-                  ★ {tv.vote_average.toFixed(1)} / 10
+            {/* Sophie Connection Card */}
+            <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 space-y-1.5">
+              <p className="text-eyebrow">
+                Archive Subject
+              </p>
+              <p className="font-display text-lg font-medium text-[var(--text-primary)]">
+                Sophie Thatcher
+              </p>
+              {sophieCharacter ? (
+                <p className="text-xs italic text-[var(--accent-forest)] font-medium">
+                  as {sophieCharacter}
+                </p>
+              ) : (
+                <p className="text-xs text-[var(--text-secondary)]">
+                  Series Credit
+                </p>
+              )}
+            </div>
+
+            {/* Factsheet Metadata Table */}
+            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-5 space-y-3 font-mono text-xs">
+              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2.5">
+                <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">TMDB Rating</span>
+                <span className="font-medium text-[var(--accent-gold)]">
+                  ★ {tv.vote_average ? tv.vote_average.toFixed(1) : '—'} / 10
                 </span>
               </div>
-              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
-                <span>First aired</span>
-                <span className="text-[var(--text-secondary)] normal-case tracking-normal">
+              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2.5">
+                <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">First Aired</span>
+                <span className="text-[var(--text-secondary)]">
                   {tv.first_air_date || '—'}
                 </span>
               </div>
               {tv.last_air_date && (
-                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
-                  <span>Last aired</span>
-                  <span className="text-[var(--text-secondary)] normal-case tracking-normal">
-                    {tv.last_air_date}
-                  </span>
+                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2.5">
+                  <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">Last Aired</span>
+                  <span className="text-[var(--text-secondary)]">{tv.last_air_date}</span>
                 </div>
               )}
-              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
-                <span>Seasons</span>
-                <span className="text-[var(--text-secondary)]">
-                  {tv.number_of_seasons}
-                </span>
+              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2.5">
+                <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">Seasons</span>
+                <span className="text-[var(--text-secondary)]">{tv.number_of_seasons}</span>
               </div>
-              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-3">
-                <span>Episodes</span>
-                <span className="text-[var(--text-secondary)]">
-                  {tv.number_of_episodes}
-                </span>
+              <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2.5">
+                <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">Episodes</span>
+                <span className="text-[var(--text-secondary)]">{tv.number_of_episodes}</span>
               </div>
               {tv.networks && tv.networks.length > 0 && (
-                <div className="flex items-start justify-between border-b border-[var(--border-subtle)] pb-3">
-                  <span>Network{tv.networks.length > 1 ? 's' : ''}</span>
-                  <span className="text-right text-[var(--text-secondary)] normal-case tracking-normal">
+                <div className="flex items-start justify-between border-b border-[var(--border-subtle)] pb-2.5">
+                  <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">Network</span>
+                  <span className="text-right text-[var(--text-secondary)]">
                     {tv.networks.map((n) => n.name).join(', ')}
                   </span>
                 </div>
               )}
               {tv.created_by && tv.created_by.length > 0 && (
                 <div className="flex items-start justify-between">
-                  <span>Created by</span>
-                  <span className="text-right text-[var(--text-secondary)] normal-case tracking-normal">
+                  <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">Created By</span>
+                  <span className="text-right text-[var(--text-secondary)]">
                     {tv.created_by.map((c) => c.name).join(', ')}
                   </span>
                 </div>
               )}
             </div>
 
+            {/* Where to Watch */}
             <WhereToWatch providers={getWatchProvidersForCountry(tv.watchProvidersByCountry)} />
           </aside>
 
-          <div className="space-y-16 pt-10 lg:pt-12">
-            <Reveal immediate stagger={0.1}>
-              <p className="font-display text-[1.35rem] font-medium leading-relaxed text-[var(--text-primary)] text-pretty sm:text-2xl">
-                {tv.overview || 'No synopsis yet.'}
+          {/* Right Column: Main Content */}
+          <div className="space-y-14">
+            {/* Synopsis */}
+            <div className="space-y-3">
+              <p className="text-eyebrow">
+                Synopsis
               </p>
-            </Reveal>
+              <p className="max-w-2xl font-display text-xl font-normal leading-relaxed text-[var(--text-primary)] text-pretty sm:text-2xl">
+                {tv.overview || 'No synopsis recorded for this title.'}
+              </p>
+            </div>
 
+            {/* Media Detail Tabs */}
             <MediaDetailTabs
               tmdbId={tvId}
               mediaType="tv"
@@ -248,30 +295,30 @@ export default async function TvDetailPage({ params }: Props) {
               alternativeTitles={tv.alternativeTitles}
             />
 
+            {/* Television Fan Notes Information */}
             <section className="space-y-6">
-              <div className="border-b border-[var(--border-subtle)] pb-5">
-                <p className="inline-flex items-center gap-2 text-[0.7rem] uppercase tracking-[0.5em] text-[var(--text-secondary)]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-forest)]" />
-                  Fan notes
-                </p>
-                <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-[var(--text-primary)]">
-                  Reviews
-                </h2>
+              <SectionHeader
+                kicker="Fan Notes"
+                title="Television Reviews"
+              />
+              <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-6 sm:flex-row sm:items-center">
+                <div className="space-y-1">
+                  <p className="font-display text-base font-medium text-[var(--text-primary)]">
+                    Television reviews coming soon
+                  </p>
+                  <p className="text-xs text-[var(--text-secondary)]">
+                    The review floor is currently active across feature films in the archive.
+                  </p>
+                </div>
+                <Button href="/films#films" variant="secondary" size="sm">
+                  Browse feature films
+                </Button>
               </div>
-              <p className="rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--bg-elevated)]/40 px-5 py-4 text-sm text-[var(--text-secondary)]">
-                TV reviews are coming soon. For now, the floor is open for films only —{' '}
-                <Link
-                  href="/films#films"
-                  className="font-medium uppercase tracking-[0.18em] text-[var(--accent-gold)] underline-offset-4 hover:underline"
-                >
-                  browse films
-                </Link>{' '}
-                if you’d like to leave a review.
-              </p>
             </section>
           </div>
         </div>
-      </div>
+      </PageContainer>
     </main>
   )
 }
+
