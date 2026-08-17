@@ -22,10 +22,10 @@ interface Props {
 export default function Reveal({
   children,
   selector,
-  stagger = 0.08,
+  stagger = 0.035,
   delay = 0,
-  y = 32,
-  duration = 0.7,
+  y = 18,
+  duration = 0.35,
   immediate = false,
   className,
 }: Props) {
@@ -52,13 +52,13 @@ export default function Reveal({
       const ctx = gsap.context(() => {
         gsap.fromTo(
           targets,
-          { opacity: 0.3, y: Math.min(y, 16) },
+          { opacity: 0.2, y: Math.min(y, 12) },
           {
             opacity: 1,
             y: 0,
-            duration: Math.min(duration, 0.5),
+            duration: Math.min(duration, 0.35),
             delay: Math.min(delay, 0.05),
-            stagger: Math.min(stagger, 0.04),
+            stagger: Math.min(stagger, 0.035),
             ease: 'power2.out',
             clearProps: 'all',
           }
@@ -70,18 +70,18 @@ export default function Reveal({
     const ctx = gsap.context(() => {
       gsap.fromTo(
         targets,
-        { opacity: 0, y },
+        { opacity: 0, y: Math.min(y, 24) },
         {
           opacity: 1,
           y: 0,
-          duration: Math.min(duration, 0.6),
+          duration: Math.min(duration, 0.4),
           delay,
-          stagger,
+          stagger: Math.min(stagger, 0.04),
           ease: 'power2.out',
           clearProps: 'all',
           scrollTrigger: {
             trigger: el,
-            start: 'top 92%',
+            start: 'top 94%',
             once: true,
           },
         }
@@ -97,3 +97,4 @@ export default function Reveal({
     </div>
   )
 }
+

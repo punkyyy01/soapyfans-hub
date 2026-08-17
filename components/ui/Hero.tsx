@@ -32,7 +32,7 @@ export default function Hero({
     if (portraitUrls.length <= 1) return
     const interval = setInterval(() => {
       setCurrentPortrait((prev) => (prev + 1) % portraitUrls.length)
-    }, 3000)
+    }, 4000)
     return () => clearInterval(interval)
   }, [portraitUrls.length])
 
@@ -45,60 +45,54 @@ export default function Hero({
     }
 
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
+      const tl = gsap.timeline({ defaults: { ease: 'power2.out' } })
 
       tl.fromTo(
         '[data-hero-eyebrow]',
-        { opacity: 0, y: 12 },
-        { opacity: 1, y: 0, duration: 0.6 }
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.35 }
       )
         .fromTo(
-          '[data-hero-title-a], [data-hero-title-b], [data-hero-title-c]',
-          { opacity: 0, y: 24 },
-          { opacity: 1, y: 0, duration: 0.8, stagger: 0.12 },
-          '-=0.4'
+          '[data-hero-title]',
+          { opacity: 0, y: 16 },
+          { opacity: 1, y: 0, duration: 0.45 },
+          '-=0.2'
         )
         .fromTo(
           '[data-hero-portrait]',
-          { opacity: 0, scale: 0.96 },
-          { opacity: 1, scale: 1, duration: 0.9, ease: 'power2.out' },
-          '-=0.7'
+          { opacity: 0, scale: 0.98 },
+          { opacity: 1, scale: 1, duration: 0.5, ease: 'power2.out' },
+          '-=0.35'
         )
         .fromTo(
           '[data-hero-tagline]',
-          { opacity: 0, y: 16 },
-          { opacity: 1, y: 0, duration: 0.6 },
-          '-=0.5'
+          { opacity: 0, y: 12 },
+          { opacity: 1, y: 0, duration: 0.35 },
+          '-=0.3'
         )
         .fromTo(
           '[data-hero-cta]',
-          { opacity: 0, y: 14 },
-          { opacity: 1, y: 0, duration: 0.5, stagger: 0.08 },
-          '-=0.4'
+          { opacity: 0, y: 10 },
+          { opacity: 1, y: 0, duration: 0.3, stagger: 0.05 },
+          '-=0.25'
         )
         .fromTo(
           '[data-hero-meta]',
           { opacity: 0 },
-          { opacity: 1, duration: 0.5, stagger: 0.06 },
-          '-=0.3'
-        )
-        .fromTo(
-          '[data-hero-scroll]',
-          { opacity: 0 },
-          { opacity: 1, duration: 0.5 },
+          { opacity: 1, duration: 0.35, stagger: 0.04 },
           '-=0.2'
         )
 
-      // Parallax scroll triggers only on desktop for smooth mobile 60fps scrolling
+      // Parallax scroll triggers on desktop
       if (window.innerWidth >= 1024) {
         gsap.to('[data-hero-bg]', {
-          yPercent: 14,
+          yPercent: 10,
           ease: 'none',
           scrollTrigger: { trigger: el, start: 'top top', end: 'bottom top', scrub: true },
         })
 
         gsap.to('[data-hero-portrait]', {
-          yPercent: -10,
+          yPercent: -6,
           ease: 'none',
           scrollTrigger: { trigger: el, start: 'top top', end: 'bottom top', scrub: true },
         })
@@ -111,9 +105,9 @@ export default function Hero({
   return (
     <section
       ref={root}
-      className="relative min-h-[100svh] w-full overflow-hidden sm:min-h-[760px]"
+      className="relative min-h-[90vh] w-full overflow-hidden sm:min-h-[720px] flex items-center"
     >
-      <div data-hero-bg className="absolute inset-0 -z-10 scale-[1.08]">
+      <div data-hero-bg className="absolute inset-0 -z-10 scale-[1.05]">
         {backdropUrl && (
           <Image
             src={backdropUrl}
@@ -121,89 +115,75 @@ export default function Hero({
             fill
             priority
             sizes="100vw"
-            className="object-cover object-[center_25%] opacity-70"
+            className="object-cover object-[center_25%] opacity-60"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-base)] via-[rgba(8,7,4,0.6)] to-[rgba(8,7,4,0.25)]" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-base)] via-[rgba(8,7,4,0.4)] to-transparent" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_45%,transparent_0%,rgba(8,7,4,0.45)_70%)]" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--bg-base)] via-[rgba(8,7,4,0.7)] to-[rgba(8,7,4,0.3)]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-base)] via-[rgba(8,7,4,0.5)] to-transparent" />
       </div>
 
       <div
         data-hero-content
-        className="relative z-10 mx-auto grid h-full max-w-7xl grid-cols-12 gap-x-6 px-6 pb-16 pt-24 sm:px-10 sm:pb-20 sm:pt-32 lg:gap-x-10 lg:pt-40"
+        className="relative z-10 mx-auto grid w-full max-w-7xl grid-cols-12 gap-x-6 px-6 pb-16 pt-24 sm:px-10 sm:pb-20 sm:pt-28 lg:gap-x-10 lg:pt-32"
       >
         <div className="order-last col-span-12 flex flex-col justify-end lg:order-first lg:col-span-8 lg:justify-center">
           <p
             data-hero-eyebrow
-            className="mb-6 flex flex-wrap items-center gap-2 text-[0.7rem] uppercase tracking-[0.35em] text-[var(--accent-gold)]"
+            className="mb-5 flex flex-wrap items-center gap-2.5 text-xs text-metadata uppercase"
           >
-            <span className="rounded-full border border-[var(--accent-amber)]/40 bg-[var(--bg-elevated)]/60 px-3.5 py-1 font-semibold text-[var(--accent-amber)]">
+            <span className="rounded-full border border-[var(--accent-amber)]/40 bg-[var(--accent-amber-dim)] px-3 py-0.5 font-medium text-[var(--accent-amber)]">
               SoapyFans Hub
             </span>
-            <span className="text-[var(--border-strong)]">·</span>
-            <span className="text-[var(--text-secondary)]">Unofficial Sophie Thatcher Fan Archive</span>
+            <span className="text-[var(--border-default)]">·</span>
+            <span className="text-[var(--text-secondary)]">Sophie Thatcher Fan Archive &amp; Community</span>
           </p>
 
-          <h1 className="font-display font-semibold leading-[0.9] tracking-[-0.02em] text-[var(--text-primary)]">
-            <span
-              data-hero-title-a
-              className="block text-[clamp(2.8rem,7.5vw,6.4rem)] text-[var(--text-primary)]"
-            >
-              SoapyFans Hub
-            </span>
-            <span
-              data-hero-title-b
-              className="block text-[clamp(2.1rem,5.5vw,4.6rem)] italic font-normal text-[var(--accent-amber)]"
-            >
-              An unofficial fan archive
-            </span>
-            <span
-              data-hero-title-c
-              className="block text-[clamp(2.3rem,6vw,5.2rem)] tracking-[-0.03em] text-[var(--text-primary)]"
-            >
-              for Sophie Thatcher.
-            </span>
-          </h1>
+          <div data-hero-title className="space-y-2">
+            <h1 className="font-display text-[clamp(2.8rem,7vw,5.6rem)] font-medium leading-[0.95] tracking-tight text-[var(--text-primary)]">
+              The Sophie Thatcher
+              <br />
+              <span className="text-[var(--accent-amber)]">Archive</span>
+            </h1>
+          </div>
 
           <p
             data-hero-tagline
-            className="mt-8 max-w-xl text-sm leading-[1.75] text-[var(--text-secondary)] text-pretty sm:text-base"
+            className="mt-6 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-base"
           >
             A dedicated community database organizing the complete work of actress and musician Sophie Thatcher. Explore her filmography, television credits, and discography, or sign in to rate titles and share fan reviews.
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
+          <div className="mt-8 flex flex-wrap items-center gap-4">
             <Link
               data-hero-cta
               href="/films"
-              className="group relative inline-flex items-center gap-3 overflow-hidden rounded-full bg-[var(--accent-amber)] px-7 py-3 text-[0.72rem] font-medium uppercase tracking-[0.28em] text-[var(--bg-base)] transition-all hover:bg-[var(--accent-gold)] hover:shadow-[0_0_40px_rgba(255,183,0,0.45)]"
+              className="inline-flex items-center justify-center gap-2.5 rounded-full bg-[var(--accent-amber)] px-6 py-3 text-xs uppercase tracking-[0.16em] font-medium text-[var(--text-inverse)] shadow-[0_2px_12px_rgba(232,137,12,0.25)] transition-all hover:bg-[var(--accent-amber-hover)] hover:shadow-[0_4px_20px_rgba(232,137,12,0.4)] focus-ring"
             >
               <span>Browse filmography</span>
-              <span aria-hidden className="transition-transform duration-500 group-hover:translate-x-1">→</span>
+              <span aria-hidden="true">→</span>
             </Link>
             <Link
               data-hero-cta
               href="/login"
-              className="rounded-full border border-[var(--border-strong)] px-6 py-3 text-[0.7rem] uppercase tracking-[0.28em] text-[var(--text-secondary)] transition-all hover:border-[var(--accent-amber)] hover:text-[var(--accent-gold)]"
+              className="inline-flex items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)]/60 px-5 py-3 text-xs uppercase tracking-[0.16em] text-[var(--text-primary)] transition-all hover:border-[var(--accent-amber)] hover:text-[var(--text-primary)] hover:bg-[var(--accent-amber-dim)] focus-ring"
             >
               Sign in / Create profile
             </Link>
           </div>
 
-          <div className="mt-12 hidden flex-wrap items-center gap-x-10 gap-y-4 border-t border-[var(--border-subtle)] pt-6 text-[0.68rem] uppercase tracking-[0.34em] text-[var(--text-muted)] sm:flex">
+          <div className="mt-10 hidden flex-wrap items-center gap-x-8 gap-y-3 border-t border-[var(--border-subtle)] pt-5 text-metadata sm:flex">
             <span data-hero-meta>
-              <span className="text-[var(--text-secondary)] font-medium">
+              <span className="font-medium text-[var(--text-secondary)]">
                 {filmCount.toString().padStart(2, '0')}
               </span>{' '}
               titles indexed
             </span>
             <span data-hero-meta>
               Featured today ·{' '}
-              <span className="text-[var(--accent-gold)] font-medium">{featuredTitle}</span>
-              {featuredYear ? ` · ${featuredYear}` : ''}
+              <span className="font-medium text-[var(--accent-gold)]">{featuredTitle}</span>
+              {featuredYear ? ` (${featuredYear})` : ''}
             </span>
-            <span data-hero-meta className="text-[var(--text-secondary)]">
+            <span data-hero-meta className="text-[var(--text-muted)]">
               Unofficial fan project
             </span>
           </div>
@@ -215,7 +195,7 @@ export default function Hero({
         >
           {portraitUrls.length > 0 && (
             <>
-              <div className="relative h-72 w-full overflow-hidden lg:hidden">
+              <div className="relative h-64 w-full overflow-hidden rounded-xl lg:hidden">
                 {portraitUrls.map((url, i) => {
                   const isActive = i === currentPortrait
                   const isNext = i === (currentPortrait + 1) % portraitUrls.length
@@ -235,17 +215,12 @@ export default function Hero({
                   )
                 })}
                 <span
-                  aria-hidden
-                  className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--bg-base)] to-transparent"
+                  aria-hidden="true"
+                  className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[var(--bg-base)] to-transparent"
                 />
               </div>
 
-              <figure className="relative ml-auto hidden aspect-[3/4] w-full max-w-[360px] overflow-hidden sm:max-w-[420px] lg:block lg:max-w-none">
-                <span className="absolute -left-6 top-0 h-full w-px bg-gradient-to-b from-transparent via-[var(--accent-amber)]/40 to-transparent" />
-                <span className="absolute -left-6 top-1/2 -translate-y-1/2 -rotate-90 origin-left whitespace-nowrap text-[0.62rem] uppercase tracking-[0.5em] text-[var(--text-muted)] inline-block">
-                  Portrait — via TMDB
-                </span>
-
+              <figure className="relative ml-auto hidden aspect-[3/4] w-full max-w-[360px] overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] sm:max-w-[400px] lg:block lg:max-w-none shadow-2xl">
                 {portraitUrls.map((url, i) => {
                   const isActive = i === currentPortrait
                   const isNext = i === (currentPortrait + 1) % portraitUrls.length
@@ -257,8 +232,8 @@ export default function Hero({
                       alt="Sophie Thatcher"
                       fill
                       priority={i === 0}
-                      sizes="420px"
-                      className={`object-cover object-[center_10%] sm:object-[center_15%] [filter:grayscale(0.2)_contrast(1.05)_brightness(0.92)] transition-opacity duration-700 ${
+                      sizes="400px"
+                      className={`object-cover object-[center_12%] transition-opacity duration-700 ${
                         isActive ? 'opacity-100' : 'opacity-0'
                       }`}
                     />
@@ -266,29 +241,15 @@ export default function Hero({
                 })}
 
                 <span
-                  aria-hidden
-                  className="absolute inset-0 bg-gradient-to-t from-[rgba(232,137,12,0.32)] via-[rgba(232,137,12,0.05)] to-[rgba(42,92,63,0.18)] mix-blend-color"
+                  aria-hidden="true"
+                  className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[var(--bg-base)] via-[rgba(8,7,4,0.4)] to-transparent"
                 />
-                <span
-                  aria-hidden
-                  className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--bg-base)]"
-                />
-                <span aria-hidden className="absolute inset-y-0 left-0 w-[22%] bg-gradient-to-r from-[var(--bg-base)] to-transparent" />
-                <span aria-hidden className="absolute inset-y-0 right-0 w-[22%] bg-gradient-to-l from-[var(--bg-base)] to-transparent" />
-                <span aria-hidden className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-[var(--accent-amber)]/15" />
               </figure>
             </>
           )}
         </div>
       </div>
-
-      <div
-        data-hero-scroll
-        className="pointer-events-none absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2 text-[0.62rem] uppercase tracking-[0.5em] text-[var(--text-muted)]"
-      >
-        <span>Scroll</span>
-        <span className="block h-10 w-px animate-pulse bg-[var(--accent-amber)]/60" />
-      </div>
     </section>
   )
 }
+

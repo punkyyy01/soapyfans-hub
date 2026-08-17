@@ -1,35 +1,57 @@
 @import "tailwindcss";
 
 :root {
+  /* ── Background & Surfaces ────────────────────────────────── */
   --bg-base: #080704;
-  --bg-elevated: #111009;
-  --bg-card: #16140d;
-  --bg-overlay: rgba(8, 7, 4, 0.72);
+  --bg-surface: #0e0d08;
+  --bg-elevated: #14120b;
+  --bg-card: #18160f;
+  --bg-overlay: rgba(8, 7, 4, 0.85);
+  --bg-glass: rgba(14, 13, 8, 0.82);
 
+  /* ── Text & Contrast (WCAG AA compliant: 4.5:1+ against dark) ─ */
   --text-primary: #f5f0e8;
-  --text-secondary: #b8ad9b;
-  --text-muted: #7a715f;
+  --text-secondary: #c4b9a7;
+  --text-muted: #968b77;
+  --text-inverse: #080704;
 
-  --accent-gold: #ffb700;
+  /* ── Brand & Interaction Accents ─────────────────────────── */
   --accent-amber: #e8890c;
-  --accent-amber-dim: rgba(232, 137, 12, 0.18);
-  --accent-forest: #2a5c3f;
-  --accent-forest-dim: rgba(42, 92, 63, 0.32);
+  --accent-amber-hover: #f5961d;
+  --accent-amber-dim: rgba(232, 137, 12, 0.12);
 
+  /* ── Semantic Accents ─────────────────────────────────────── */
+  --accent-gold: #ffb700;
+  --accent-gold-dim: rgba(255, 183, 0, 0.14);
+  --accent-forest: #2e6646;
+  --accent-forest-dim: rgba(46, 102, 70, 0.22);
+  --accent-danger: #c53b3b;
+  --accent-danger-dim: rgba(197, 59, 59, 0.16);
+
+  /* ── Borders & Dividers ───────────────────────────────────── */
   --border-subtle: rgba(245, 240, 232, 0.08);
-  --border-strong: rgba(245, 240, 232, 0.18);
+  --border-default: rgba(245, 240, 232, 0.14);
+  --border-strong: rgba(245, 240, 232, 0.22);
+
+  /* ── Focus & Elevation ────────────────────────────────────── */
+  --focus-ring: rgba(232, 137, 12, 0.7);
+  --shadow-surface: 0 12px 36px -10px rgba(0, 0, 0, 0.7);
 }
 
 @theme inline {
   --color-background: var(--bg-base);
-  --color-foreground: var(--text-primary);
-  --color-gold: var(--accent-gold);
-  --color-amber: var(--accent-amber);
-  --color-forest: var(--accent-forest);
-  --color-card: var(--bg-card);
+  --color-surface: var(--bg-surface);
   --color-elevated: var(--bg-elevated);
-  --color-muted: var(--text-muted);
+  --color-card: var(--bg-card);
+  --color-foreground: var(--text-primary);
   --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+  --color-amber: var(--accent-amber);
+  --color-gold: var(--accent-gold);
+  --color-forest: var(--accent-forest);
+  --color-border-subtle: var(--border-subtle);
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
   --font-display: var(--font-playfair);
   --font-sans: var(--font-dm-sans);
   --font-mono: var(--font-geist-mono);
@@ -45,11 +67,12 @@ body {
   font-family: var(--font-dm-sans), system-ui, sans-serif;
   font-feature-settings: "ss01", "cv11";
   background:
-    radial-gradient(ellipse at top, rgba(232, 137, 12, 0.06) 0%, transparent 55%),
-    radial-gradient(ellipse at bottom, rgba(42, 92, 63, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 0%, rgba(232, 137, 12, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 100%, rgba(46, 102, 70, 0.04) 0%, transparent 50%),
     var(--bg-base);
   min-height: 100vh;
   position: relative;
+  overflow-x: hidden;
 }
 
 body::before {
@@ -58,7 +81,7 @@ body::before {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.035;
+  opacity: 0.032;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch' seed='4'/><feColorMatrix type='matrix' values='0 0 0 0 1  0 0 0 0 0.86  0 0 0 0 0.62  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   background-size: 220px 220px;
@@ -77,8 +100,8 @@ body > * {
 }
 
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: var(--bg-base);
@@ -92,19 +115,43 @@ body > * {
   background: var(--accent-amber);
 }
 
+/* ── Typography Roles ────────────────────────────────────────── */
 .font-display {
   font-family: var(--font-playfair), Georgia, serif;
   font-feature-settings: "lnum", "kern";
 }
 
-.grain::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.04;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.9'/></svg>");
+.font-sans {
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+}
+
+.font-mono {
+  font-family: var(--font-geist-mono), monospace;
+}
+
+.text-eyebrow {
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--accent-amber);
+}
+
+.text-kicker {
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+}
+
+.text-metadata {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
 }
 
 .text-balance {
@@ -115,11 +162,57 @@ body > * {
   text-wrap: pretty;
 }
 
-@keyframes ember-flicker {
-  0%, 100% { opacity: 0.85; }
-  50% { opacity: 1; }
+/* ── Surface Utilities ───────────────────────────────────────── */
+.surface-flat {
+  background: transparent;
 }
 
-.ember {
-  animation: ember-flicker 3.4s ease-in-out infinite;
+.surface-base {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+}
+
+.surface-elevated {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 0.75rem;
+}
+
+.surface-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  transition: border-color 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
+}
+
+.surface-card:hover {
+  border-color: var(--border-strong);
+  background-color: var(--bg-elevated);
+}
+
+.surface-feature {
+  background: linear-gradient(180deg, rgba(20, 18, 11, 0.8) 0%, rgba(14, 13, 8, 0.4) 100%);
+  border: 1px solid var(--border-default);
+  border-radius: 1rem;
+}
+
+/* ── Accessible Focus Ring ───────────────────────────────────── */
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ── Subtle Grain Overlay ────────────────────────────────────── */
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.9'/></svg>");
 }

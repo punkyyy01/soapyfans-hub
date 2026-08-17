@@ -114,7 +114,7 @@ export default function RootLayout({
         className={`${dmSans.variable} ${geistMono.variable} ${playfair.variable} antialiased`}
       >
         <div className="flex min-h-screen flex-col">
-          <Suspense fallback={<nav className="fixed inset-x-0 top-0 z-50 h-[73px] border-b border-[var(--border-subtle)] bg-[rgba(8,7,4,0.75)] backdrop-blur-md" />}>
+          <Suspense fallback={<nav className="fixed inset-x-0 top-0 z-50 h-16 border-b border-[var(--border-subtle)] bg-[var(--bg-glass)] backdrop-blur-md" />}>
             <Navbar />
           </Suspense>
           <script
