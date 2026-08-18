@@ -69,6 +69,10 @@ type EnrichedFavorite = FavoriteRow & {
 const FALLBACK_ACCENT = '#e8890c'
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+function escapeIlike(str: string): string {
+  return str.replace(/[%_\\]/g, '\\$&')
+}
+
 export default async function ProfilePage({ params, searchParams }: Props) {
   const { username } = await params
   const { error } = (await searchParams) ?? {}
@@ -81,13 +85,18 @@ export default async function ProfilePage({ params, searchParams }: Props) {
     profile_favorites(id, tmdb_id, media_type, position)
   `)
 
-  const [{ data: profile }, user] = await Promise.all([
+  const [{ data: profile, error: profileError }, user] = await Promise.all([
     (isUuid
       ? profileQuery.eq('id', username)
-      : profileQuery.ilike('username', username)
+      : profileQuery.ilike('username', escapeIlike(username))
     ).maybeSingle(),
     getUser(),
   ])
+
+  if (profileError) {
+    console.error('[ProfilePage] Database query error for profile:', { username, profileError })
+    throw new Error('Failed to load profile. Please try again.')
+  }
 
   if (!profile) notFound()
 

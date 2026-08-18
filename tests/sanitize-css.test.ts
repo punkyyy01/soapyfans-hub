@@ -55,6 +55,12 @@ describe('sanitizeCSS', () => {
     assert.equal(sanitizeCSS('/* comment */ color: red;'), '')
   })
 
+  it('blocks CSS backslash escape sequences and unicode bypasses', () => {
+    assert.equal(sanitizeCSS('background: \\75rl(https://attacker.com/leak);'), '')
+    assert.equal(sanitizeCSS('\\70osition: \\66ixed; top: 0;'), '')
+    assert.equal(sanitizeCSS('\\@import \\75rl(style.css);'), '')
+  })
+
   it('enforces maximum character length of 2000', () => {
     const longCSS = 'color: red; '.repeat(200)
     assert.ok(longCSS.length > 2000)

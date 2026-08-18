@@ -131,20 +131,36 @@ export async function updateReview(
 
   if (!rating || rating < 1 || rating > 5) return { error: 'Please select a rating.' }
 
-  const [{ error }, { data: profile }] = await Promise.all([
+  const [{ data: updatedReview, error }, { data: profile }] = await Promise.all([
     supabase
       .from('reviews')
       .update({ rating, content, updated_at: new Date().toISOString() })
       .eq('id', reviewId)
-      .eq('user_id', user.id),
-    supabase.from('profiles').select('username').eq('id', user.id).single(),
+      .eq('user_id', user.id)
+      .select('film_id')
+      .maybeSingle(),
+    supabase.from('profiles').select('username').eq('id', user.id).maybeSingle(),
   ])
 
   if (error) return { error: 'Something went wrong. Please try again.' }
 
-  const slug = profile?.username
-  if (!slug) redirect('/')
-  redirect(`/profile/${slug}`)
+  const profileSlug = profile?.username ?? user.id
+
+  if (updatedReview?.film_id) {
+    const { data: film } = await supabase
+      .from('films')
+      .select('tmdb_id')
+      .eq('id', updatedReview.film_id)
+      .maybeSingle()
+    if (film?.tmdb_id) {
+      revalidatePath(`/films/${film.tmdb_id}`)
+    }
+  }
+
+  revalidatePath(`/profile/${profileSlug}`)
+  revalidatePath(`/profile/${user.id}`)
+  revalidatePath('/dashboard-s9k2mx')
+  redirect(`/profile/${profileSlug}`)
 }
 
 export async function deleteReview(formData: FormData) {
@@ -164,12 +180,11 @@ export async function deleteReview(formData: FormData) {
       .delete()
       .eq('id', reviewId)
       .eq('user_id', user.id)
-      .select('id'),
-    supabase.from('profiles').select('username').eq('id', user.id).single(),
+      .select('id, film_id'),
+    supabase.from('profiles').select('username').eq('id', user.id).maybeSingle(),
   ])
 
-  const profileSlug = profile?.username ?? null
-  if (!profileSlug) redirect('/')
+  const profileSlug = profile?.username ?? user.id
 
   if (deleteError) {
     redirect(
@@ -187,7 +202,21 @@ export async function deleteReview(formData: FormData) {
     )
   }
 
+  const filmId = deletedRows[0]?.film_id
+  if (filmId) {
+    const { data: film } = await supabase
+      .from('films')
+      .select('tmdb_id')
+      .eq('id', filmId)
+      .maybeSingle()
+    if (film?.tmdb_id) {
+      revalidatePath(`/films/${film.tmdb_id}`)
+    }
+  }
+
   revalidatePath(`/profile/${profileSlug}`)
+  revalidatePath(`/profile/${user.id}`)
+  revalidatePath('/dashboard-s9k2mx')
   redirect(`/profile/${profileSlug}`)
 }
 
@@ -248,7 +277,17 @@ export async function submitMusicReview(formData: FormData) {
     }
   }
 
+  const { data: userProfile } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', user.id)
+    .maybeSingle()
+  const profileSlug = userProfile?.username ?? user.id
+
   revalidatePath('/music')
+  revalidatePath(`/profile/${profileSlug}`)
+  revalidatePath(`/profile/${user.id}`)
+  revalidatePath('/dashboard-s9k2mx')
   redirect('/music')
 }
 
@@ -330,6 +369,16 @@ export async function submitReview(formData: FormData) {
     }
   }
 
+  const { data: userProfile } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', user.id)
+    .maybeSingle()
+  const profileSlug = userProfile?.username ?? user.id
+
   revalidatePath(`/films/${tmdbId}`)
+  revalidatePath(`/profile/${profileSlug}`)
+  revalidatePath(`/profile/${user.id}`)
+  revalidatePath('/dashboard-s9k2mx')
   redirect(`/films/${tmdbId}`)
 }

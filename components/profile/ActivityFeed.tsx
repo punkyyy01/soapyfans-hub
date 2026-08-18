@@ -144,7 +144,7 @@ function ActivityRow({
           </span>
 
           <span className="ml-auto font-mono text-[0.68rem] text-[var(--text-muted)]">
-            {new Date(item.created_at).toLocaleDateString(undefined, {
+            {new Date(item.created_at).toLocaleDateString('en-US', {
               year: 'numeric',
               month: 'short',
               day: 'numeric',

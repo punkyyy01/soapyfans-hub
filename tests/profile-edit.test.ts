@@ -286,4 +286,66 @@ describe('Minimal Profile Closure vs Global Footer Visibility Rules', () => {
   })
 })
 
+describe('Profile Slug and Navigation Invariants', () => {
+  function getCommittedProfileSlug(
+    saveStateUsername: string | null,
+    profileUsername: string | null,
+    profileId: string,
+  ): string {
+    return saveStateUsername || profileUsername || profileId
+  }
+
+  it('preserves committed username even when user edits local input with uncommitted text', () => {
+    const profile = { id: 'usr_123', username: 'Frambuesa' }
+    const uncommittedInput = 'Frambuesa_Typo_NotSaved'
+    const saveState = { username: null }
+
+    // The link must use committed slug, NEVER uncommitted local input
+    const slug = getCommittedProfileSlug(saveState.username, profile.username, profile.id)
+    assert.equal(slug, 'Frambuesa')
+    assert.notEqual(slug, uncommittedInput)
+  })
+
+  it('updates profile slug to new username after successful server action save', () => {
+    const profile = { id: 'usr_123', username: 'Frambuesa' }
+    const saveState = { username: 'Frambuesa_New' }
+
+    const slug = getCommittedProfileSlug(saveState.username, profile.username, profile.id)
+    assert.equal(slug, 'Frambuesa_New')
+  })
+
+  it('falls back to user id for newly registered OAuth users without username', () => {
+    const profile = { id: 'usr_abc_oauth_999', username: null }
+    const saveState = { username: null }
+
+    const slug = getCommittedProfileSlug(saveState.username, profile.username, profile.id)
+    assert.equal(slug, 'usr_abc_oauth_999')
+  })
+})
+
+describe('PostgREST ILIKE Wildcard Escaping', () => {
+  function escapeIlike(str: string): string {
+    return str.replace(/[%_\\]/g, '\\$&')
+  }
+
+  it('escapes underscore wildcards to prevent pattern collision', () => {
+    assert.equal(escapeIlike('sophie_fan'), 'sophie\\_fan')
+    assert.equal(escapeIlike('user_name_test'), 'user\\_name\\_test')
+  })
+
+  it('escapes percent signs to prevent wildcards', () => {
+    assert.equal(escapeIlike('100%fan'), '100\\%fan')
+    assert.equal(escapeIlike('%admin%'), '\\%admin\\%')
+  })
+
+  it('escapes backslashes', () => {
+    assert.equal(escapeIlike('test\\user'), 'test\\\\user')
+  })
+
+  it('leaves alphanumeric strings untouched', () => {
+    assert.equal(escapeIlike('Frambuesa'), 'Frambuesa')
+    assert.equal(escapeIlike('natalie123'), 'natalie123')
+  })
+})
+
 

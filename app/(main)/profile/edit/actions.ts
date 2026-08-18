@@ -91,10 +91,14 @@ export async function saveProfile(
     }
   }
 
+function escapeIlike(str: string): string {
+  return str.replace(/[%_\\]/g, '\\$&')
+}
+
   const { data: taken } = await supabase
     .from('profiles')
     .select('id')
-    .ilike('username', username)
+    .ilike('username', escapeIlike(username))
     .neq('id', user.id)
     .maybeSingle()
   if (taken) return { error: 'That username is already taken.', success: false, username: null }
@@ -289,6 +293,18 @@ async function deleteOldImage(
   }
 }
 
+async function revalidateUserProfile(supabase: Supabase, userId: string) {
+  const { data } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', userId)
+    .maybeSingle()
+  const slug = data?.username ?? userId
+  revalidatePath('/profile/edit')
+  revalidatePath(`/profile/${slug}`)
+  revalidatePath(`/profile/${userId}`)
+}
+
 export async function addFavorite(
   tmdbId: number,
   mediaType: 'movie' | 'tv',
@@ -315,7 +331,7 @@ export async function addFavorite(
     return { error: 'Failed to add favorite.', id: null }
   }
 
-  revalidatePath('/profile/edit')
+  await revalidateUserProfile(supabase, user.id)
   return { error: null, id: data.id }
 }
 
@@ -332,7 +348,7 @@ export async function removeFavorite(favoriteId: string): Promise<{ error: strin
 
   if (error) return { error: 'Failed to remove favorite.' }
 
-  revalidatePath('/profile/edit')
+  await revalidateUserProfile(supabase, user.id)
   return { error: null }
 }
 
@@ -351,6 +367,6 @@ export async function reorderFavorites(orderedIds: string[]): Promise<{ error: s
     ),
   )
 
-  revalidatePath('/profile/edit')
+  await revalidateUserProfile(supabase, user.id)
   return { error: null }
 }

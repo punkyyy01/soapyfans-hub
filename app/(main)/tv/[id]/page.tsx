@@ -67,9 +67,16 @@ export default async function TvDetailPage({ params }: Props) {
   const { id } = await params
   const tvId = Number(id)
 
-  if (!Number.isFinite(tvId) || tvId <= 0) notFound()
-
-  const tv = await getTvDetails(tvId).catch(() => null)
+  let tv
+  try {
+    tv = await getTvDetails(tvId)
+  } catch (err: any) {
+    if (err?.message?.includes('404')) {
+      notFound()
+    }
+    console.error(`[TvDetailPage] Error loading TV details for tvId ${tvId}:`, err)
+    throw new Error('Failed to load TV details from TMDB. Please try again.')
+  }
   if (!tv) notFound()
 
   const poster = getTmdbImageUrl(tv.poster_path, 'w500')

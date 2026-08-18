@@ -232,9 +232,16 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
   const { error } = await searchParams
   const tmdbId = Number(id)
 
-  if (!Number.isFinite(tmdbId) || tmdbId <= 0) notFound()
-
-  const film = await getMovieDetails(tmdbId).catch(() => null)
+  let film
+  try {
+    film = await getMovieDetails(tmdbId)
+  } catch (err: any) {
+    if (err?.message?.includes('404')) {
+      notFound()
+    }
+    console.error(`[FilmDetailPage] Error loading movie details for tmdbId ${tmdbId}:`, err)
+    throw new Error('Failed to load film details from TMDB. Please try again.')
+  }
   if (!film) notFound()
 
   const poster = getTmdbImageUrl(film.poster_path, 'w500')

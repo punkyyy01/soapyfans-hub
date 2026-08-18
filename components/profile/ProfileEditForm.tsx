@@ -283,7 +283,8 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
     }
   }
 
-  const profileSlug = username || profile.username || profile.id
+  // Always link back to the committed database profile to prevent 404 on uncommitted inputs
+  const savedProfileSlug = saveState.username || profile.username || profile.id
   const cssCharCount = profileCss.length
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -377,7 +378,7 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
             </p>
           </div>
 
-          <Button href={`/profile/${profileSlug}`} variant="secondary" size="sm">
+          <Button href={`/profile/${savedProfileSlug}`} variant="secondary" size="sm">
             View Public Profile ↗
           </Button>
         </div>
@@ -1019,7 +1020,7 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
 
           <div className="flex items-center gap-3 self-end sm:self-auto">
             <Link
-              href={`/profile/${profileSlug}`}
+              href={`/profile/${savedProfileSlug}`}
               className="rounded-full border border-transparent px-4 py-2 font-mono text-xs uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
             >
               Cancel
@@ -1067,6 +1068,18 @@ function CssPreviewPanel({
 }) {
   const sanitized = sanitizeCSS(css)
   const initial = displayName[0]?.toUpperCase() ?? '?'
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = ''
+    }
+  }, [onClose])
 
   return (
     <div className="fixed inset-0 z-50 overflow-auto bg-[var(--bg-base)] p-4 sm:p-8">
@@ -1220,7 +1233,16 @@ function SearchModal({
 
   useEffect(() => {
     inputRef.current?.focus()
-  }, [])
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = ''
+    }
+  }, [onClose])
 
   const search = useCallback(async (q: string) => {
     if (q.trim().length < 2) {
@@ -1246,8 +1268,16 @@ function SearchModal({
   }, [query, search])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 px-4 pt-20 sm:pt-28 backdrop-blur-xs">
-      <div className="w-full max-w-lg rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-elevated)] shadow-2xl overflow-hidden">
+    <div
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 px-4 pt-20 sm:pt-28 backdrop-blur-xs"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-elevated)] shadow-2xl overflow-hidden"
+      >
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-6 py-4">
           <p className="text-eyebrow">

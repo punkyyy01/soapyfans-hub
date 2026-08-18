@@ -13,6 +13,7 @@ const BLOCKED: RegExp[] = [
   /filter\s*:\s*.*url/i,
   /<|>/,
   /\/\*/,
+  /\\/,
 ]
 
 export function sanitizeCSS(css: string): string {
