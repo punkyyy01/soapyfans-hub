@@ -108,27 +108,31 @@ export default async function AboutPage() {
               {/* Narrative Text */}
               <div className="lg:col-span-8 space-y-7 text-[1.02rem] leading-[1.88] text-[var(--text-secondary)] text-pretty sm:text-[1.06rem]">
                 <p>
-                  Born in Chicago’s Hyde Park and raised in Evanston, Illinois, Sophie Bathsheba Thatcher grew up inside a household deeply committed to artistic expression. Her mother, a pianist and vocal instructor, introduced classical training early; her twin sister Ellie is a visual artist and close creative companion; her sister Emma is an independent filmmaker; and her brother Alexander is a writer.
+                  Sophie Thatcher was born in Chicago in 2000 and spent her early years in Hyde Park before her family later moved to Lake Forest and Evanston. She grew up in a musical and creatively minded household: her mother is a piano teacher, and her siblings have pursued creative work of their own, including writing, filmmaking, and visual art. From an early age, music, storytelling, and performance were already part of her everyday life.
                 </p>
 
                 <p>
-                  Her early foundation in the performing arts began on local stages at the age of four, progressing to a professional stage debut at eleven in <em>The Secret Garden</em>. Over the next six years across the Chicago repertory theatre scene — performing in productions of <em>Oliver!</em>, <em>Seussical</em>, and <em>The Diary of Anne Frank</em> — she developed the discipline, voice control, and stillness that would later define her screen presence.
+                  Thatcher began acting as a child and trained in the performing arts from a young age. By eleven, she was performing professionally in Chicago, taking on the role of Mary Lennox in <em>The Secret Garden</em>. She later appeared in productions including <em>Oliver!</em>, <em>Seussical</em>, and <em>The Diary of Anne Frank</em>. Those early years gave her a substantial foundation in theatre, with <em>The Secret Garden</em> standing out in her own recollections as an especially important early professional experience.
                 </p>
 
                 <p>
-                  Thatcher made her feature film debut in the sci-fi survival drama <em>Prospect</em> (2018) opposite Pedro Pascal, earning critical acclaim for an expressive, grounded performance delivered with remarkable restraint.
+                  Her move into screen acting began with smaller television and film appearances before her feature-film debut in <em>Prospect</em> (2018), where she played Cee alongside Pedro Pascal. From there, she continued working across television and independent film, gradually taking on more substantial roles.
                 </p>
 
                 <p>
-                  Her international breakthrough arrived with Showtime’s psychological drama <em>Yellowjackets</em> (2021–present), where her portrayal of teenage Natalie Scatorccio brought emotional vulnerability, intensity, and raw honesty to one of television&rsquo;s most celebrated ensemble casts.
+                  Her breakthrough came with <em>Yellowjackets</em>, which premiered in 2021. As teenage Natalie Scatorccio, Thatcher became one of the show’s central young performers, portraying a character defined by toughness, vulnerability, isolation, and a strong sense of right and wrong. The show’s creators have described Natalie as its moral center, while Thatcher herself has spoken about recognizing parts of her own personality in the character, particularly her more solitary nature.
                 </p>
 
                 <p>
-                  Her screen trajectory has continued to expand with leading performances in A24’s theological thriller <em>Heretic</em> (2024), where her childhood familiarity with faith provided genuine depth to Sister Barnes, and the sci-fi thriller <em>Companion</em> (2025), showcasing her range across psychological tension and genre storytelling.
+                  Her film work has continued to move between very different genres and characters. In <em>Heretic</em> (2024), she played Sister Barnes, drawing in part on her own upbringing within the Mormon community. Rather than simply studying the character from the outside, Thatcher incorporated mannerisms and habits she remembered from her own youth into the performance. In <em>Companion</em> (2025), she took on the role of Iris, continuing her progression into science fiction and psychological thriller territory.
                 </p>
 
                 <p>
-                  Parallel to her acting, Thatcher maintains a personal sonic practice composed in private since adolescence. Her 2024 debut EP, <em>Pivot &amp; Scrape</em>, reflects an intimate exploration of darkwave, analog textures, and atmosphere — a creative space that remains closely intertwined with how she envisions her characters and approaches the craft.
+                  Music has developed alongside acting as another major part of Thatcher’s creative life. She grew up singing and studying music, and later began experimenting with songwriting and electronic production. During a period of isolation, she started working with Ableton and gradually developed a more personal music-making process. In October 2024, she released her debut EP, <em>Pivot &amp; Scrape</em>. Thatcher has described music as a particularly direct form of creative expression, giving her a level of control over the work that acting cannot always provide.
+                </p>
+
+                <p>
+                  Across theatre, film, television, and music, Thatcher’s career has developed through curiosity rather than a single fixed path. Each stage has opened the door to something different, but the same interest in storytelling, experimentation, and creative expression runs through all of it.
                 </p>
               </div>
 
