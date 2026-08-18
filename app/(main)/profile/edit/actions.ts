@@ -180,19 +180,34 @@ async function uploadImage(
     return { error: sizeValidation.error! }
   }
 
-  const buffer = await file.arrayBuffer()
-  const bytes = new Uint8Array(buffer)
+  const arrayBuffer = await file.arrayBuffer()
+  const bytes = new Uint8Array(arrayBuffer)
   const format = detectImageFormat(bytes)
 
   if (!format) {
+    console.warn(`[uploadImage:rejected_format] Unsupported binary format for ${type}:`, {
+      userId,
+      fileSize: file.size,
+      browserType: file.type,
+      fileName: file.name,
+      firstBytes: Array.from(bytes.slice(0, 16)).map((b) => b.toString(16).padStart(2, '0')).join(' '),
+    })
     return { error: 'Unsupported image format. Please upload a valid JPEG, PNG, WebP, or GIF.' }
   }
 
+  // Use Node Buffer to allow safe, reusable binary payloads without detached ArrayBuffer issues on retries
+  const payload = Buffer.from(arrayBuffer)
   const filename = `${Date.now()}.${format.ext}`
   let targetBucket = type === 'banner' ? 'banners' : 'avatars'
   let targetPath = `${userId}/${filename}`
 
-  let { error: uploadError } = await supabase.storage.from(targetBucket).upload(targetPath, buffer, {
+  console.log(`[uploadImage:attempt] Uploading ${type} (${format.isAnimated ? 'animated ' : ''}${format.ext}, ${file.size} bytes) to bucket '${targetBucket}':`, {
+    targetPath,
+    contentType: format.mime,
+    isAnimated: Boolean(format.isAnimated),
+  })
+
+  let { error: uploadError } = await supabase.storage.from(targetBucket).upload(targetPath, payload, {
     contentType: format.mime,
     cacheControl: '3600',
     upsert: true,
@@ -200,18 +215,50 @@ async function uploadImage(
 
   // Resilient fallback for banners: if 'banners' bucket is not configured or fails, use 'avatars' with user-scoped banner path
   if (uploadError && type === 'banner') {
+    console.warn(`[uploadImage:fallback] Primary bucket '${targetBucket}' failed for banner (${uploadError.message || uploadError}), attempting fallback to 'avatars'...`)
     targetBucket = 'avatars'
     targetPath = `${userId}/banner-${filename}`
-    const fallbackRes = await supabase.storage.from(targetBucket).upload(targetPath, buffer, {
+    const fallbackRes = await supabase.storage.from(targetBucket).upload(targetPath, payload, {
       contentType: format.mime,
       cacheControl: '3600',
       upsert: true,
     })
     uploadError = fallbackRes.error
+    if (uploadError) {
+      console.error(`[uploadImage:fallback_failed] Fallback to 'avatars' bucket also failed:`, {
+        message: uploadError.message,
+        name: uploadError.name,
+        statusCode: (uploadError as any)?.statusCode || (uploadError as any)?.status,
+      })
+    } else {
+      console.log(`[uploadImage:fallback_success] Banner successfully stored in fallback bucket 'avatars' at ${targetPath}`)
+    }
   }
 
   if (uploadError) {
-    console.error(`[uploadImage] Storage error for ${type}:`, uploadError.message || uploadError)
+    console.error(`[uploadImage:final_error] Storage error for ${type}:`, {
+      type,
+      bucket: targetBucket,
+      path: targetPath,
+      fileSize: file.size,
+      browserType: file.type,
+      detectedMime: format.mime,
+      detectedExt: format.ext,
+      isAnimated: Boolean(format.isAnimated),
+      errorMessage: uploadError.message || String(uploadError),
+      errorName: uploadError.name,
+      statusCode: (uploadError as any)?.statusCode || (uploadError as any)?.status,
+    })
+
+    const isSizeError =
+      (uploadError as any)?.statusCode === 413 ||
+      uploadError.message?.toLowerCase().includes('size') ||
+      uploadError.message?.toLowerCase().includes('large')
+
+    if (isSizeError) {
+      return { error: `${type === 'banner' ? 'Banner' : 'Avatar'} file exceeds storage limits. Please choose a smaller image.` }
+    }
+
     return { error: `Failed to upload ${type}. Please try again.` }
   }
 

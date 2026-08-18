@@ -18,23 +18,40 @@ describe('Image Binary Magic-Bytes Validation', () => {
   it('correctly detects genuine GIF87a image', () => {
     const gif87Bytes = new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x37, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80, 0x00])
     const res = detectImageFormat(gif87Bytes)
-    assert.deepEqual(res, { mime: 'image/gif', ext: 'gif' })
+    assert.deepEqual(res, { mime: 'image/gif', ext: 'gif', isAnimated: true })
   })
 
-  it('correctly detects genuine GIF89a image', () => {
+  it('correctly detects genuine GIF89a image (animated GIF)', () => {
     const gif89Bytes = new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x64, 0x00, 0x64, 0x00, 0xf7, 0x00])
     const res = detectImageFormat(gif89Bytes)
-    assert.deepEqual(res, { mime: 'image/gif', ext: 'gif' })
+    assert.deepEqual(res, { mime: 'image/gif', ext: 'gif', isAnimated: true })
   })
 
-  it('correctly detects genuine WebP image (RIFF ... WEBP)', () => {
-    const webpBytes = new Uint8Array([
+  it('correctly detects static WebP image (RIFF ... WEBP ... VP8)', () => {
+    const staticWebpBytes = new Uint8Array([
       0x52, 0x49, 0x46, 0x46, // RIFF
       0x24, 0x00, 0x00, 0x00, // size
       0x57, 0x45, 0x42, 0x50, // WEBP
+      0x56, 0x50, 0x38, 0x20, // VP8 (simple lossy static)
     ])
-    const res = detectImageFormat(webpBytes)
+    const res = detectImageFormat(staticWebpBytes)
     assert.deepEqual(res, { mime: 'image/webp', ext: 'webp' })
+  })
+
+  it('correctly detects Animated WebP image (RIFF ... WEBP ... VP8X + Animation flag)', () => {
+    const animatedWebpBytes = new Uint8Array([
+      0x52, 0x49, 0x46, 0x46, // RIFF (0..3)
+      0x60, 0x00, 0x00, 0x00, // file size (4..7)
+      0x57, 0x45, 0x42, 0x50, // WEBP (8..11)
+      0x56, 0x50, 0x38, 0x58, // VP8X extended header (12..15)
+      0x0a, 0x00, 0x00, 0x00, // chunk size: 10 bytes (16..19)
+      0x02,                   // flags: bit 1 (0x02) = ANIMATION flag! (20)
+      0x00, 0x00, 0x00,       // canvas width-1 (21..23)
+      0x00, 0x00, 0x00,       // canvas height-1 (24..26)
+      0x41, 0x4e, 0x49, 0x4d, // ANIM chunk (27..30)
+    ])
+    const res = detectImageFormat(animatedWebpBytes)
+    assert.deepEqual(res, { mime: 'image/webp', ext: 'webp', isAnimated: true })
   })
 
   it('rejects truncated buffer (< 12 bytes)', () => {

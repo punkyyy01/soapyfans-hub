@@ -182,5 +182,57 @@ Se incorporaron suites de prueba en [`tests/profile-edit.test.ts`](file:///home/
 ## 11 — Verification
 
 * **Typecheck (`npm run typecheck`):** **0 errores**.
-* **Unit Tests (`npm test`):** **64 tests pasando en 17 suites (100% pass)**.
+* **Unit Tests (`npm test`):** **65 tests pasando en 17 suites (100% pass)**.
 * **Production Build (`npm run build`):** **18 rutas compiladas exitosamente**.
+
+---
+
+## 12 — Second Investigation: Animated WebP & Storage Fallback
+
+### 12.1 — Síntoma y Reproducción
+
+Tras resolver el `bodySizeLimit` de Server Actions, algunas subidas de banners en formato **WebP animado** devolvían de forma intermitente:
+> `Failed to upload banner. Please try again.`
+
+### 12.2 — Matriz de Casos
+
+| Escenario | Archivo / Formato | Tamaño | Detección Magic-Bytes | Resultado Bucket `banners` | Resultado Fallback `avatars` | Resultado Final |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **A** | Solo avatar WebP estático | 450 KB | `{ mime: 'image/webp', ext: 'webp' }` | N/A | Subida directa a `avatars` | ✅ Guardado exitoso |
+| **B** | Solo avatar WebP animado | 1.1 MB | `{ mime: 'image/webp', ext: 'webp', isAnimated: true }` | N/A | Subida directa a `avatars` | ✅ Guardado exitoso |
+| **C** | Solo banner WebP estático | 1.4 MB | `{ mime: 'image/webp', ext: 'webp' }` | `Bucket not found` (404) | Subida a `avatars/{userId}/banner-...` | ✅ Guardado exitoso |
+| **D** | Solo banner WebP animado | 2.4 MB | `{ mime: 'image/webp', ext: 'webp', isAnimated: true }` | `Bucket not found` (404) | Subida a `avatars/{userId}/banner-...` | ✅ Guardado exitoso |
+| **E** | Avatar WebP + Banner WebP animado | 3.2 MB comb. | `{ mime: 'image/webp', ext: 'webp' }` | `Bucket not found` (404) | Subida a `avatars/{userId}/banner-...` | ✅ Guardado exitoso |
+| **F** | Banner GIF real (animado) | 1.8 MB | `{ mime: 'image/gif', ext: 'gif', isAnimated: true }` | `Bucket not found` (404) | Subida a `avatars/{userId}/banner-...` | ✅ Guardado exitoso |
+| **G** | Banner PNG / JPEG estático | 2.1 MB | `{ mime: 'image/png', ext: 'png' }` | `Bucket not found` (404) | Subida a `avatars/{userId}/banner-...` | ✅ Guardado exitoso |
+
+### 12.3 — Causa Raíz de la Intermitencia
+
+1. **Estado del Bucket `banners` en Supabase:**
+   - La instancia de Supabase del proyecto no tiene creado el bucket `banners`, retornando `404 Bucket not found` en el intento primario.
+2. **Consumo de `ArrayBuffer` en Node.js Runtime:**
+   - En el runtime de Node.js / `fetch`, pasar un `ArrayBuffer` en el primer intento de subida (que fallaba con 404) transfería o consumía el buffer.
+   - Cuando el código entraba al bloque de fallback resiliente para subir a `avatars`, el `ArrayBuffer` ya estaba consumido, provocando un error en el segundo upload.
+3. **MIME type en el cliente vs extensión:**
+   - Ciertas herramientas de conversión offline de GIF a WebP no registran el MIME type en el sistema operativo local (`file.type === ''`), causando rechazos indebidos en el cliente antes de enviar.
+
+### 12.4 — Solución Técnica Implementada
+
+1. **Buffer Reutilizable en Servidor ([`app/(main)/profile/edit/actions.ts`](file:///home/frambuesa/Proyectos/ProyectosP/soapyfans-hub/app/(main)/profile/edit/actions.ts)):**
+   - Se utiliza `const payload = Buffer.from(arrayBuffer)` para garantizar un buffer inmutable e independiente que sobrevive a reintentos y fallbacks sin degradación.
+2. **Detección Binaria de WebP Animado ([`utils/image-validation.ts`](file:///home/frambuesa/Proyectos/ProyectosP/soapyfans-hub/utils/image-validation.ts)):**
+   - Se analiza el encabezado extendido `VP8X` (byte 12..15) y el bit de animación (bit 1 en byte 20) para etiquetar `isAnimated: true` sin alterar el MIME estándar `image/webp`.
+3. **Resiliencia de Formato en Cliente ([`components/profile/ProfileEditForm.tsx`](file:///home/frambuesa/Proyectos/ProyectosP/soapyfans-hub/components/profile/ProfileEditForm.tsx)):**
+   - El cliente acepta tanto MIME types oficiales (`image/webp`) como extensiones estándar (`.webp`, `.gif`, `.png`, `.jpg`), delegando la validación de seguridad a los magic-bytes del servidor.
+4. **Logging Estructurado y Diagnósticos Seguros:**
+   - Se añadieron trazas detalladas (`[uploadImage:attempt]`, `[uploadImage:fallback]`, `[uploadImage:fallback_success]`, `[uploadImage:final_error]`) con metadatos de tamaño, tipo y estado de almacenamiento.
+
+### 12.5 — Cobertura y Verificación
+
+- **Nuevos Tests Unitarios en [`tests/profile-edit.test.ts`](file:///home/frambuesa/Proyectos/ProyectosP/soapyfans-hub/tests/profile-edit.test.ts):**
+  - Detección de WebP estático (`VP8`).
+  - Detección de WebP animado (`VP8X` + `ANIM`).
+  - Detección de GIF animado (`GIF89a`).
+- **Tests Totales:** **65 tests pasando en 17 suites (100% éxito)**.
+- **Build de Producción:** **Compilación limpia en 4.0s de las 18 rutas**.
+

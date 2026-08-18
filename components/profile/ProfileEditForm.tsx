@@ -158,7 +158,9 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (!ALLOWED_IMAGE_MIMES.includes(file.type as typeof ALLOWED_IMAGE_MIMES[number])) {
+    const isImageMime = ALLOWED_IMAGE_MIMES.includes(file.type as typeof ALLOWED_IMAGE_MIMES[number])
+    const hasImageExt = /\.(jpe?g|png|webp|gif)$/i.test(file.name)
+    if (!isImageMime && !hasImageExt) {
       setToast({ type: 'error', msg: 'Unsupported image format. Please select JPEG, PNG, WebP, or GIF.' })
       if (avatarInputRef.current) avatarInputRef.current.value = ''
       return
@@ -189,7 +191,9 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (!ALLOWED_IMAGE_MIMES.includes(file.type as typeof ALLOWED_IMAGE_MIMES[number])) {
+    const isImageMime = ALLOWED_IMAGE_MIMES.includes(file.type as typeof ALLOWED_IMAGE_MIMES[number])
+    const hasImageExt = /\.(jpe?g|png|webp|gif)$/i.test(file.name)
+    if (!isImageMime && !hasImageExt) {
       setToast({ type: 'error', msg: 'Unsupported image format. Please select JPEG, PNG, WebP, or GIF.' })
       if (bannerInputRef.current) bannerInputRef.current.value = ''
       return

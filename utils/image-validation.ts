@@ -18,6 +18,7 @@ export const ALLOWED_IMAGE_MIMES = [
 export type SupportedImageFormat = {
   mime: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
   ext: 'jpg' | 'png' | 'gif' | 'webp'
+  isAnimated?: boolean
 }
 
 /**
@@ -60,7 +61,7 @@ export function validateCombinedImageSizes(
 
 /**
  * Validates the true binary magic bytes of an uploaded image buffer.
- * Supports JPEG, PNG, GIF (GIF87a / GIF89a), and WebP (RIFF...WEBP).
+ * Supports JPEG, PNG, GIF (GIF87a / GIF89a), and WebP (both static VP8/VP8L and animated VP8X).
  */
 export function detectImageFormat(bytes: Uint8Array): SupportedImageFormat | null {
   if (!bytes || bytes.length < 12) return null
@@ -89,7 +90,7 @@ export function detectImageFormat(bytes: Uint8Array): SupportedImageFormat | nul
     (bytes[4] === 0x37 || bytes[4] === 0x39) &&
     bytes[5] === 0x61
   ) {
-    return { mime: 'image/gif', ext: 'gif' }
+    return { mime: 'image/gif', ext: 'gif', isAnimated: true }
   }
 
   // WebP: RIFF (0..3) + WEBP (8..11)
@@ -103,7 +104,21 @@ export function detectImageFormat(bytes: Uint8Array): SupportedImageFormat | nul
     bytes[10] === 0x42 &&
     bytes[11] === 0x50
   ) {
-    return { mime: 'image/webp', ext: 'webp' }
+    // Check for Extended WebP format (VP8X) with animation flag (bit 1 of flags byte at index 20)
+    const isExtended =
+      bytes.length >= 21 &&
+      bytes[12] === 0x56 && // 'V'
+      bytes[13] === 0x50 && // 'P'
+      bytes[14] === 0x38 && // '8'
+      bytes[15] === 0x58    // 'X'
+
+    const isAnimatedWebp = isExtended && (bytes[20] & 0x02) !== 0
+
+    return {
+      mime: 'image/webp',
+      ext: 'webp',
+      ...(isAnimatedWebp ? { isAnimated: true } : {}),
+    }
   }
 
   return null
