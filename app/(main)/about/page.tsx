@@ -9,9 +9,7 @@ import {
 import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildWebPageSchema, serializeJsonLd } from '@/utils/schema'
 import Reveal from '@/components/ui/Reveal'
-import PhotoGallery from '@/components/media/PhotoGallery'
 import Badge from '@/components/ui/Badge'
-import Button from '@/components/ui/Button'
 
 // ── Constants ────────────────────────────────────────────────
 
@@ -19,60 +17,6 @@ export const revalidate = 3600
 
 const ABOUT_DESCRIPTION =
   "An editorial profile of Sophie Thatcher — her Chicago roots, family of artists, and the career that made her one of her generation's most compelling performers."
-
-interface TimelineEntry {
-  year: string
-  category: string
-  title: string
-  description: string
-  tag?: string
-}
-
-const TIMELINE: TimelineEntry[] = [
-  {
-    year: 'Age 11',
-    category: 'Stage Roots',
-    title: 'Chicago Theatrical Beginnings',
-    description:
-      'Formative classical training in Oliver!, Seussical, The Diary of Anne Frank, and The Secret Garden. Craft built before cameras.',
-  },
-  {
-    year: '2018',
-    category: 'Film Debut',
-    title: 'Prospect',
-    description:
-      'Leading screen debut opposite Pedro Pascal. Premiered at SXSW to critical acclaim and established her distinct screen presence.',
-  },
-  {
-    year: '2019',
-    category: 'Television',
-    title: 'Chicago P.D.',
-    description:
-      'Formative television work that sharpened screen instincts before entering major series television.',
-  },
-  {
-    year: '2021–Present',
-    category: 'Television Series',
-    title: 'Yellowjackets',
-    description:
-      '29 episodes as Teen Natalie Scatorccio. A generation-defining performance anchoring the critically acclaimed Showtime drama.',
-    tag: 'Breakthrough',
-  },
-  {
-    year: '2024',
-    category: 'Feature Film',
-    title: 'Heretic',
-    description:
-      'Psychological horror opposite Hugh Grant for A24. Expanded her dramatic range with a nuanced portrayal of faith, intellect, and resilience.',
-  },
-  {
-    year: '2025',
-    category: 'Feature Film',
-    title: 'Companion',
-    description:
-      "A subversive performance chosen for its sharp conceptual complexity, followed by a Critics' Choice Super Award honor.",
-  },
-]
 
 interface RecognitionEntry {
   year: string
@@ -134,26 +78,21 @@ export default async function AboutPage() {
     (): TmdbPersonImages => ({ id: 0, profiles: [] }),
   )
 
-  const portraitUrls = getPortraitUrls(imagesData.profiles)
+  const portraitUrls = getPortraitUrls(imagesData.profiles, 8, 'w780')
+  const used = new Set<string>()
+  function pick(...candidates: (string | null | undefined)[]): string | null {
+    for (const c of candidates) {
+      if (c && !used.has(c)) {
+        used.add(c)
+        return c
+      }
+    }
+    return null
+  }
+  const imgOrigins = pick(portraitUrls[2], portraitUrls[0], portraitUrls[1])
+  const imgMusic = pick(portraitUrls[5], portraitUrls[6], portraitUrls[3])
+  const imgClosing = pick(portraitUrls[7], portraitUrls[4], portraitUrls[1])
 
-  const sortedProfiles = imagesData.profiles
-    .filter((p) => p.aspect_ratio <= 0.74)
-    .sort((a, b) => {
-      const ratioDiff = a.aspect_ratio - b.aspect_ratio
-      if (Math.abs(ratioDiff) > 0.05) return ratioDiff
-      return b.vote_average - a.vote_average
-    })
-
-  const galleryPhotos = sortedProfiles
-    .slice(0, 12)
-    .map((p) => ({
-      src: getTmdbImageUrl(p.file_path, 'w500') ?? '',
-      alt: 'Sophie Thatcher archival still',
-    }))
-    .filter((p) => p.src !== '')
-
-  const mastheadPortrait = portraitUrls[1] ?? portraitUrls[0] ?? null
-  const bioPortrait = portraitUrls[2] ?? portraitUrls[1] ?? portraitUrls[0] ?? null
   const age = getAge()
 
   return (
@@ -172,300 +111,291 @@ export default async function AboutPage() {
         }}
       />
 
-      {/* ── 1. MASTHEAD (Portrait First / Person First) ──────── */}
-      <section className="relative flex min-h-[88vh] items-center overflow-hidden border-b border-[var(--border-subtle)] pt-16">
-        {/* Right Portrait Canvas — full height blend desktop */}
-        {mastheadPortrait && (
-          <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[44%] lg:block">
-            <Image
-              src={mastheadPortrait}
-              alt="Sophie Thatcher"
-              fill
-              priority
-              sizes="44vw"
-              className="object-cover object-[center_10%] [filter:grayscale(0.15)_contrast(1.04)_brightness(0.95)]"
-            />
-            {/* Amber tone overlay */}
-            <span
-              aria-hidden="true"
-              className="absolute inset-0 bg-gradient-to-t from-[rgba(232,137,12,0.18)] via-transparent to-[rgba(8,7,4,0.2)] mix-blend-color"
-            />
-            {/* Left blend */}
-            <span
-              aria-hidden="true"
-              className="absolute inset-y-0 left-0 w-[42%] bg-gradient-to-r from-[var(--bg-base)] via-[var(--bg-base)]/70 to-transparent"
-            />
-            {/* Top blend */}
-            <span
-              aria-hidden="true"
-              className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[var(--bg-base)] to-transparent"
-            />
-            {/* Bottom blend */}
-            <span
-              aria-hidden="true"
-              className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-[var(--bg-base)] to-transparent"
-            />
-          </div>
-        )}
+      {/* ── 01. OPENING FRAGMENT ──────────────────────────────── */}
+      <section className="relative border-b border-[var(--border-subtle)] pt-28 pb-20 sm:pt-36 sm:pb-28">
+        <div className="mx-auto w-full max-w-[720px] px-6 sm:px-10">
+          <Reveal immediate stagger={0.06} y={16}>
+            <p className="font-mono text-xs uppercase tracking-[0.22em] text-[var(--accent-amber)]">
+              Age Four · Hyde Park, Chicago
+            </p>
+            <p className="mt-4 max-w-lg font-display text-xl italic leading-relaxed text-[var(--text-secondary)] sm:text-2xl">
+              A community-theatre production of <em>The Wizard of Oz</em>.
+              She played a munchkin.
+            </p>
 
-        {/* Text Content */}
-        <div className="relative z-10 mx-auto w-full max-w-7xl px-6 py-20 sm:px-10 sm:py-24">
-          <Reveal immediate stagger={0.08} y={24} className="lg:max-w-[58%]">
-            {/* Mobile Portrait */}
-            {mastheadPortrait && (
-              <div className="relative mb-8 h-72 w-full overflow-hidden rounded-xl border border-[var(--border-subtle)] sm:h-80 lg:hidden">
+            <div className="mt-14 border-t border-[var(--border-subtle)] pt-10 sm:mt-16">
+              <h1 className="font-display text-[clamp(2.2rem,4.5vw,3.4rem)] font-medium leading-[0.98] tracking-tight text-[var(--text-primary)]">
+                Sophie Bathsheba Thatcher
+              </h1>
+              <p className="mt-4 max-w-md text-base leading-relaxed text-[var(--text-secondary)]">
+                Actor. Musician. Visual artist.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1.5 font-mono text-[0.7rem] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                <span>
+                  Born <span className="text-[var(--text-secondary)]">18 Oct 2000</span>
+                </span>
+                <span className="text-[var(--border-strong)]">/</span>
+                <span className="text-[var(--text-secondary)]">Chicago, Illinois</span>
+                <span className="text-[var(--border-strong)]">/</span>
+                <span>
+                  Age <span className="text-[var(--text-secondary)]">{age}</span>
+                </span>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── 02. HYDE PARK → LAKE FOREST → EVANSTON ───────────── */}
+      <section className="border-b border-[var(--border-subtle)] py-20 sm:py-28">
+        <div className="mx-auto w-full max-w-4xl px-6 sm:px-10">
+          <Reveal stagger={0.06} y={20}>
+            <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_260px] lg:gap-14">
+              <div className="space-y-5 lg:order-1">
+                <h2 className="font-display text-2xl font-medium text-[var(--text-primary)] sm:text-3xl">
+                  Hyde Park to Evanston
+                </h2>
+                <div className="space-y-5 text-base leading-[1.85] text-[var(--text-secondary)] text-pretty sm:text-lg">
+                  <p>
+                    Not long after, her brother was bullied at school and the
+                    family moved to Lake Forest. She landed in Evanston in
+                    eighth grade — the place people mean when they call her a
+                    Chicagoan.
+                  </p>
+                  <p>
+                    The house was full of working artists. Her mother taught
+                    piano and gave her voice lessons starting at nine. Her
+                    sister Emma became a filmmaker; her brother Alexander
+                    writes; her identical twin, Ellie, works as a visual
+                    artist. Writing, drawing, home movies shot with Ellie —
+                    everything creative doubled as an escape.
+                  </p>
+                  <p>
+                    At eleven, she landed her first professional role, in{' '}
+                    <em>The Secret Garden</em> at Music Theater Works — the
+                    start of a decade of classical stage training before a
+                    camera ever found her: <em>Oliver!</em>,{' '}
+                    <em>Seussical</em>, <em>The Diary of Anne Frank</em>.
+                  </p>
+                </div>
+              </div>
+              {imgOrigins && (
+                <div className="relative order-first mx-auto aspect-[3/4] w-full max-w-[220px] overflow-hidden border border-[var(--border-subtle)] sm:max-w-[260px] lg:order-2 lg:mx-0 lg:mt-16 lg:max-w-[260px] lg:justify-self-end">
+                  <Image
+                    src={imgOrigins}
+                    alt="Sophie Thatcher, portrait photograph"
+                    fill
+                    sizes="(max-width: 1024px) 60vw, 260px"
+                    className="object-cover"
+                  />
+                </div>
+              )}
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── 03. STAGE → SCREEN ────────────────────────────────── */}
+      <section className="border-b border-[var(--border-subtle)] py-16 sm:py-20">
+        <div className="mx-auto w-full max-w-4xl px-6 sm:px-10">
+          <Reveal stagger={0.05} y={16}>
+            <h2 className="font-display text-2xl font-medium text-[var(--text-primary)] sm:text-3xl">
+              Stage to Screen
+            </h2>
+            <div className="mt-8 space-y-7">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[64px_1fr] sm:gap-8">
+                <span className="font-mono text-xs text-[var(--accent-amber)] sm:pt-1">
+                  2018
+                </span>
+                <p className="text-base leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-lg">
+                  <span className="font-display text-[var(--text-primary)]">
+                    Prospect.
+                  </span>{' '}
+                  A leading screen debut opposite Pedro Pascal, premiering at
+                  SXSW — the first proof her stage instincts translated to
+                  camera.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-[64px_1fr] sm:gap-8">
+                <span className="font-mono text-xs text-[var(--accent-amber)] sm:pt-1">
+                  2019
+                </span>
+                <p className="text-base leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-lg">
+                  <span className="font-display text-[var(--text-primary)]">
+                    Chicago P.D.
+                  </span>{' '}
+                  Television work that sharpened those instincts further,
+                  before the larger series roles arrived.
+                </p>
+              </div>
+            </div>
+            <p className="mt-8 text-base leading-relaxed text-[var(--text-secondary)] sm:text-lg">
+              Not long after, she moved to Los Angeles.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── 04. YELLOWJACKETS ─────────────────────────────────── */}
+      <section className="border-b border-[var(--border-subtle)] py-20 sm:py-28">
+        <div className="mx-auto w-full max-w-[720px] px-6 sm:px-10">
+          <Reveal stagger={0.06} y={20}>
+            <p className="text-eyebrow">2021 — Present</p>
+            <h2 className="mt-3 font-display text-3xl font-medium leading-[1.05] tracking-tight text-[var(--text-primary)] sm:text-4xl">
+              Yellowjackets
+            </h2>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <Badge variant="tv" size="sm">
+                Breakthrough
+              </Badge>
+              <span className="font-mono text-xs uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                29 Episodes · Teen Natalie Scatorccio
+              </span>
+            </div>
+            <p className="mt-6 max-w-xl font-display text-xl italic leading-relaxed text-[var(--text-primary)] sm:text-2xl">
+              A generation-defining performance anchoring the critically
+              acclaimed Showtime drama.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── 05. THE MUSIC INTERLUDE ───────────────────────────── */}
+      <section className="border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)] py-24 sm:py-32">
+        <div className="mx-auto w-full max-w-[720px] px-6 sm:px-10">
+          <Reveal stagger={0.06} y={20}>
+            <p className="font-mono text-xs uppercase tracking-[0.22em] text-[var(--accent-amber)]">
+              Pivot &amp; Scrape · 2024
+            </p>
+            <blockquote className="mt-6 font-display text-2xl italic leading-[1.35] text-[var(--text-primary)] sm:text-3xl">
+              &ldquo;Every character I play is to some extent an extension of
+              myself, but music is closer to who I am. It&rsquo;s insane to
+              have control and feel like you&rsquo;re a conductor in this
+              crazy experiment.&rdquo;
+            </blockquote>
+            <p className="mt-8 text-base leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-lg">
+              She&rsquo;s been making music alone since fourteen — an
+              omnichord, then Ableton, voice lessons since nine. For{' '}
+              <em>Companion</em>, she built a playlist of German minimal synth
+              to find Iris before a page of the script was shot. It&rsquo;s
+              how she works through most roles: the character exists as a
+              sound before it exists as a performance.
+            </p>
+            {imgMusic && (
+              <div className="relative mt-12 ml-auto aspect-[3/4] w-full max-w-[190px] overflow-hidden border border-[var(--border-default)]">
                 <Image
-                  src={mastheadPortrait}
-                  alt="Sophie Thatcher"
+                  src={imgMusic}
+                  alt="Sophie Thatcher, desaturated portrait"
                   fill
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 44vw"
-                  className="object-cover object-[center_12%]"
-                />
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[var(--bg-base)] via-[rgba(8,7,4,0.6)] to-transparent"
+                  sizes="190px"
+                  className="object-cover [filter:grayscale(1)_contrast(1.05)_brightness(0.82)]"
                 />
               </div>
             )}
-
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--accent-amber)]">
-              Biographical Profile · The Archive
-            </p>
-
-            <h1 className="mt-5 font-display text-[clamp(3.2rem,8.5vw,7.5rem)] font-medium leading-[0.92] tracking-tight text-[var(--text-primary)]">
-              Sophie Bathsheba
-              <br />
-              Thatcher
-            </h1>
-
-            <p className="mt-6 max-w-xl text-base leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-lg">
-              Born in Chicago and raised in Evanston, Illinois. An actor, musician, and visual artist whose screen presence balances psychological stillness with raw dramatic weight.
-            </p>
-
-            {/* Documentary Metadata */}
-            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
-              <span>Born <strong className="font-mono font-medium text-[var(--text-primary)]">18 October 2000</strong></span>
-              <span className="text-[var(--border-strong)]">/</span>
-              <span>Origin <strong className="font-mono font-medium text-[var(--text-primary)]">Chicago, Illinois</strong></span>
-              <span className="text-[var(--border-strong)]">/</span>
-              <span>Age <strong className="font-mono font-medium text-[var(--text-primary)]">{age} years</strong></span>
-            </div>
-
-            {/* Verified External Links */}
-            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-[var(--border-subtle)] pt-6 font-mono text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
-              <a
-                href="https://instagram.com/soapy.t"
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className="inline-flex items-center gap-1.5 transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
-              >
-                <span>Instagram</span>
-                <span className="text-[var(--text-secondary)]">@soapy.t ↗</span>
-              </a>
-              <span className="text-[var(--border-default)]">/</span>
-              <a
-                href="https://youtube.com/@SophieThatcher"
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className="inline-flex items-center gap-1.5 transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
-              >
-                <span>YouTube</span>
-                <span className="text-[var(--text-secondary)]">@SophieThatcher ↗</span>
-              </a>
-            </div>
           </Reveal>
         </div>
       </section>
 
-      {/* ── 2. ARCHIVAL PHOTOGRAPHY (Portraits & Stills) ─────── */}
-      {galleryPhotos.length > 0 && (
-        <section id="gallery" className="relative mx-auto max-w-7xl px-6 py-24 sm:px-10 sm:py-28">
-          <Reveal stagger={0.08} y={32}>
-            <div className="mb-12 flex flex-col gap-3 border-b border-[var(--border-subtle)] pb-6 sm:flex-row sm:items-end sm:justify-between">
-              <div className="space-y-1.5">
-                <p className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--accent-amber)]">
-                  Archival Stills
-                </p>
-                <h2 className="font-display text-3xl font-medium tracking-tight text-[var(--text-primary)] sm:text-4xl lg:text-5xl">
-                  Portraits &amp; Photography
+      {/* ── 06. HERETIC → COMPANION → NOW ─────────────────────── */}
+      <section className="border-b border-[var(--border-subtle)] py-20 sm:py-28">
+        <div className="mx-auto w-full max-w-4xl px-6 sm:px-10">
+          <Reveal stagger={0.06} y={20}>
+            <div className="grid grid-cols-1 gap-10 lg:grid-cols-[260px_1fr] lg:gap-14">
+              {imgClosing && (
+                <div className="relative order-first mx-auto aspect-[4/5] w-full max-w-[220px] overflow-hidden border border-[var(--border-subtle)] sm:max-w-[260px] lg:order-1 lg:mx-0 lg:mt-8 lg:max-w-[260px]">
+                  <Image
+                    src={imgClosing}
+                    alt="Sophie Thatcher, portrait, close crop"
+                    fill
+                    sizes="(max-width: 1024px) 60vw, 260px"
+                    className="object-cover"
+                  />
+                </div>
+              )}
+              <div className="space-y-6 lg:order-2">
+                <h2 className="font-display text-2xl font-medium text-[var(--text-primary)] sm:text-3xl">
+                  Heretic, Companion, Now
                 </h2>
-              </div>
-              <span className="font-mono text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                {galleryPhotos.length} archival plates
-              </span>
-            </div>
-
-            <PhotoGallery photos={galleryPhotos} />
-          </Reveal>
-        </section>
-      )}
-
-      {/* ── 3. BIOGRAPHY (Beyond the Roles) ─────────────────── */}
-      <section id="biography" className="relative overflow-hidden border-t border-[var(--border-subtle)] py-28 sm:py-36">
-        {bioPortrait && (
-          <div className="pointer-events-none absolute inset-0 -z-10">
-            <Image
-              src={bioPortrait}
-              alt=""
-              fill
-              sizes="100vw"
-              className="object-cover object-[center_20%] [filter:grayscale(0.3)_brightness(0.22)]"
-            />
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 bg-gradient-to-b from-[var(--bg-base)] via-[rgba(8,7,4,0.85)] to-[var(--bg-base)]"
-            />
-          </div>
-        )}
-
-        <div className="relative z-10 mx-auto max-w-[760px] px-6 sm:px-10">
-          <Reveal stagger={0.08} y={24}>
-            <div className="mb-12 text-center">
-              <p className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--accent-amber)]">
-                Origins &amp; Craft
-              </p>
-              <h2 className="mt-3 font-display text-[clamp(2.4rem,5.5vw,4.2rem)] font-medium leading-[0.96] tracking-tight text-[var(--text-primary)]">
-                Beyond the Roles
-              </h2>
-            </div>
-
-            <div className="space-y-6 text-base leading-[1.9] text-[var(--text-secondary)] text-pretty sm:text-lg">
-              <p className="font-display text-xl font-normal leading-relaxed text-[var(--text-primary)] sm:text-2xl">
-                Born in Chicago and raised in Evanston, Sophie Thatcher grew up immersed in a creative household where artistic practice was woven into daily life.
-              </p>
-              <p>
-                Her mother is a pianist and music educator; her sister Emma is an independent filmmaker whose feature <em>Provo</em> (2022) counted Sophie among its executive producers; her brother Alexander writes; and her identical twin Ellie works as a visual artist. This family environment nurtured a deep familiarity with discipline, craft, and independent creation.
-              </p>
-              <blockquote className="my-10 border-l-2 border-[var(--accent-amber)] pl-6 font-display text-xl sm:text-2xl italic leading-relaxed text-[var(--text-primary)]">
-                &ldquo;It was hard growing up Mormon. I don’t think it’s evil, I just don’t think it’s right for me.&rdquo;
-              </blockquote>
-              <p>
-                Raised in the LDS (Mormon) faith before departing in her early adolescence, Thatcher’s personal history informed her nuanced approach to complex spiritual themes — particularly her performance as Sister Barnes in Scott Beck and Bryan Woods’ <em>Heretic</em> (2024).
-              </p>
-              <p>
-                Now based in Los Angeles, she balances prominent screen work across television and feature films with her independent music project and private studio artwork, maintaining an artistic identity that is textured, deliberate, and fiercely personal.
-              </p>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ── 4. THE CAREER (Chronology of Work) ──────────────── */}
-      <section id="timeline" className="relative border-t border-[var(--border-subtle)] bg-[var(--bg-elevated)]/30">
-        <div className="mx-auto max-w-7xl px-6 py-24 sm:px-10 sm:py-28">
-          <Reveal stagger={0.08} y={32}>
-            <div className="mb-14 flex flex-col gap-3 border-b border-[var(--border-subtle)] pb-6 sm:flex-row sm:items-end sm:justify-between">
-              <div className="space-y-1.5">
-                <p className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--accent-amber)]">
-                  Career Milestones
+                <blockquote className="border-l-2 border-[var(--accent-amber)] pl-6 font-display text-xl italic leading-relaxed text-[var(--text-primary)] sm:text-2xl">
+                  &ldquo;It was hard growing up Mormon. I don&rsquo;t think
+                  it&rsquo;s evil, I just don&rsquo;t think it&rsquo;s right
+                  for me.&rdquo;
+                </blockquote>
+                <p className="text-base leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-lg">
+                  Raised in the LDS faith before leaving in early
+                  adolescence, that history informed her turn as Sister
+                  Barnes in Scott Beck and Bryan Woods&rsquo;{' '}
+                  <em>Heretic</em> (2024) — a nuanced portrayal of faith,
+                  intellect, and resilience opposite Hugh Grant, for A24.
                 </p>
-                <h2 className="font-display text-3xl font-medium tracking-tight text-[var(--text-primary)] sm:text-4xl lg:text-5xl">
-                  A Timeline with Weight
-                </h2>
+                <p className="text-base leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-lg">
+                  <em>Companion</em> (2025) followed: a subversive
+                  performance chosen for its conceptual sharpness, and a
+                  Critics&rsquo; Choice Super Award. Now she&rsquo;s based in
+                  Los Angeles, splitting her time between screen work and the
+                  music.
+                </p>
               </div>
-              <span className="font-mono text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                2011 — Present
-              </span>
-            </div>
-
-            <div className="divide-y divide-[var(--border-subtle)] border-t border-b border-[var(--border-subtle)]">
-              {TIMELINE.map((item) => {
-                const isYellowjackets = item.title.includes('Yellowjackets')
-                return (
-                  <div
-                    key={item.title}
-                    className={`grid grid-cols-1 gap-y-3 py-8 sm:grid-cols-[140px_1fr] sm:gap-x-10 ${
-                      isYellowjackets ? 'bg-[rgba(232,137,12,0.05)] -mx-4 px-4 sm:-mx-6 sm:px-6 rounded-lg border-l-2 border-l-[var(--accent-amber)]' : ''
-                    }`}
-                  >
-                    {/* Left: Year & Category */}
-                    <div className="space-y-1 sm:pt-0.5">
-                      <p className="font-mono text-sm font-medium text-[var(--accent-amber)]">
-                        {item.year}
-                      </p>
-                      <p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-[var(--text-muted)]">
-                        {item.category}
-                      </p>
-                    </div>
-
-                    {/* Right: Title & Description */}
-                    <div className="space-y-2 sm:border-l sm:border-[var(--border-subtle)] sm:pl-8">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <h3 className="font-display text-xl font-medium text-[var(--text-primary)] sm:text-2xl">
-                          {item.title}
-                        </h3>
-                        {item.tag && (
-                          <Badge variant={isYellowjackets ? 'tv' : 'award'} size="sm">
-                            {item.tag}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-base">
-                        {item.description}
-                      </p>
-                    </div>
-                  </div>
-                )
-              })}
             </div>
           </Reveal>
         </div>
       </section>
 
-      {/* ── 5. RECOGNITION (Critical Reception & Press) ─────── */}
-      <section id="recognition" className="relative border-t border-[var(--border-subtle)] bg-[var(--bg-card)]/40">
-        <div className="mx-auto max-w-7xl px-6 py-24 sm:px-10 sm:py-28">
-          <Reveal stagger={0.08} y={32}>
-            <div className="mb-14 border-b border-[var(--border-subtle)] pb-6">
-              <p className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--accent-amber)]">
-                Critical Reception
-              </p>
-              <h2 className="mt-2 font-display text-3xl font-medium tracking-tight text-[var(--text-primary)] sm:text-4xl lg:text-5xl">
-                The Work, Noticed
-              </h2>
-            </div>
-
-            <div className="divide-y divide-[var(--border-subtle)] border-t border-b border-[var(--border-subtle)]">
+      {/* ── 07. IN PRINT ──────────────────────────────────────── */}
+      <section className="border-b border-[var(--border-subtle)] py-16 sm:py-20">
+        <div className="mx-auto w-full max-w-4xl px-6 sm:px-10">
+          <Reveal stagger={0.04} y={12}>
+            <p className="text-eyebrow">In Print</p>
+            <div className="mt-6 divide-y divide-[var(--border-subtle)] border-t border-[var(--border-subtle)]">
               {RECOGNITION.map((item) => (
                 <div
                   key={`${item.year}-${item.title}`}
-                  className="flex flex-col gap-2 py-5 transition-colors duration-200 hover:bg-[var(--bg-elevated)]/60 px-3 -mx-3 rounded sm:flex-row sm:items-baseline sm:justify-between"
+                  className="grid grid-cols-[44px_1fr] items-baseline gap-x-4 gap-y-1 py-3.5 sm:grid-cols-[56px_1fr_auto] sm:gap-6"
                 >
-                  <div className="flex flex-wrap items-baseline gap-3">
-                    <span className="w-14 shrink-0 font-mono text-sm font-medium tabular-nums text-[var(--accent-amber)]">
-                      {item.year}
-                    </span>
-                    <span className="font-display text-lg font-medium text-[var(--text-primary)] sm:text-xl">
+                  <span className="font-mono text-xs text-[var(--text-muted)]">
+                    {item.year}
+                  </span>
+                  <span className="text-sm text-[var(--text-secondary)] sm:text-base">
+                    <span className="font-display text-[var(--text-primary)]">
                       {item.title}
-                    </span>
-                    <span className="text-sm text-[var(--text-muted)]">
-                      — {item.note}
-                    </span>
-                  </div>
-
-                  <span className="shrink-0 font-mono text-[0.65rem] uppercase tracking-[0.2em] text-[var(--text-muted)] sm:self-center">
+                    </span>{' '}
+                    — {item.note}
+                  </span>
+                  <span className="col-start-2 font-mono text-[0.6rem] uppercase tracking-[0.18em] text-[var(--text-muted)] sm:col-start-3 sm:self-center">
                     {item.type}
                   </span>
                 </div>
               ))}
             </div>
-
-            {/* ── 6. ARCHIVE CLOSURE (Biographical Chapter Closure) ── */}
-            <div className="mt-16 flex flex-wrap items-center justify-between gap-6 border-t border-[var(--border-subtle)] pt-8">
-              <p className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">
-                Explore the Living Catalog
-              </p>
-              <div className="flex flex-wrap items-center gap-4">
-                <Button href="/films" variant="secondary" size="md">
-                  Browse Filmography →
-                </Button>
-                <Button href="/music" variant="primary" size="md">
-                  Music Archive →
-                </Button>
-              </div>
-            </div>
           </Reveal>
+        </div>
+      </section>
+
+      {/* ── 08. CODA ───────────────────────────────────────────── */}
+      <section className="py-14 sm:py-16">
+        <div className="mx-auto w-full max-w-[720px] px-6 sm:px-10">
+          <p className="text-eyebrow">Public Presence</p>
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-1.5 border-t border-[var(--border-subtle)] pt-6 font-mono text-xs uppercase tracking-[0.14em] text-[var(--text-muted)]">
+            <a
+              href="https://instagram.com/soapy.t"
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="inline-flex items-center gap-1.5 transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
+            >
+              <span>Instagram</span>
+              <span className="text-[var(--text-secondary)]">@soapy.t ↗</span>
+            </a>
+            <span className="text-[var(--border-default)]">/</span>
+            <a
+              href="https://youtube.com/@SophieThatcher"
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="inline-flex items-center gap-1.5 transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
+            >
+              <span>YouTube</span>
+              <span className="text-[var(--text-secondary)]">@SophieThatcher ↗</span>
+            </a>
+          </div>
         </div>
       </section>
     </main>
