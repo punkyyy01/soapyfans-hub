@@ -129,17 +129,15 @@ export default function Hero({
         <div className="order-last col-span-12 flex flex-col justify-end lg:order-first lg:col-span-8 lg:justify-center">
           <p
             data-hero-eyebrow
-            className="mb-5 flex flex-wrap items-center gap-2.5 text-xs text-metadata uppercase"
+            className="mb-4 flex flex-wrap items-center gap-2 font-mono text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]"
           >
-            <span className="rounded-full border border-[var(--accent-amber)]/40 bg-[var(--accent-amber-dim)] px-3 py-0.5 font-medium text-[var(--accent-amber)]">
-              SoapyFans Hub
-            </span>
-            <span className="text-[var(--border-default)]">·</span>
-            <span className="text-[var(--text-secondary)]">Sophie Thatcher Fan Archive &amp; Community</span>
+            <span>SoapyFans Hub</span>
+            <span className="text-[var(--border-default)]">/</span>
+            <span>Sophie Thatcher Fan Archive</span>
           </p>
 
           <div data-hero-title className="space-y-2">
-            <h1 className="font-display text-[clamp(2.8rem,7vw,5.6rem)] font-medium leading-[0.95] tracking-tight text-[var(--text-primary)]">
+            <h1 className="font-display text-[clamp(2.8rem,7vw,5.4rem)] font-medium leading-[0.96] tracking-tight text-[var(--text-primary)]">
               The Sophie Thatcher Archive
             </h1>
           </div>
@@ -148,14 +146,14 @@ export default function Hero({
             data-hero-tagline
             className="mt-6 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-base"
           >
-            A dedicated community database organizing the complete work of actress and musician Sophie Thatcher. Explore her filmography, television credits, and discography, or sign in to rate titles and share fan reviews.
+            A dedicated community database cataloging the complete work of actress and musician Sophie Thatcher across film, television, and original recordings.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <Link
               data-hero-cta
               href="/films"
-              className="inline-flex items-center justify-center gap-2.5 rounded-full bg-[var(--accent-amber)] px-6 py-3 text-xs uppercase tracking-[0.16em] font-medium text-[var(--text-inverse)] shadow-[0_2px_12px_rgba(232,137,12,0.25)] transition-all hover:bg-[var(--accent-amber-hover)] hover:shadow-[0_4px_20px_rgba(232,137,12,0.4)] focus-ring"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--accent-amber)] px-5 py-2.5 text-xs uppercase tracking-[0.14em] font-medium text-[var(--text-inverse)] transition-all hover:bg-[var(--accent-amber-hover)] focus-ring"
             >
               <span>Browse filmography</span>
               <span aria-hidden="true">→</span>
@@ -163,26 +161,24 @@ export default function Hero({
             <Link
               data-hero-cta
               href="/login"
-              className="inline-flex items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)]/60 px-5 py-3 text-xs uppercase tracking-[0.16em] text-[var(--text-primary)] transition-all hover:border-[var(--accent-amber)] hover:text-[var(--text-primary)] hover:bg-[var(--accent-amber-dim)] focus-ring"
+              className="inline-flex items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--bg-surface)] px-5 py-2.5 text-xs uppercase tracking-[0.14em] text-[var(--text-primary)] transition-all hover:border-[var(--accent-amber)] hover:bg-[var(--accent-amber-dim)] focus-ring"
             >
-              Sign in / Create profile
+              Sign in / Register
             </Link>
           </div>
 
-          <div className="mt-10 hidden flex-wrap items-center gap-x-8 gap-y-3 border-t border-[var(--border-subtle)] pt-5 text-metadata sm:flex">
+          <div className="mt-10 hidden flex-wrap items-center gap-x-6 gap-y-2 border-t border-[var(--border-subtle)] pt-5 font-mono text-xs text-[var(--text-muted)] sm:flex">
             <span data-hero-meta>
-              <span className="font-medium text-[var(--text-secondary)]">
-                {filmCount.toString().padStart(2, '0')}
-              </span>{' '}
-              titles indexed
+              <strong className="font-medium text-[var(--text-primary)]">{filmCount.toString().padStart(2, '0')}</strong> indexed titles
             </span>
+            <span className="text-[var(--border-default)]">·</span>
             <span data-hero-meta>
-              Featured today ·{' '}
-              <span className="font-medium text-[var(--accent-gold)]">{featuredTitle}</span>
+              Featured today: <span className="text-[var(--text-secondary)]">{featuredTitle}</span>
               {featuredYear ? ` (${featuredYear})` : ''}
             </span>
-            <span data-hero-meta className="text-[var(--text-muted)]">
-              Unofficial fan project
+            <span className="text-[var(--border-default)]">·</span>
+            <span data-hero-meta>
+              Community archive
             </span>
           </div>
         </div>

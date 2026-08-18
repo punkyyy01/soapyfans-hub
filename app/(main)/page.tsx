@@ -13,12 +13,11 @@ import {
 } from '@/utils/tmdb'
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildWebPageSchema, buildWebSiteSchema, serializeJsonLd } from '@/utils/schema'
+import Link from 'next/link'
 import Hero from '@/components/ui/Hero'
 import WorksSection from '@/components/media/WorksSection'
 import MusicSection from '@/components/forms/MusicSection'
 import PageContainer from '@/components/ui/PageContainer'
-import Button from '@/components/ui/Button'
-import Surface from '@/components/ui/Surface'
 
 export const revalidate = 3600
 
@@ -141,29 +140,37 @@ export default async function HomePage() {
 
       {/* ── 04: Community Invitation ─────────────────────────── */}
       <section className="relative pb-24 sm:pb-32">
-        <PageContainer size="narrow">
-          <Surface
-            variant="feature"
-            className="flex flex-col items-center text-center px-6 py-14 sm:px-12 sm:py-18"
-          >
-            <p className="text-eyebrow">
-              Community Archive
-            </p>
-            <h2 className="mt-4 font-display text-3xl font-medium tracking-tight text-[var(--text-primary)] sm:text-4xl">
-              Leave a note worth keeping.
-            </h2>
-            <p className="mt-4 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-base">
-              Sign in to rate titles across Sophie&apos;s filmography, write fan reviews, and personalize your own profile dossier with custom CSS and favorite picks.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <Button href="/login" variant="primary" size="md">
-                Join the community
-              </Button>
-              <Button href="/films" variant="secondary" size="md">
-                Browse full archive
-              </Button>
+        <PageContainer size="default">
+          <div className="border-t border-b border-[var(--border-subtle)] py-12 sm:py-16">
+            <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-center lg:gap-14">
+              <div className="space-y-3">
+                <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                  Community Archive
+                </p>
+                <h2 className="font-display text-3xl font-medium tracking-tight text-[var(--text-primary)] sm:text-4xl">
+                  Leave a note worth keeping.
+                </h2>
+                <p className="max-w-xl text-sm leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-base">
+                  Sign in to rate titles across Sophie&apos;s filmography, write fan reviews, and personalize your own profile dossier with custom CSS and favorite picks.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:justify-end">
+                <Link
+                  href="/login"
+                  className="inline-flex items-center justify-center rounded-full bg-[var(--accent-amber)] px-6 py-2.5 text-xs uppercase tracking-[0.14em] font-medium text-[var(--text-inverse)] transition-all hover:bg-[var(--accent-amber-hover)] focus-ring"
+                >
+                  Join the community →
+                </Link>
+                <Link
+                  href="/films"
+                  className="inline-flex items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-6 py-2.5 text-xs uppercase tracking-[0.14em] text-[var(--text-primary)] transition-all hover:border-[var(--accent-amber)] hover:bg-[var(--accent-amber-dim)] focus-ring"
+                >
+                  Browse full archive
+                </Link>
+              </div>
             </div>
-          </Surface>
+          </div>
         </PageContainer>
       </section>
     </main>
