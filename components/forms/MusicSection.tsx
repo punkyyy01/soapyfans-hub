@@ -1,7 +1,8 @@
-import Image from 'next/image'
 import Link from 'next/link'
-import { createClient } from '@/utils/supabase/server'
+import { unstable_cache } from 'next/cache'
+import { createPublicClient } from '@/utils/supabase/public'
 import Badge from '@/components/ui/Badge'
+import SafeImage from '@/components/ui/SafeImage'
 
 const RELEASE_TYPE_LABEL: Record<string, string> = {
   ep: 'EP',
@@ -10,18 +11,22 @@ const RELEASE_TYPE_LABEL: Record<string, string> = {
   album: 'Album',
 }
 
-async function fetchReleases() {
-  const supabase = await createClient()
-  const result = await supabase
-    .from('releases')
-    .select('id, title, release_type, release_date, cover_art_url')
-    .order('release_date', { ascending: false })
-    .limit(4)
-  return result
-}
+const getHomeReleases = unstable_cache(
+  async () => {
+    const result = await createPublicClient()
+      .from('releases')
+      .select('id, title, release_type, release_date, cover_art_url')
+      .order('release_date', { ascending: false })
+      .limit(4)
+    return result.data ?? []
+  },
+  ['releases', 'home-preview'],
+  { revalidate: 300 }
+)
 
 export default async function MusicSection() {
-  const { data: releases, error: releasesError } = await fetchReleases()
+  const releases = await getHomeReleases().catch(() => null)
+  const releasesError = releases === null
 
   const [featuredRelease, ...otherReleases] = releases ?? []
 
@@ -62,12 +67,18 @@ export default async function MusicSection() {
           >
             <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-md bg-[var(--bg-elevated)] sm:w-48">
               {featuredRelease.cover_art_url ? (
-                <Image
+                <SafeImage
                   src={featuredRelease.cover_art_url}
                   alt={featuredRelease.title}
                   fill
                   sizes="(max-width: 640px) 100vw, 200px"
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  fallback={
+                    <div className="flex h-full w-full flex-col items-center justify-center p-4 text-center font-display italic text-[var(--text-muted)]">
+                      <span className="text-2xl mb-1 text-[var(--text-muted)]">♫</span>
+                      <span className="text-xs">Artwork</span>
+                    </div>
+                  }
                 />
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center p-4 text-center font-display italic text-[var(--text-muted)]">

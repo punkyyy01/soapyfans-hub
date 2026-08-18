@@ -200,7 +200,6 @@ export default function Hero({
                       src={url}
                       alt="Sophie Thatcher"
                       fill
-                      priority={i === 0}
                       sizes="100vw"
                       className={`object-cover object-top transition-opacity duration-700 ${
                         isActive ? 'opacity-100' : 'opacity-0'
@@ -225,7 +224,6 @@ export default function Hero({
                       src={url}
                       alt="Sophie Thatcher"
                       fill
-                      priority={i === 0}
                       sizes="400px"
                       className={`object-cover object-[center_12%] transition-opacity duration-700 ${
                         isActive ? 'opacity-100' : 'opacity-0'

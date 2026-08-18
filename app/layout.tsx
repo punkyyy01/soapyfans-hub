@@ -100,6 +100,9 @@ export const metadata: Metadata = {
     },
   },
   category: "entertainment",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

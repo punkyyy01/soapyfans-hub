@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
-import Image from 'next/image'
 import Link from 'next/link'
+import { unstable_cache } from 'next/cache'
 import { createClient, getUser } from '@/utils/supabase/server'
+import { createPublicClient } from '@/utils/supabase/public'
 import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildCollectionPageSchema, buildMusicReleaseSchema, serializeJsonLd } from '@/utils/schema'
 import TrackList from '@/components/media/TrackList'
@@ -12,6 +13,7 @@ import SectionHeader from '@/components/ui/SectionHeader'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import EmptyState from '@/components/ui/EmptyState'
+import SafeImage from '@/components/ui/SafeImage'
 
 const MUSIC_DESCRIPTION =
   "Sophie Thatcher's music archive — debut EP 'Pivot & Scrape', cinematic singles, soundtrack appearances, and tracklists with community notes."
@@ -106,6 +108,20 @@ function safeExternalUrl(raw: string | null, allowedHosts: string[]): string | n
   }
 }
 
+const getReleasesWithTracks = unstable_cache(
+  async () => {
+    const result = await createPublicClient()
+      .from('releases')
+      .select(
+        'id, title, release_type, release_date, cover_art_url, spotify_url, bandcamp_url, twitter_url, description, tracks(id, title, duration_ms, track_number, youtube_video_id)',
+      )
+      .order('release_date', { ascending: false })
+    return result.data ?? []
+  },
+  ['releases', 'with-tracks'],
+  { revalidate: 300 }
+)
+
 function formatReleaseDate(dateStr: string | null) {
   if (!dateStr) return '—'
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -123,22 +139,23 @@ export default async function MusicPage({ searchParams }: Props) {
   const { error } = await searchParams
   const supabase = await createClient()
 
-  const [user, releasesResult] = await Promise.all([
+  const [user, releasesOrNull, reviewsResult] = await Promise.all([
     getUser(),
+    getReleasesWithTracks().catch(() => null),
     supabase
-      .from('releases')
-      .select(
-        'id, title, release_type, release_date, cover_art_url, spotify_url, bandcamp_url, twitter_url, description, tracks(id, title, duration_ms, track_number, youtube_video_id), music_reviews(id, user_id, release_id, rating, content, created_at, deleted_at, profiles(username, display_name))',
-      )
-      .order('release_date', { ascending: false }),
+      .from('music_reviews')
+      .select('id, user_id, release_id, rating, content, created_at, deleted_at, profiles(username, display_name)')
+      .is('deleted_at', null),
   ])
 
-  if (releasesResult.error) {
-    console.error('[music page] releases query error:', releasesResult.error)
+  if (reviewsResult.error) {
+    console.error('[music page] reviews query error:', reviewsResult.error)
   }
 
-  const rawData = releasesResult.data ?? []
-  const releaseList: ReleaseWithTracks[] = rawData.map((r) => ({
+  const releasesError = releasesOrNull === null
+  const rawReleases = releasesOrNull ?? []
+
+  const releaseList: ReleaseWithTracks[] = rawReleases.map((r) => ({
     id: r.id,
     title: r.title,
     release_type: r.release_type,
@@ -153,10 +170,9 @@ export default async function MusicPage({ searchParams }: Props) {
     ),
   }))
 
-  const allReviews: MusicReviewWithProfile[] = rawData
-    .flatMap((r) => ((r as { music_reviews?: MusicReviewWithProfile[] }).music_reviews ?? []))
-    .filter((r) => r.deleted_at === null)
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+  const allReviews: MusicReviewWithProfile[] = (
+    (reviewsResult.data ?? []) as unknown as MusicReviewWithProfile[]
+  ).sort((a, b) => b.created_at.localeCompare(a.created_at))
 
   // Determine the primary/featured release
   const featuredRelease =
@@ -229,7 +245,7 @@ export default async function MusicPage({ searchParams }: Props) {
           </p>
         )}
 
-        {releasesResult.error && (
+        {releasesError && (
           <div className="mb-12">
             <EmptyState
               title="Music archive unavailable"
@@ -243,7 +259,7 @@ export default async function MusicPage({ searchParams }: Props) {
           </div>
         )}
 
-        {releaseList.length === 0 && !releasesResult.error && (
+        {releaseList.length === 0 && !releasesError && (
           <div className="mb-12">
             <EmptyState
               title="No music releases recorded yet"
@@ -287,13 +303,19 @@ export default async function MusicPage({ searchParams }: Props) {
                       <div className="space-y-6">
                         <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-[var(--border-default)] bg-[var(--bg-elevated)] shadow-xl">
                           {featuredRelease.cover_art_url ? (
-                            <Image
+                            <SafeImage
                               src={featuredRelease.cover_art_url}
                               alt={featuredRelease.title}
                               fill
                               priority
                               sizes="(max-width: 1024px) 100vw, 340px"
                               className="object-cover"
+                              fallback={
+                                <div className="flex h-full w-full flex-col items-center justify-center p-6 text-center font-display italic text-[var(--text-muted)]">
+                                  <span className="text-3xl mb-2 text-[var(--accent-amber)]/40">♫</span>
+                                  <span>Artwork not available</span>
+                                </div>
+                              }
                             />
                           ) : (
                             <div className="flex h-full w-full flex-col items-center justify-center p-6 text-center font-display italic text-[var(--text-muted)]">

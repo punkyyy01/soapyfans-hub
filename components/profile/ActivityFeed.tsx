@@ -1,13 +1,13 @@
 'use client'
 
 import { useActionState, useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { deleteReview, updateReview } from '@/app/(auth)/actions'
 import { getTmdbImageUrl } from '@/utils/tmdb'
 import type { ReviewUpdateState } from '@/app/(auth)/actions'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
+import SafeImage from '@/components/ui/SafeImage'
 
 export type ActivityItem = {
   id: string
@@ -50,6 +50,14 @@ export default function ActivityFeed({ items, isOwner, profileSlug }: Props) {
   )
 }
 
+function PosterFallback() {
+  return (
+    <div className="flex h-[78px] w-[52px] items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] font-mono text-xs text-[var(--text-muted)]">
+      —
+    </div>
+  )
+}
+
 type Mode = 'view' | 'edit' | 'confirmDelete'
 
 function ActivityRow({
@@ -89,29 +97,29 @@ function ActivityRow({
         {imageUrl ? (
           href ? (
             <Link href={href} className="block overflow-hidden rounded-lg focus-ring">
-              <Image
+              <SafeImage
                 src={imageUrl}
                 alt={item.title}
                 width={52}
                 height={78}
                 className="aspect-[2/3] object-cover transition-transform duration-300 group-hover:scale-105"
+                fallback={<PosterFallback />}
               />
             </Link>
           ) : (
             <div className="overflow-hidden rounded-lg">
-              <Image
+              <SafeImage
                 src={imageUrl}
                 alt={item.title}
                 width={52}
                 height={78}
                 className="aspect-[2/3] object-cover"
+                fallback={<PosterFallback />}
               />
             </div>
           )
         ) : (
-          <div className="flex h-[78px] w-[52px] items-center justify-center rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-elevated)] font-mono text-xs text-[var(--text-muted)]">
-            —
-          </div>
+          <PosterFallback />
         )}
       </div>
 

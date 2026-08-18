@@ -112,14 +112,14 @@ export default function WorksSection({
       >
         {featured && (
           <div className="w-full">
-            <FilmCard credit={featured} priority featured />
+            <FilmCard credit={featured} featured />
           </div>
         )}
 
         {supporting.length > 0 && (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-6">
-            {supporting.map((c, i) => (
-              <FilmCard key={`${c.mediaType}-${c.id}`} credit={c} priority={i < 2} />
+            {supporting.map((c) => (
+              <FilmCard key={`${c.mediaType}-${c.id}`} credit={c} />
             ))}
           </div>
         )}
