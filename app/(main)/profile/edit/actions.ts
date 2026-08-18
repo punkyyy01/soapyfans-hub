@@ -313,20 +313,15 @@ export async function addFavorite(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.', id: null }
 
-  const { count } = await supabase
-    .from('profile_favorites')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-
-  if ((count ?? 0) >= 6) return { error: 'Maximum 6 favorites allowed.', id: null }
-
+  // DB-enforced: add_profile_favorite() locks the user's profile row before
+  // counting, and profile_favorites has UNIQUE(user_id, position) with
+  // position CHECK'd to 0-5, so a 7th favorite can never be stored even
+  // under concurrent requests.
   const { data, error } = await supabase
-    .from('profile_favorites')
-    .insert({ user_id: user.id, tmdb_id: tmdbId, media_type: mediaType, position: count ?? 0 })
-    .select('id')
-    .single()
+    .rpc('add_profile_favorite', { p_tmdb_id: tmdbId, p_media_type: mediaType })
 
   if (error) {
+    if (error.message.includes('Maximum 6 favorites')) return { error: 'Maximum 6 favorites allowed.', id: null }
     if (error.code === '23505') return { error: 'Already in your favorites.', id: null }
     return { error: 'Failed to add favorite.', id: null }
   }
@@ -357,15 +352,8 @@ export async function reorderFavorites(orderedIds: string[]): Promise<{ error: s
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.' }
 
-  await Promise.all(
-    orderedIds.map((id, position) =>
-      supabase
-        .from('profile_favorites')
-        .update({ position })
-        .eq('id', id)
-        .eq('user_id', user.id),
-    ),
-  )
+  const { error } = await supabase.rpc('reorder_profile_favorites', { p_ids: orderedIds })
+  if (error) return { error: 'Failed to reorder favorites.' }
 
   await revalidateUserProfile(supabase, user.id)
   return { error: null }

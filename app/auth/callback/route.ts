@@ -76,7 +76,11 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/login?banned=true`)
       }
 
-      // Ensure profile exists in profiles table
+      // Profile creation happens in the public.handle_new_user() DB trigger
+      // (fires on auth.users INSERT, SECURITY DEFINER, always assigns a
+      // valid unique username). RLS has no INSERT policy on profiles, so a
+      // client-side upsert here would always be silently rejected -- this
+      // check exists only to surface that trigger having failed.
       try {
         const { data: profile } = await supabase
           .from('profiles')
@@ -85,28 +89,10 @@ export async function GET(request: Request) {
           .maybeSingle()
 
         if (!profile) {
-          const meta = (user.user_metadata ?? {}) as Record<string, any>
-          const rawName =
-            meta.full_name ||
-            meta.name ||
-            meta.preferred_username ||
-            meta.user_name ||
-            (user.email ? user.email.split('@')[0] : 'User')
-          const avatarUrl = meta.avatar_url || meta.picture || null
-
-          await supabase.from('profiles').upsert(
-            {
-              id: user.id,
-              display_name: rawName,
-              avatar_url: avatarUrl,
-              show_activity: true,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: 'id', ignoreDuplicates: true }
-          )
+          console.error('[OAuth Callback] No profile row after sign-in; handle_new_user() trigger may have failed:', { userId: user.id })
         }
       } catch (profileErr) {
-        console.warn('[OAuth Callback] Non-fatal profile check/upsert warning:', profileErr)
+        console.warn('[OAuth Callback] Non-fatal profile existence check warning:', profileErr)
       }
     }
 

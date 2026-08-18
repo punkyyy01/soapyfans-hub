@@ -377,7 +377,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_profile_favorite: {
+        Args: { p_media_type: string; p_tmdb_id: number }
+        Returns: {
+          created_at: string | null
+          id: string
+          media_type: string
+          position: number
+          tmdb_id: number
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profile_favorites"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      reorder_profile_favorites: {
+        Args: { p_ids: string[] }
+        Returns: undefined
+      }
+      sanitize_username_candidate: { Args: { raw: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
