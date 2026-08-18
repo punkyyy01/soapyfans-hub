@@ -76,7 +76,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
 
   const isUuid = UUID_RE.test(username)
   const profileQuery = supabase.from('profiles').select(`
-    id, username, display_name, avatar_url, bio, created_at,
+    id, username, display_name, avatar_url, bio, about_me, created_at,
     banner_url, accent_color, profile_css, pronouns, location_text, website_url, show_activity,
     profile_favorites(id, tmdb_id, media_type, position)
   `)
@@ -405,7 +405,20 @@ export default async function ProfilePage({ params, searchParams }: Props) {
             </section>
           )}
 
-          {/* 4. ACTIVITY (Conditional on show_activity) */}
+          {/* 4. ABOUT ME (Optional extended personal narrative) */}
+          {profile.about_me && (
+            <section id="about-me" className="mb-16 space-y-4">
+              <SectionHeader
+                kicker="About Me"
+                title="A little more about me"
+              />
+              <div className="max-w-3xl whitespace-pre-line text-sm leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-base">
+                {profile.about_me}
+              </div>
+            </section>
+          )}
+
+          {/* 5. ACTIVITY (Conditional on show_activity) */}
           {profile.show_activity && (
             <section id="activity" className="mb-14 space-y-6">
               <SectionHeader
@@ -433,21 +446,37 @@ export default async function ProfilePage({ params, searchParams }: Props) {
             </section>
           )}
 
-          {/* 5. MINIMAL PROFILE CLOSURE */}
-          <footer className="mt-14 border-t border-[var(--border-subtle)] pt-8">
-            <div className="flex flex-wrap items-center justify-between gap-4 font-mono text-xs text-[var(--text-muted)]">
+          {/* 6. MINIMAL PROFILE CLOSURE */}
+          <footer className="mt-16 border-t border-[var(--border-subtle)] pt-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between font-mono text-xs text-[var(--text-muted)]">
               <div className="flex items-center gap-2">
                 <span className="font-medium text-[var(--text-secondary)]">SoapyFans Hub</span>
-                <span className="text-[var(--border-subtle)]">·</span>
+                <span className="text-[var(--border-subtle)]" aria-hidden="true">·</span>
                 <span>Fan Archive Profile</span>
               </div>
 
-              <Link
-                href="/films"
-                className="transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
-              >
-                Explore Filmography Archive →
-              </Link>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <Link
+                  href="/films"
+                  className="transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
+                >
+                  Explore Archive →
+                </Link>
+                <span className="text-[var(--border-subtle)]" aria-hidden="true">·</span>
+                <Link
+                  href="/privacy"
+                  className="transition-colors hover:text-[var(--text-primary)] focus-ring rounded-xs"
+                >
+                  Privacy
+                </Link>
+                <span className="text-[var(--border-subtle)]" aria-hidden="true">·</span>
+                <Link
+                  href="/terms"
+                  className="transition-colors hover:text-[var(--text-primary)] focus-ring rounded-xs"
+                >
+                  Terms
+                </Link>
+              </div>
             </div>
           </footer>
         </div>

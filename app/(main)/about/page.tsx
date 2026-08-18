@@ -240,7 +240,7 @@ export default async function AboutPage() {
           </div>
         </header>
 
-        <div className="space-y-28 pb-32">
+        <div className="space-y-24 pb-32">
           {/* ── 02 — Portrait Gallery ─────────────────────────── */}
           {galleryPhotos.length > 0 && (
             <section id="gallery" className="scroll-mt-28 space-y-8">
@@ -265,16 +265,19 @@ export default async function AboutPage() {
               title="Beyond the Screen"
             />
 
-            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-8 backdrop-blur-xs sm:p-12">
+            <div className="border-t border-b border-[var(--border-subtle)] py-10 sm:py-14">
               <div className="max-w-3xl space-y-6 text-base leading-[1.85] text-[var(--text-secondary)] text-pretty sm:text-lg">
-                <p className="font-display text-xl font-normal text-[var(--text-primary)] sm:text-2xl">
+                <p className="font-display text-xl font-normal text-[var(--text-primary)] sm:text-2xl leading-relaxed">
                   Born in Chicago and raised in Evanston, Sophie Thatcher grew up immersed in a creative household where artistic practice was woven into daily life.
                 </p>
                 <p>
                   Her mother is a pianist and music educator; her sister Emma is an independent filmmaker whose feature <em>Provo</em> (2022) counted Sophie among its executive producers; her brother Alexander writes; and her identical twin Ellie works as a visual artist. This family environment nurtured a deep familiarity with discipline, craft, and independent creation.
                 </p>
+                <blockquote className="my-8 border-l-2 border-[var(--accent-amber)] pl-6 italic text-[var(--text-primary)]">
+                  &ldquo;It was hard growing up Mormon. I don’t think it’s evil, I just don’t think it’s right for me.&rdquo;
+                </blockquote>
                 <p>
-                  Raised in the LDS (Mormon) faith before departing in her early adolescence, Thatcher’s personal history informed her nuanced approach to complex spiritual themes — particularly her performance as Sister Barnes in Scott Beck and Bryan Woods’ <em>Heretic</em> (2024). Reflecting on this background, she noted: <em>&ldquo;It was hard growing up Mormon. I don’t think it’s evil, I just don’t think it’s right for me.&rdquo;</em>
+                  Raised in the LDS (Mormon) faith before departing in her early adolescence, Thatcher’s personal history informed her nuanced approach to complex spiritual themes — particularly her performance as Sister Barnes in Scott Beck and Bryan Woods’ <em>Heretic</em> (2024).
                 </p>
                 <p>
                   Now based in Los Angeles, she balances prominent screen work across television and feature films with her independent music project and private studio artwork, maintaining an artistic identity that is textured, deliberate, and fiercely personal.
@@ -295,17 +298,17 @@ export default async function AboutPage() {
               }
             />
 
-            <div className="divide-y divide-[var(--border-subtle)] rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-6 backdrop-blur-xs sm:p-8">
+            <div className="divide-y divide-[var(--border-subtle)] border-t border-b border-[var(--border-subtle)]">
               {TIMELINE.map((item) => {
                 const isYellowjackets = item.title.includes('Yellowjackets')
                 return (
                   <div
                     key={item.title}
-                    className="grid grid-cols-1 gap-y-3 py-6 sm:grid-cols-[140px_1fr] sm:gap-x-10 sm:py-8 first:pt-2 last:pb-2"
+                    className="grid grid-cols-1 gap-y-3 py-6 sm:grid-cols-[140px_1fr] sm:gap-x-10 sm:py-8"
                   >
                     {/* Left: Year & Category */}
                     <div className="space-y-1 sm:pt-0.5">
-                      <p className="font-mono text-sm font-medium text-[var(--accent-amber)]">
+                      <p className="font-mono text-sm font-medium text-[var(--text-primary)]">
                         {item.year}
                       </p>
                       <p className="font-mono text-[0.68rem] uppercase tracking-[0.14em] text-[var(--text-muted)]">
@@ -342,14 +345,14 @@ export default async function AboutPage() {
               title="Recognition"
             />
 
-            <div className="divide-y divide-[var(--border-subtle)] rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-6 backdrop-blur-xs sm:p-8">
+            <div className="divide-y divide-[var(--border-subtle)] border-t border-b border-[var(--border-subtle)]">
               {RECOGNITION.map((item) => (
                 <div
                   key={`${item.year}-${item.title}`}
-                  className="flex flex-col gap-2 py-4 sm:flex-row sm:items-baseline sm:justify-between sm:py-5 first:pt-1 last:pb-1"
+                  className="flex flex-col gap-2 py-4 sm:flex-row sm:items-baseline sm:justify-between sm:py-5"
                 >
                   <div className="flex flex-wrap items-baseline gap-3">
-                    <span className="w-12 shrink-0 font-mono text-xs text-[var(--accent-amber)]">
+                    <span className="w-12 shrink-0 font-mono text-xs text-[var(--text-muted)]">
                       {item.year}
                     </span>
                     <span className="font-display text-lg font-medium text-[var(--text-primary)]">
@@ -369,20 +372,18 @@ export default async function AboutPage() {
           </section>
 
           {/* ── 06 — Explore the Archive (Closure) ────────────── */}
-          <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-8 text-center sm:p-12 space-y-6">
-            <div className="space-y-2">
-              <p className="text-eyebrow">
-                The Living Catalog
-              </p>
-              <h2 className="font-display text-2xl font-medium tracking-tight text-[var(--text-primary)] sm:text-3xl">
-                Explore the Archive
-              </h2>
-              <p className="mx-auto max-w-md text-sm text-[var(--text-secondary)] text-pretty">
-                Browse cataloged screen credits, technical details, and original music releases across the archive.
-              </p>
-            </div>
+          <section className="border-t border-[var(--border-subtle)] pt-12 text-center space-y-4">
+            <p className="text-eyebrow">
+              The Living Catalog
+            </p>
+            <h2 className="font-display text-2xl font-medium tracking-tight text-[var(--text-primary)] sm:text-3xl">
+              Explore the Archive
+            </h2>
+            <p className="mx-auto max-w-md text-sm text-[var(--text-secondary)] text-pretty">
+              Browse cataloged screen credits, technical details, and original music releases across the archive.
+            </p>
 
-            <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+            <div className="flex flex-wrap items-center justify-center gap-6 pt-3">
               <Button href="/films" variant="primary" size="md">
                 Browse Filmography →
               </Button>

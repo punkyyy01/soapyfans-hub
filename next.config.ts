@@ -49,6 +49,38 @@ const nextConfig: NextConfig = {
         hostname: 'tcskvcmtcsaxyfoselvb.supabase.co',
         pathname: '/storage/v1/object/public/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'i.scdn.co',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.scdn.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'image-cdn-ak.spotifycdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.spotifycdn.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'f4.bcbits.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.bcbits.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'is1-ssl.mzstatic.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.mzstatic.com',
+      },
     ],
   },
   async redirects() {

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { getAuthUserWithProfile } from '@/utils/supabase/server'
+import FooterClientWrapper from './FooterClientWrapper'
 
 interface FooterLayoutProps {
   user?: { id: string } | null
@@ -132,11 +133,19 @@ function FooterLayout({ user, profileHref }: FooterLayoutProps) {
 }
 
 export function FooterFallback() {
-  return <FooterLayout />
+  return (
+    <FooterClientWrapper>
+      <FooterLayout />
+    </FooterClientWrapper>
+  )
 }
 
 export default async function Footer() {
   const { user, profileHref } = await getAuthUserWithProfile()
-  return <FooterLayout user={user} profileHref={profileHref} />
+  return (
+    <FooterClientWrapper>
+      <FooterLayout user={user} profileHref={profileHref} />
+    </FooterClientWrapper>
+  )
 }
 

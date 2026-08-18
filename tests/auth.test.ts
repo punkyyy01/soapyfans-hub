@@ -68,10 +68,12 @@ describe('OAuth Security and Provider Configuration', () => {
       assert.ok(csp.includes('supabase.co'))
     })
 
-    it('includes Google and Discord in img-src for user avatars', () => {
+    it('includes Google, Discord, and music CDNs in img-src for user avatars and release artwork', () => {
       const csp = buildCsp('test-nonce')
       assert.ok(csp.includes('https://cdn.discordapp.com'))
       assert.ok(csp.includes('https://lh3.googleusercontent.com'))
+      assert.ok(csp.includes('https://*.scdn.co'))
+      assert.ok(csp.includes('https://*.bcbits.com'))
     })
 
     it('includes Supabase in connect-src for auth and API requests', () => {

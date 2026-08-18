@@ -211,3 +211,79 @@ describe('Storage Old-Image Cleanup Path Protection', () => {
   })
 })
 
+describe('About Me Extended Bio Validation and Multi-Paragraph Preservation', () => {
+  function validateAboutMe(text: string | null | undefined): { valid: boolean; value: string | null; error?: string } {
+    if (!text || !text.trim()) {
+      return { valid: true, value: null }
+    }
+    if (text.length > 2000) {
+      return { valid: false, value: null, error: 'About Me text must not exceed 2,000 characters.' }
+    }
+    return { valid: true, value: text.trim().slice(0, 2000) }
+  }
+
+  it('accepts null, undefined, or empty string', () => {
+    assert.deepEqual(validateAboutMe(null), { valid: true, value: null })
+    assert.deepEqual(validateAboutMe(undefined), { valid: true, value: null })
+    assert.deepEqual(validateAboutMe(''), { valid: true, value: null })
+    assert.deepEqual(validateAboutMe('   '), { valid: true, value: null })
+  })
+
+  it('accepts single-line bio text', () => {
+    const res = validateAboutMe('I love Sophie Thatcher performances in Yellowjackets and Heretic.')
+    assert.equal(res.valid, true)
+    assert.equal(res.value, 'I love Sophie Thatcher performances in Yellowjackets and Heretic.')
+  })
+
+  it('preserves multi-paragraph text and line breaks without stripping newlines', () => {
+    const multiPara = `Hello archive!\n\nSophie Thatcher is an incredible artist.\nHer music as 'Sophie Thatcher' has an analog darkwave texture that I adore.\n\nFavorite credit: Prospect (2018).`
+    const res = validateAboutMe(multiPara)
+    assert.equal(res.valid, true)
+    assert.equal(res.value, multiPara)
+    assert.ok(res.value?.includes('\n\n'))
+  })
+
+  it('accepts text exactly at the 2000 character limit', () => {
+    const exact2000 = 'A'.repeat(2000)
+    const res = validateAboutMe(exact2000)
+    assert.equal(res.valid, true)
+    assert.equal(res.value?.length, 2000)
+  })
+
+  it('rejects text exceeding 2000 characters', () => {
+    const tooLong = 'A'.repeat(2001)
+    const res = validateAboutMe(tooLong)
+    assert.equal(res.valid, false)
+    assert.equal(res.error, 'About Me text must not exceed 2,000 characters.')
+  })
+})
+
+describe('Minimal Profile Closure vs Global Footer Visibility Rules', () => {
+  function shouldRenderGlobalFooter(pathname: string): boolean {
+    const isPublicProfile = pathname.startsWith('/profile/') && pathname !== '/profile/edit'
+    return !isPublicProfile
+  }
+
+  it('renders global footer on standard archive pages', () => {
+    assert.equal(shouldRenderGlobalFooter('/'), true)
+    assert.equal(shouldRenderGlobalFooter('/films'), true)
+    assert.equal(shouldRenderGlobalFooter('/films/123'), true)
+    assert.equal(shouldRenderGlobalFooter('/tv/456'), true)
+    assert.equal(shouldRenderGlobalFooter('/music'), true)
+    assert.equal(shouldRenderGlobalFooter('/about'), true)
+    assert.equal(shouldRenderGlobalFooter('/login'), true)
+    assert.equal(shouldRenderGlobalFooter('/register'), true)
+  })
+
+  it('renders global footer on profile editor (/profile/edit)', () => {
+    assert.equal(shouldRenderGlobalFooter('/profile/edit'), true)
+  })
+
+  it('hides global footer on public profile canvases in favor of Minimal Profile Closure', () => {
+    assert.equal(shouldRenderGlobalFooter('/profile/punkyyy01'), false)
+    assert.equal(shouldRenderGlobalFooter('/profile/natalie'), false)
+    assert.equal(shouldRenderGlobalFooter('/profile/123e4567-e89b-12d3-a456-426614174000'), false)
+  })
+})
+
+

@@ -108,19 +108,21 @@ export default function WorksSection({
         id="works-panel"
         role="tabpanel"
         aria-labelledby={`tab-${filter}`}
-        className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-12 lg:gap-8"
+        className="space-y-8"
       >
         {featured && (
-          <div className="sm:col-span-2 lg:col-span-5">
+          <div className="w-full">
             <FilmCard credit={featured} priority featured />
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-4 sm:col-span-2 sm:grid-cols-3 lg:col-span-7 lg:grid-cols-3 lg:gap-6">
-          {supporting.map((c, i) => (
-            <FilmCard key={`${c.mediaType}-${c.id}`} credit={c} priority={i < 2} />
-          ))}
-        </div>
+        {supporting.length > 0 && (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 lg:gap-6">
+            {supporting.map((c, i) => (
+              <FilmCard key={`${c.mediaType}-${c.id}`} credit={c} priority={i < 2} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )

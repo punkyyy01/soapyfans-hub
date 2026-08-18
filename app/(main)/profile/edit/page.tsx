@@ -31,7 +31,7 @@ export default async function ProfileEditPage() {
   const { data: profile } = await supabase
     .from('profiles')
     .select(`
-      id, username, display_name, avatar_url, bio, created_at,
+      id, username, display_name, avatar_url, bio, about_me, created_at,
       banner_url, accent_color, profile_css, pronouns, location_text, website_url, show_activity,
       profile_favorites(id, tmdb_id, media_type, position)
     `)

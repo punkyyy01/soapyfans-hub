@@ -39,6 +39,11 @@ export async function saveProfile(
   const username    = ((formData.get('username')     as string) ?? '').trim()
   const pronouns    = ((formData.get('pronouns')     as string) ?? '').trim().slice(0, 30) || null
   const bio         = ((formData.get('bio')          as string) ?? '').trim().slice(0, 300) || null
+  const aboutMeRaw  = (formData.get('about_me')      as string) ?? ''
+  if (aboutMeRaw.length > 2000) {
+    return { error: 'About Me text must not exceed 2,000 characters.', success: false, username: null }
+  }
+  const aboutMe     = aboutMeRaw.trim().slice(0, 2000) || null
   const locationText = ((formData.get('location_text') as string) ?? '').trim().slice(0, 60) || null
   const websiteUrlRaw = ((formData.get('website_url') as string) ?? '').trim()
   const accentColorRaw = ((formData.get('accent_color') as string) ?? '').trim()
@@ -133,6 +138,7 @@ export async function saveProfile(
       username,
       pronouns,
       bio,
+      about_me: aboutMe,
       location_text: locationText,
       website_url: websiteUrl,
       accent_color: accentColor,

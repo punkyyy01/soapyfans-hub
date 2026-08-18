@@ -31,7 +31,7 @@ export function buildCsp(nonce: string): string {
     `script-src 'self' 'nonce-${nonce}' https://va.vercel-scripts.com`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
-    `img-src 'self' data: blob: https://image.tmdb.org https://cdn.discordapp.com https://lh3.googleusercontent.com https://*.googleusercontent.com https://${supabaseHost} https://*.supabase.co`,
+    `img-src 'self' data: blob: https://image.tmdb.org https://cdn.discordapp.com https://lh3.googleusercontent.com https://*.googleusercontent.com https://${supabaseHost} https://*.supabase.co https://*.scdn.co https://*.spotifycdn.com https://*.bcbits.com https://*.mzstatic.com`,
     `connect-src 'self' https://${supabaseHost} https://*.supabase.co wss://${supabaseHost} wss://*.supabase.co https://vitals.vercel-insights.com https://va.vercel-scripts.com`,
     "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
     "frame-ancestors 'none'",

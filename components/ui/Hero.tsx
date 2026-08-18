@@ -140,9 +140,7 @@ export default function Hero({
 
           <div data-hero-title className="space-y-2">
             <h1 className="font-display text-[clamp(2.8rem,7vw,5.6rem)] font-medium leading-[0.95] tracking-tight text-[var(--text-primary)]">
-              The Sophie Thatcher
-              <br />
-              <span className="text-[var(--accent-amber)]">Archive</span>
+              The Sophie Thatcher Archive
             </h1>
           </div>
 

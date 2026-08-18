@@ -36,8 +36,7 @@ export default async function RegisterPage() {
               Be the first
             </p>
             <h2 className="mt-6 max-w-md font-display text-3xl font-medium leading-[1.15] tracking-tight text-[var(--text-primary)] text-balance">
-              An archive is just paper until someone{' '}
-              <span className="italic text-[var(--accent-gold)]">reads it back.</span>
+              An archive is just paper until someone reads it back.
             </h2>
             <p className="mt-5 max-w-sm text-sm leading-relaxed text-[var(--text-secondary)]">
               Sign up to leave reviews, save favorites, and help shape what this fan site

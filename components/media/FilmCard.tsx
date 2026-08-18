@@ -30,15 +30,15 @@ export default function FilmCard({
     return (
       <Link
         href={href}
-        className={`group relative flex h-full flex-col overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-all duration-300 hover:border-[var(--border-strong)] focus-ring ${className}`}
+        className={`group relative flex flex-col overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] transition-all duration-300 hover:border-[var(--border-strong)] hover:bg-[var(--bg-elevated)] focus-ring sm:flex-row ${className}`}
       >
-        <div className="relative aspect-[16/10] w-full overflow-hidden bg-[var(--bg-elevated)] sm:aspect-[16/9]">
+        <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden bg-[var(--bg-elevated)] sm:aspect-[16/10] sm:w-[42%] md:w-[38%]">
           {imageSrc ? (
             <Image
               src={imageSrc}
               alt={credit.title}
               fill
-              sizes="(max-width: 1024px) 100vw, 50vw"
+              sizes="(max-width: 640px) 100vw, 420px"
               priority={priority}
               className="object-cover object-[center_20%] transition-transform duration-500 ease-out group-hover:scale-[1.03]"
             />
@@ -53,16 +53,14 @@ export default function FilmCard({
               {isTv ? 'TV Series' : 'Film'}
             </Badge>
           </div>
-
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[var(--bg-surface)] via-transparent to-transparent opacity-80" />
         </div>
 
         <div className="flex flex-1 flex-col justify-between p-5 sm:p-6">
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-3 text-metadata">
-              <span>{year}</span>
+              <span className="font-mono text-xs text-[var(--text-secondary)]">{year}</span>
               {credit.voteAverage > 0 && (
-                <span className="font-medium text-[var(--accent-gold)]">
+                <span className="font-mono text-xs font-medium text-[var(--accent-gold)]">
                   ★ {credit.voteAverage.toFixed(1)}
                 </span>
               )}
@@ -83,7 +81,7 @@ export default function FilmCard({
           </div>
 
           <div className="mt-4 flex items-center justify-between border-t border-[var(--border-subtle)] pt-3.5 text-xs text-metadata">
-            <span className="text-[var(--text-muted)]">Featured entry</span>
+            <span className="text-[var(--text-muted)]">Featured archival work</span>
             <span className="inline-flex items-center gap-1.5 font-medium text-[var(--accent-amber)] transition-transform duration-200 group-hover:translate-x-1">
               Explore entry →
             </span>

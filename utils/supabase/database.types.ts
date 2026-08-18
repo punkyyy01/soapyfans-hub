@@ -171,6 +171,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          about_me: string | null
           accent_color: string | null
           avatar_url: string | null
           banner_url: string | null
@@ -188,6 +189,7 @@ export type Database = {
           website_url: string | null
         }
         Insert: {
+          about_me?: string | null
           accent_color?: string | null
           avatar_url?: string | null
           banner_url?: string | null
@@ -205,6 +207,7 @@ export type Database = {
           website_url?: string | null
         }
         Update: {
+          about_me?: string | null
           accent_color?: string | null
           avatar_url?: string | null
           banner_url?: string | null

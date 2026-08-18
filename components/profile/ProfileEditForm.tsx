@@ -33,6 +33,7 @@ interface ProfileData {
   avatar_url: string | null
   banner_url: string | null
   bio: string | null
+  about_me: string | null
   pronouns: string | null
   location_text: string | null
   website_url: string | null
@@ -64,6 +65,7 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
   const [username, setUsername]       = useState(profile.username ?? '')
   const [pronouns, setPronouns]       = useState(profile.pronouns ?? '')
   const [bio, setBio]                 = useState(profile.bio ?? '')
+  const [aboutMe, setAboutMe]         = useState(profile.about_me ?? '')
   const [locationText, setLocation]   = useState(profile.location_text ?? '')
   const [websiteUrl, setWebsite]      = useState(profile.website_url ?? '')
 
@@ -101,6 +103,7 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
       username !== (profile.username ?? '') ||
       pronouns !== (profile.pronouns ?? '') ||
       bio !== (profile.bio ?? '') ||
+      aboutMe !== (profile.about_me ?? '') ||
       locationText !== (profile.location_text ?? '') ||
       websiteUrl !== (profile.website_url ?? '') ||
       accentColor.toLowerCase() !== (profile.accent_color ?? FALLBACK_ACCENT).toLowerCase() ||
@@ -114,6 +117,7 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
     username,
     pronouns,
     bio,
+    aboutMe,
     locationText,
     websiteUrl,
     accentColor,
@@ -340,6 +344,7 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
           username={username || profile.username || ''}
           pronouns={pronouns}
           bio={bio}
+          aboutMe={aboutMe}
           avatarUrl={avatarPreview}
           bannerUrl={bannerPreview}
           accentColor={accentColor}
@@ -365,7 +370,7 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
               Personal Archive · Atelier
             </p>
             <h1 className="font-display text-[clamp(2.4rem,5vw,3.6rem)] font-medium leading-[0.96] tracking-tight text-[var(--text-primary)]">
-              Edit <span className="italic text-[var(--accent-gold)]">Profile</span>
+              Edit Profile
             </h1>
             <p className="max-w-xl text-sm leading-relaxed text-[var(--text-secondary)] text-pretty">
               Curate your personal space, customize your visual identity, manage Sophie Thatcher favorites, and write scoped canvas CSS.
@@ -434,7 +439,7 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
               The Curator
             </h2>
             <p className="mt-1 text-xs text-[var(--text-secondary)]">
-              Your name, handle, bio, and external links displayed across the archive.
+              Your name, handle, bio, about me description, and external links displayed across the archive.
             </p>
           </div>
 
@@ -512,10 +517,11 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
             </div>
           </div>
 
+          {/* Short Bio */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className={LABEL_CLS} htmlFor="bio">
-                Biography
+                Short Bio
               </label>
               <span className={`font-mono text-xs tabular-nums ${bio.length > 270 ? 'text-[var(--accent-amber)]' : 'text-[var(--text-muted)]'}`}>
                 {bio.length} / 300
@@ -524,13 +530,38 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
             <textarea
               id="bio"
               name="bio"
-              rows={3}
+              rows={2}
               maxLength={300}
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="A few words on your favorite Sophie Thatcher roles, musical releases, or reflections on the archive…"
               className={`${INPUT_CLS} resize-none leading-relaxed`}
             />
+          </div>
+
+          {/* About Me (Extended Free Text) */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className={LABEL_CLS} htmlFor="about_me">
+                About Me
+              </label>
+              <span className={`font-mono text-xs tabular-nums ${aboutMe.length > 1900 ? 'text-[var(--accent-amber)]' : 'text-[var(--text-muted)]'}`}>
+                {aboutMe.length.toLocaleString()} / 2,000
+              </span>
+            </div>
+            <textarea
+              id="about_me"
+              name="about_me"
+              rows={5}
+              maxLength={2000}
+              value={aboutMe}
+              onChange={(e) => setAboutMe(e.target.value)}
+              placeholder="Tell visitors a little more about you, your connection to Sophie, or what you like about the archive…"
+              className={`${INPUT_CLS} resize-y leading-relaxed`}
+            />
+            <p className="mt-1.5 font-mono text-[0.68rem] text-[var(--text-muted)]">
+              Tell visitors a little more about you, your connection to Sophie, or what you like about the archive. Line breaks and paragraphs are preserved.
+            </p>
           </div>
 
           <div>
@@ -1016,6 +1047,7 @@ function CssPreviewPanel({
   username,
   pronouns,
   bio,
+  aboutMe,
   avatarUrl,
   bannerUrl,
   accentColor,
@@ -1026,6 +1058,7 @@ function CssPreviewPanel({
   username: string
   pronouns: string
   bio: string
+  aboutMe: string
   avatarUrl: string | null
   bannerUrl: string | null
   accentColor: string
@@ -1125,7 +1158,7 @@ function CssPreviewPanel({
             </div>
           </div>
 
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 space-y-4">
             <div>
               <h1 className="font-display text-3xl font-medium tracking-tight text-[var(--text-primary)] sm:text-4xl">
                 {displayName || 'Your Display Name'}
@@ -1147,6 +1180,20 @@ function CssPreviewPanel({
               <p className="max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-base">
                 {bio}
               </p>
+            )}
+
+            {aboutMe && (
+              <div className="mt-8 border-t border-[var(--border-subtle)] pt-6 space-y-3">
+                <div>
+                  <p className="text-eyebrow">About Me</p>
+                  <h2 className="mt-1 font-display text-xl font-medium tracking-tight text-[var(--text-primary)]">
+                    A little more about me
+                  </h2>
+                </div>
+                <div className="max-w-3xl whitespace-pre-line text-sm leading-relaxed text-[var(--text-secondary)] text-pretty">
+                  {aboutMe}
+                </div>
+              </div>
             )}
           </div>
         </div>
