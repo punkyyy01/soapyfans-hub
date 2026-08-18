@@ -1,7 +1,13 @@
 # About Page Redesign — Design Spec
 
 Date: 2026-08-17
-Status: Approved
+Status: Superseded by [2026-08-17-about-page-editorial-redesign-design.md](./2026-08-17-about-page-editorial-redesign-design.md)
+
+> This spec restyled the existing six-section shape (masthead / gallery grid /
+> biography / timeline list / press list / footnote) without changing its
+> underlying structure or content organization. A follow-up brief asked for a
+> genuinely different narrative architecture, not a restyle — see the
+> superseding spec.
 
 ## Problem
 
