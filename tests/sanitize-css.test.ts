@@ -66,4 +66,70 @@ describe('sanitizeCSS', () => {
     assert.ok(longCSS.length > 2000)
     assert.equal(sanitizeCSS(longCSS), '')
   })
+
+  describe('post-check reconstruction bypass (Production Audit III)', () => {
+    // The blacklist used to run BEFORE brace-stripping. Since stripping `{}`
+    // removes characters rather than rearranging them, an attacker could
+    // split a blocked keyword around a pair of braces -- the raw input
+    // matches no pattern, but the *sanitized* output reassembles the exact
+    // keyword the filter was supposed to block.
+    it('blocks url() reconstructed by splitting it with braces', () => {
+      const input = 'background:u{}rl(https://attacker.example/track.png)'
+      assert.equal(sanitizeCSS(input), '')
+    })
+
+    it('blocks @import reconstructed by splitting it with braces', () => {
+      const input = '@{}import url(https://attacker.example/x.css);'
+      assert.equal(sanitizeCSS(input), '')
+    })
+
+    it('blocks javascript: reconstructed by splitting it with braces', () => {
+      const input = 'background:java{}script:alert(1)'
+      assert.equal(sanitizeCSS(input), '')
+    })
+
+    it('blocks url() reconstructed via zero-width space', () => {
+      const zwsp = String.fromCharCode(0x200b)
+      const input = `background:u${zwsp}rl(https://attacker.example/x.png)`
+      assert.equal(sanitizeCSS(input), '')
+    })
+
+    it('blocks -moz-binding reconstructed via zero-width non-joiner', () => {
+      const zwnj = String.fromCharCode(0x200c)
+      const input = `behavior:none;-moz${zwnj}-binding:url(x.xml)`
+      assert.equal(sanitizeCSS(input), '')
+    })
+
+    it('still allows ordinary declarations containing harmless braces once stripped', () => {
+      assert.equal(sanitizeCSS('color:red;}body{color:blue'), 'color:red;bodycolor:blue')
+    })
+  })
+
+  describe('post-hardening adversarial re-audit (Post-Hardening Verification pass)', () => {
+    it('blocks url() split by both braces and a zero-width space in the same payload', () => {
+      const zwsp = String.fromCharCode(0x200b)
+      assert.equal(sanitizeCSS(`u{}${zwsp}rl(https://evil.example/x)`), '')
+    })
+
+    it('blocks a CSS comment reconstructed by splitting /* with braces', () => {
+      assert.equal(sanitizeCSS('/{}* color:red */ background:red'), '')
+    })
+
+    it('blocks </style> breakout reconstructed by splitting < and > with braces', () => {
+      assert.equal(sanitizeCSS('{<}/style{>}<script>alert(1)</script>'), '')
+    })
+
+    it('blocks -moz-element() (Firefox DOM-content-into-CSS exfiltration primitive)', () => {
+      assert.equal(sanitizeCSS('background: -moz-element(#csrf-token-field)'), '')
+    })
+
+    it('a bare data: URI without url() passes the filter, but is inert: CSS resource properties require url(), which stays blocked', () => {
+      // Documents the finding rather than "fixing" a non-exploitable path:
+      // `background: data:...` is not valid CSS (data: URIs only function
+      // inside url()), so this string reaching the DOM has no effect.
+      const out = sanitizeCSS('background: data:text/plain;base64,SGVsbG8=')
+      assert.equal(out, 'background: data:text/plain;base64,SGVsbG8=')
+      assert.equal(/url\s*\(/i.test(out), false)
+    })
+  })
 })

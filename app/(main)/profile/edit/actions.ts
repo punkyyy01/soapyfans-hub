@@ -208,8 +208,14 @@ async function uploadImage(
   // Use Node Buffer to allow safe, reusable binary payloads without detached ArrayBuffer issues on retries
   const payload = Buffer.from(arrayBuffer)
   const filename = `${Date.now()}.${format.ext}`
-  let targetBucket = type === 'banner' ? 'banners' : 'avatars'
-  let targetPath = `${userId}/${filename}`
+  // Only an 'avatars' bucket exists (with storage RLS scoped to
+  // <userId>/... paths). There is no separate 'banners' bucket or matching
+  // RLS policy, so banners are namespaced under the same bucket with a
+  // distinguishing prefix -- previously this ran as a silent "fallback"
+  // after a primary upload to a nonexistent bucket that failed 100% of the
+  // time, which masked real upload errors behind a fake retry.
+  const targetBucket = 'avatars'
+  const targetPath = type === 'banner' ? `${userId}/banner-${filename}` : `${userId}/${filename}`
 
   console.log(`[uploadImage:attempt] Uploading ${type} (${format.isAnimated ? 'animated ' : ''}${format.ext}, ${file.size} bytes) to bucket '${targetBucket}':`, {
     targetPath,
@@ -217,33 +223,11 @@ async function uploadImage(
     isAnimated: Boolean(format.isAnimated),
   })
 
-  let { error: uploadError } = await supabase.storage.from(targetBucket).upload(targetPath, payload, {
+  const { error: uploadError } = await supabase.storage.from(targetBucket).upload(targetPath, payload, {
     contentType: format.mime,
     cacheControl: '3600',
     upsert: true,
   })
-
-  // Resilient fallback for banners: if 'banners' bucket is not configured or fails, use 'avatars' with user-scoped banner path
-  if (uploadError && type === 'banner') {
-    console.warn(`[uploadImage:fallback] Primary bucket '${targetBucket}' failed for banner (${uploadError.message || uploadError}), attempting fallback to 'avatars'...`)
-    targetBucket = 'avatars'
-    targetPath = `${userId}/banner-${filename}`
-    const fallbackRes = await supabase.storage.from(targetBucket).upload(targetPath, payload, {
-      contentType: format.mime,
-      cacheControl: '3600',
-      upsert: true,
-    })
-    uploadError = fallbackRes.error
-    if (uploadError) {
-      console.error(`[uploadImage:fallback_failed] Fallback to 'avatars' bucket also failed:`, {
-        message: uploadError.message,
-        name: uploadError.name,
-        statusCode: (uploadError as any)?.statusCode || (uploadError as any)?.status,
-      })
-    } else {
-      console.log(`[uploadImage:fallback_success] Banner successfully stored in fallback bucket 'avatars' at ${targetPath}`)
-    }
-  }
 
   if (uploadError) {
     console.error(`[uploadImage:final_error] Storage error for ${type}:`, {

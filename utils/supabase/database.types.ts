@@ -394,6 +394,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      is_admin: { Args: never; Returns: boolean }
       reorder_profile_favorites: {
         Args: { p_ids: string[] }
         Returns: undefined

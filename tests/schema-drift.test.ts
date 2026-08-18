@@ -83,6 +83,119 @@ describe('Favorites position-slot invariant', () => {
   })
 })
 
+describe('Schema drift guard: migration filenames match applied versions', () => {
+  // The root cause of the about_me incident: local migration filenames
+  // (timestamps chosen by hand) didn't match the version Supabase actually
+  // recorded when the file was applied via the MCP/CLI tool (which stamps
+  // its own timestamp). A filename/version mismatch means `supabase db
+  // push` against a fresh environment would replay history in the wrong
+  // order relative to what production already has. This doesn't catch a
+  // fresh drift by itself, but it keeps the repo honest about what's
+  // actually been proven consistent as of this audit.
+  it('every migration file starts with a 14-digit UTC-ish timestamp prefix', () => {
+    const migrations = readMigrations()
+    for (const f of migrations) {
+      assert.match(f, /^\d{14}_[a-z0-9_]+\.sql$/, `${f} does not match the expected <version>_<name>.sql shape`)
+    }
+  })
+
+  it('migration versions are strictly increasing in filename sort order', () => {
+    const migrations = readMigrations().sort()
+    const versions = migrations.map((f) => f.slice(0, 14))
+    const sorted = [...versions].sort()
+    assert.deepEqual(versions, sorted, 'migration filenames must sort in the same order as their version prefixes')
+  })
+})
+
+describe('Schema drift guard: profiles.is_admin privilege escalation fix', () => {
+  it('has a migration revoking table-level select/insert/update on profiles from anon/authenticated', () => {
+    const migrations = readMigrations()
+    const hasMigration = migrations.some((f) => {
+      const sql = fs.readFileSync(path.join(migrationsDir, f), 'utf8')
+      return /revoke select, insert, update on public\.profiles from anon, authenticated/i.test(sql)
+    })
+    assert.ok(hasMigration, 'Expected a migration revoking table-level grants on profiles')
+  })
+
+  it('re-grants select/update on profiles at column granularity, excluding is_admin', () => {
+    const migrations = readMigrations()
+    const grantSql = migrations
+      .map((f) => fs.readFileSync(path.join(migrationsDir, f), 'utf8'))
+      .find((sql) => /grant select \(/i.test(sql) && /on public\.profiles to anon, authenticated/i.test(sql))
+    assert.ok(grantSql, 'Expected a column-scoped SELECT grant on profiles')
+    assert.equal(/grant select \([^)]*\bis_admin\b[^)]*\)/i.test(grantSql!), false, 'is_admin must not appear in the re-granted SELECT column list')
+
+    const updateSql = migrations
+      .map((f) => fs.readFileSync(path.join(migrationsDir, f), 'utf8'))
+      .find((sql) => /grant update \(/i.test(sql) && /on public\.profiles to authenticated/i.test(sql))
+    assert.ok(updateSql, 'Expected a column-scoped UPDATE grant on profiles')
+    assert.equal(/grant update \([^)]*\bis_admin\b[^)]*\)/i.test(updateSql!), false, 'is_admin must not appear in the re-granted UPDATE column list')
+  })
+
+  it('adds a SECURITY DEFINER is_admin() self-check function', () => {
+    const migrations = readMigrations()
+    const hasFn = migrations.some((f) => {
+      const sql = fs.readFileSync(path.join(migrationsDir, f), 'utf8')
+      return /create or replace function public\.is_admin\(\)/i.test(sql) && /security definer/i.test(sql)
+    })
+    assert.ok(hasFn, 'Expected an is_admin() SECURITY DEFINER helper')
+  })
+
+  it('generated types expose the is_admin RPC', () => {
+    const types = fs.readFileSync(typesPath, 'utf8')
+    assert.ok(types.includes('is_admin: { Args:'), 'database.types.ts must declare the is_admin() RPC')
+  })
+
+  it('admin gates use the is_admin() RPC instead of selecting the column directly', () => {
+    const gateFiles = [
+      path.join(repoRoot, 'utils', 'supabase', 'middleware.ts'),
+      path.join(repoRoot, 'app', '(admin)', 'dashboard-s9k2mx', 'layout.tsx'),
+      path.join(repoRoot, 'app', '(admin)', 'dashboard-s9k2mx', 'actions.ts'),
+    ]
+    for (const file of gateFiles) {
+      const src = fs.readFileSync(file, 'utf8')
+      assert.ok(src.includes(".rpc('is_admin')"), `${path.basename(file)} must gate admin access via the is_admin() RPC`)
+      assert.equal(/\.select\(\s*['"]is_admin['"]\s*\)/.test(src), false, `${path.basename(file)} must not select the is_admin column directly (blocked by column grants)`)
+    }
+  })
+})
+
+describe('Schema drift guard: films RLS allows the review-submission upsert', () => {
+  it('has a migration adding an UPDATE policy for films (needed by upsert onConflict)', () => {
+    const migrations = readMigrations()
+    const hasPolicy = migrations.some((f) => {
+      const sql = fs.readFileSync(path.join(migrationsDir, f), 'utf8')
+      return /create policy .* on public\.films\s*$/im.test(sql) || /on public\.films\s*\n?\s*for update/i.test(sql)
+    })
+    assert.ok(hasPolicy, 'Expected a migration adding an UPDATE policy on films')
+  })
+})
+
+describe('Schema drift guard: banner upload size limit matches Storage bucket cap', () => {
+  it('MAX_BANNER_BYTES in app code matches the migrated avatars bucket file_size_limit', () => {
+    const validationSrc = fs.readFileSync(path.join(repoRoot, 'utils', 'image-validation.ts'), 'utf8')
+    const match = validationSrc.match(/MAX_BANNER_BYTES\s*=\s*([\d._*\s]+)\/\//)
+    assert.ok(match, 'Expected to find MAX_BANNER_BYTES declaration')
+    // eslint-disable-next-line no-eval
+    const maxBannerBytes = eval(match![1])
+    assert.equal(maxBannerBytes, 3 * 1024 * 1024)
+
+    const migrations = readMigrations()
+    const hasBucketFix = migrations.some((f) => {
+      const sql = fs.readFileSync(path.join(migrationsDir, f), 'utf8')
+      return /file_size_limit\s*=\s*3145728/i.test(sql) && /where id = 'avatars'/i.test(sql)
+    })
+    assert.ok(hasBucketFix, `Expected a migration raising the avatars bucket file_size_limit to ${maxBannerBytes} bytes`)
+  })
+
+  it('uploadImage no longer attempts a nonexistent banners bucket or a second masking retry', () => {
+    const src = fs.readFileSync(path.join(repoRoot, 'app', '(main)', 'profile', 'edit', 'actions.ts'), 'utf8')
+    assert.equal(src.includes("targetBucket = 'banners'"), false, 'must not target a nonexistent banners bucket')
+    const uploadCalls = src.match(/\.storage\.from\([^)]*\)\.upload\(/g) ?? []
+    assert.equal(uploadCalls.length, 1, 'uploadImage must call storage.upload() exactly once (no retry-to-a-different-bucket path)')
+  })
+})
+
 describe('Username format parity: app regex vs DB constraints', () => {
   // profiles.username_format CHECK: ^[a-zA-Z0-9_]+$
   // profiles.username_length CHECK: char_length BETWEEN 3 AND 30

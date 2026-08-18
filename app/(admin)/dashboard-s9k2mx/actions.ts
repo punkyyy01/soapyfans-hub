@@ -10,13 +10,9 @@ async function verifyAdmin() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', user.id)
-    .maybeSingle()
+  const { data: isAdmin } = await supabase.rpc('is_admin')
 
-  if (!profile?.is_admin) throw new Error('Unauthorized')
+  if (!isAdmin) throw new Error('Unauthorized')
 
   return user
 }

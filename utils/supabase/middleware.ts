@@ -173,13 +173,9 @@ export async function updateSession(request: NextRequest, nonce: string = '') {
       return NextResponse.redirect(url)
     }
 
-    const { data: adminProfile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .maybeSingle()
+    const { data: isAdmin } = await supabase.rpc('is_admin')
 
-    if (!adminProfile?.is_admin) {
+    if (!isAdmin) {
       const url = request.nextUrl.clone()
       url.pathname = '/'
       url.search = ''

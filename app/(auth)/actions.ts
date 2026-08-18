@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
+import { createAdminClient } from '@/utils/supabase/admin'
 import { getMovieDetails } from '@/utils/tmdb'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -315,7 +316,15 @@ export async function submitReview(formData: FormData) {
 
   const releaseYear = details.release_date ? Number(details.release_date.slice(0, 4)) : null
 
-  const { data: filmRow, error: filmUpsertError } = await supabase
+  // Written via the service-role client, not the caller-scoped one: this is
+  // the only legitimate writer of `films`, and every field here comes from
+  // a real, server-side getMovieDetails() response above -- never from
+  // client input. Keeping films.INSERT/UPDATE closed to anon/authenticated
+  // (see 20260818XXXXXX_restrict_films_writes_to_service_role.sql) means a
+  // direct PostgREST request can no longer overwrite a cached film's
+  // title/poster/overview, which was otherwise visible on any user's public
+  // profile activity feed and in the admin dashboard.
+  const { data: filmRow, error: filmUpsertError } = await createAdminClient()
     .from('films')
     .upsert(
       {

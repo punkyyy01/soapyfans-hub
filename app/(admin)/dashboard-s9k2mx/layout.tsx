@@ -6,13 +6,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!user) redirect('/')
 
   const supabase = await createClient()
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', user.id)
-    .maybeSingle()
+  const { data: isAdmin } = await supabase.rpc('is_admin')
 
-  if (!profile?.is_admin) redirect('/')
+  if (!isAdmin) redirect('/')
 
   return <>{children}</>
 }

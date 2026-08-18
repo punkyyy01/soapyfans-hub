@@ -1,0 +1,13 @@
+-- The app validates banners up to MAX_BANNER_BYTES = 3MB before upload, but
+-- banners are stored in the 'avatars' bucket (no separate 'banners' bucket
+-- exists, nor storage.objects RLS policies for one -- the app's own
+-- "fallback to avatars" logic was silently absorbing this every single time,
+-- since the primary 'banners' target never existed). The bucket's
+-- file_size_limit was 2MB, so any banner between 2-3MB passed app-level
+-- validation and then failed at Storage with "The object exceeded the
+-- maximum allowed size" -- reproducing the reported ~2.9MB animated WebP
+-- banner failure exactly (confirmed against the real Vercel runtime error
+-- log for this exact upload). Raising the bucket limit to match the app's
+-- own 3MB banner cap closes the gap; avatars are still capped at 2MB by
+-- validateImageSize() before upload, so this does not loosen avatar limits.
+update storage.buckets set file_size_limit = 3145728 where id = 'avatars';
