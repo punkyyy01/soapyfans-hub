@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { submitReview } from '@/app/(auth)/actions'
 import Button from '@/components/ui/Button'
+import StarRating from '@/components/ui/StarRating'
 
 interface Props {
   tmdbId: number
@@ -26,9 +27,6 @@ export default function ReviewForm({
   existingReview,
 }: Props) {
   const [rating, setRating] = useState(existingReview?.rating ?? 0)
-  const [hovered, setHovered] = useState(0)
-
-  const active = hovered || rating
 
   return (
     <form action={submitReview} className="space-y-5">
@@ -54,25 +52,7 @@ export default function ReviewForm({
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 text-2xl leading-none">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              type="button"
-              aria-label={`Rate ${star} out of 5 stars`}
-              onClick={() => setRating(star)}
-              onMouseEnter={() => setHovered(star)}
-              onMouseLeave={() => setHovered(0)}
-              className={`transition-all duration-150 focus-ring rounded-xs cursor-pointer p-0.5 ${
-                star <= active
-                  ? 'text-[var(--accent-gold)] scale-110'
-                  : 'text-[var(--text-muted)] hover:text-[var(--accent-amber)]'
-              }`}
-            >
-              {star <= active ? '★' : '☆'}
-            </button>
-          ))}
-        </div>
+        <StarRating value={rating} onChange={setRating} size="lg" label="Rate this film" />
       </div>
 
       <textarea

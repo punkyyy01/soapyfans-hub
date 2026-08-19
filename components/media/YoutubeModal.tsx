@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 
 interface Props {
   videoId: string
@@ -9,6 +9,8 @@ interface Props {
 }
 
 export default function YoutubeModal({ videoId, title, onClose }: Props) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -19,6 +21,7 @@ export default function YoutubeModal({ videoId, title, onClose }: Props) {
   )
 
   useEffect(() => {
+    closeButtonRef.current?.focus()
     document.addEventListener('keydown', handleKeyDown)
     document.body.style.overflow = 'hidden'
     return () => {
@@ -49,6 +52,7 @@ export default function YoutubeModal({ videoId, title, onClose }: Props) {
             </h3>
           </div>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             aria-label="Close video modal"

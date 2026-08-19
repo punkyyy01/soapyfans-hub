@@ -30,6 +30,7 @@ export default function Hero({
 
   useEffect(() => {
     if (portraitUrls.length <= 1) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const interval = setInterval(() => {
       setCurrentPortrait((prev) => (prev + 1) % portraitUrls.length)
     }, 4000)

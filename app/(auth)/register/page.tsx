@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { register } from '../actions'
 import { getFlash } from '@/utils/flash'
 import OAuthButtons from '@/components/auth/OAuthButtons'
+import AuthSubmitButton from '@/components/auth/AuthSubmitButton'
 
 export const metadata: Metadata = {
   title: 'Create account',
@@ -95,7 +96,7 @@ export default async function RegisterPage() {
                 type="email"
                 required
                 autoComplete="email"
-                className="mt-2 w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/60 px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent-amber)]/60 focus:outline-none focus:ring-1 focus:ring-[var(--accent-amber)]/40"
+                className="mt-2 w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/60 px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors focus:border-[var(--accent-amber)]/60 focus-ring"
               />
             </div>
             <div>
@@ -112,17 +113,11 @@ export default async function RegisterPage() {
                 required
                 autoComplete="new-password"
                 minLength={6}
-                className="mt-2 w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/60 px-3 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent-amber)]/60 focus:outline-none focus:ring-1 focus:ring-[var(--accent-amber)]/40"
+                className="mt-2 w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/60 px-3 py-2.5 text-sm text-[var(--text-primary)] transition-colors focus:border-[var(--accent-amber)]/60 focus-ring"
               />
               <p className="mt-2 text-xs text-[var(--text-muted)]">Minimum 6 characters</p>
             </div>
-            <button
-              type="submit"
-              className="group flex w-full items-center justify-center gap-3 rounded-full bg-[var(--accent-amber)] px-5 py-3 text-xs font-medium uppercase tracking-[0.28em] text-[var(--bg-base)] transition-all hover:bg-[var(--accent-gold)] hover:shadow-[0_0_32px_rgba(255,183,0,0.4)]"
-            >
-              Create account
-              <span aria-hidden className="transition-transform group-hover:translate-x-1">→</span>
-            </button>
+            <AuthSubmitButton>Create account</AuthSubmitButton>
           </form>
 
           <p className="text-center text-sm text-[var(--text-secondary)]">

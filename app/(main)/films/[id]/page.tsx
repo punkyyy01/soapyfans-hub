@@ -14,6 +14,7 @@ import SectionHeader from '@/components/ui/SectionHeader'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import EmptyState from '@/components/ui/EmptyState'
+import StarRating from '@/components/ui/StarRating'
 
 export const revalidate = 3600
 
@@ -194,12 +195,7 @@ async function FilmReviewsSection({
                       </span>
                     )}
                   </span>
-                  <span className="font-mono text-xs text-[var(--accent-gold)]" aria-label={`${review.rating} of 5 stars`}>
-                    {'★'.repeat(review.rating)}
-                    <span className="text-[var(--text-muted)]">
-                      {'★'.repeat(5 - review.rating)}
-                    </span>
-                  </span>
+                  <StarRating value={review.rating} />
                   <span className="ml-auto font-mono text-xs text-[var(--text-muted)]">
                     {new Date(review.created_at).toLocaleDateString(undefined, {
                       year: 'numeric',
@@ -336,11 +332,15 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
         </div>
 
         {/* ── Dossier Grid (Sidebar + Main Content) ──────────── */}
+        {/* On mobile the two wrappers below become `contents`, so their children
+            flatten into this grid and reorder via `order-*` (identity → synopsis →
+            cast → secondary details → platforms). At `lg:` they become real boxes
+            again and the original two-column sidebar layout is restored untouched. */}
         <div className="grid gap-10 pb-32 lg:grid-cols-[280px_1fr] lg:gap-14">
           {/* Left Column: Dossier Sidebar */}
-          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+          <aside className="contents lg:sticky lg:top-24 lg:block lg:self-start lg:space-y-6">
             {/* Primary Media (Poster) */}
-            <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] shadow-lg">
+            <div className="order-1 relative aspect-[2/3] w-full overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] shadow-lg">
               {poster ? (
                 <Image
                   src={poster}
@@ -358,7 +358,7 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
             </div>
 
             {/* Sophie Connection Card */}
-            <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 space-y-1.5">
+            <div className="order-2 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 space-y-1.5">
               <p className="text-eyebrow">
                 Archive Subject
               </p>
@@ -377,7 +377,7 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
             </div>
 
             {/* Factsheet Metadata Table */}
-            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-5 space-y-3 font-mono text-xs">
+            <div className="order-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-5 space-y-3 font-mono text-xs">
               <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2.5">
                 <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">TMDB Rating</span>
                 <span className="font-medium text-[var(--accent-gold)]">
@@ -407,13 +407,15 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
             </div>
 
             {/* Where to Watch */}
-            <WhereToWatch providers={getWatchProvidersForCountry(film.watchProvidersByCountry)} />
+            <div className="order-6">
+              <WhereToWatch providers={getWatchProvidersForCountry(film.watchProvidersByCountry)} />
+            </div>
           </aside>
 
           {/* Right Column: Main Content */}
-          <div className="space-y-14">
+          <div className="contents lg:block lg:space-y-14">
             {/* Synopsis */}
-            <div className="space-y-3">
+            <div className="order-3 space-y-3">
               <p className="text-eyebrow">
                 Synopsis
               </p>
@@ -423,29 +425,33 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
             </div>
 
             {/* Media Detail Tabs */}
-            <MediaDetailTabs
-              tmdbId={tmdbId}
-              mediaType="movie"
-              cast={film.credits.cast}
-              crew={film.credits.crew}
-              genres={film.genres}
-              productionCompanies={film.production_companies}
-              productionCountries={film.production_countries}
-              spokenLanguages={film.spoken_languages}
-              alternativeTitles={film.alternativeTitles}
-            />
+            <div className="order-4">
+              <MediaDetailTabs
+                tmdbId={tmdbId}
+                mediaType="movie"
+                cast={film.credits.cast}
+                crew={film.credits.crew}
+                genres={film.genres}
+                productionCompanies={film.production_companies}
+                productionCountries={film.production_countries}
+                spokenLanguages={film.spoken_languages}
+                alternativeTitles={film.alternativeTitles}
+              />
+            </div>
 
             {/* Reviews Section */}
-            <Suspense fallback={<ReviewsSkeleton />}>
-              <FilmReviewsSection
-                tmdbId={tmdbId}
-                filmTitle={film.title}
-                releaseYear={releaseYear}
-                posterPath={film.poster_path}
-                overview={film.overview}
-                error={error}
-              />
-            </Suspense>
+            <div className="order-7">
+              <Suspense fallback={<ReviewsSkeleton />}>
+                <FilmReviewsSection
+                  tmdbId={tmdbId}
+                  filmTitle={film.title}
+                  releaseYear={releaseYear}
+                  posterPath={film.poster_path}
+                  overview={film.overview}
+                  error={error}
+                />
+              </Suspense>
+            </div>
           </div>
         </div>
       </PageContainer>

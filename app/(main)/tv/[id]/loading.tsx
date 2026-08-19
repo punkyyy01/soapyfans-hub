@@ -11,7 +11,7 @@ export default function Loading() {
 
         <div className="mt-10 grid gap-12 lg:grid-cols-[280px_1fr]">
           <div className="space-y-4">
-            <div className="aspect-[2/3] w-full animate-pulse rounded-md bg-[var(--bg-elevated)]/60" />
+            <div className="aspect-[2/3] w-full animate-pulse rounded-xl bg-[var(--bg-elevated)]/60" />
             <div className="space-y-3 pt-2">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="flex justify-between border-b border-[var(--border-subtle)] pb-3">

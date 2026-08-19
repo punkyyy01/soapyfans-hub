@@ -57,6 +57,8 @@ const LABEL_CLS =
 
 const FALLBACK_ACCENT = '#e8890c'
 
+const ACCENT_PRESETS = ['#e8890c', '#ffb700', '#2e6646', '#c53b3b', '#c4b9a7']
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function ProfileEditForm({ profile, initialFavorites }: Props) {
@@ -328,7 +330,7 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
         <div
           role="status"
           aria-live="polite"
-          className={`fixed bottom-8 left-1/2 z-50 -translate-x-1/2 rounded-full border px-6 py-3 font-mono text-xs uppercase tracking-[0.2em] shadow-2xl backdrop-blur-md transition-all ${
+          className={`fixed bottom-[calc(2rem+env(safe-area-inset-bottom))] left-1/2 z-50 -translate-x-1/2 rounded-full border px-6 py-3 font-mono text-xs uppercase tracking-[0.2em] shadow-2xl backdrop-blur-md transition-all ${
             toast.type === 'success'
               ? 'border-[var(--accent-forest)] bg-[var(--bg-elevated)]/95 text-emerald-300'
               : 'border-red-800/80 bg-[var(--bg-elevated)]/95 text-red-300'
@@ -734,35 +736,55 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 self-start sm:self-auto">
-                <div className="flex items-center gap-2.5 rounded-full border border-[var(--border-strong)] bg-[var(--bg-base)]/80 px-3.5 py-1.5 shadow-inner">
-                  <div
-                    className="relative h-5 w-5 shrink-0 overflow-hidden rounded-full border border-black/30 shadow-xs"
-                    style={{ background: accentColor }}
-                  >
-                    <input
-                      id="accent_color_picker"
-                      type="color"
-                      value={accentColor}
-                      onChange={(e) => setAccentColor(e.target.value)}
-                      className="absolute -inset-2 h-9 w-9 cursor-pointer opacity-0"
-                      aria-label="Choose profile accent color"
+              <div className="flex flex-col items-start gap-3 sm:items-end">
+                <div className="flex items-center gap-1.5" role="group" aria-label="Preset accent colors">
+                  {ACCENT_PRESETS.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setAccentColor(preset)}
+                      aria-label={`Use preset color ${preset}`}
+                      aria-pressed={accentColor.toLowerCase() === preset.toLowerCase()}
+                      className={`h-6 w-6 shrink-0 rounded-full border transition-transform focus-ring cursor-pointer ${
+                        accentColor.toLowerCase() === preset.toLowerCase()
+                          ? 'border-[var(--text-primary)] scale-110'
+                          : 'border-black/30 hover:scale-105'
+                      }`}
+                      style={{ background: preset }}
                     />
-                  </div>
-                  <span className="font-mono text-xs font-medium uppercase tracking-wider text-[var(--text-primary)]">
-                    {accentColor}
-                  </span>
+                  ))}
                 </div>
 
-                {accentColor.toLowerCase() !== FALLBACK_ACCENT.toLowerCase() && (
-                  <button
-                    type="button"
-                    onClick={() => setAccentColor(FALLBACK_ACCENT)}
-                    className="rounded-full border border-[var(--border-subtle)] px-3 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] cursor-pointer focus-ring"
-                  >
-                    Reset
-                  </button>
-                )}
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5 rounded-full border border-[var(--border-strong)] bg-[var(--bg-base)]/80 px-3.5 py-1.5 shadow-inner">
+                    <div
+                      className="relative h-5 w-5 shrink-0 overflow-hidden rounded-full border border-black/30 shadow-xs"
+                      style={{ background: accentColor }}
+                    >
+                      <input
+                        id="accent_color_picker"
+                        type="color"
+                        value={accentColor}
+                        onChange={(e) => setAccentColor(e.target.value)}
+                        className="absolute -inset-2 h-9 w-9 cursor-pointer opacity-0"
+                        aria-label="Choose a custom profile accent color"
+                      />
+                    </div>
+                    <span className="font-mono text-xs font-medium uppercase tracking-wider text-[var(--text-primary)]">
+                      {accentColor}
+                    </span>
+                  </div>
+
+                  {accentColor.toLowerCase() !== FALLBACK_ACCENT.toLowerCase() && (
+                    <button
+                      type="button"
+                      onClick={() => setAccentColor(FALLBACK_ACCENT)}
+                      className="rounded-full border border-[var(--border-subtle)] px-3 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] cursor-pointer focus-ring"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -1004,7 +1026,7 @@ export default function ProfileEditForm({ profile, initialFavorites }: Props) {
         </section>
 
         {/* ── STICKY ACTION BAR: SAVE / CANCEL ── */}
-        <div className="sticky bottom-6 z-30 flex flex-col gap-4 rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-elevated)]/95 p-5 shadow-2xl backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
+        <div className="sticky bottom-[calc(1.5rem+env(safe-area-inset-bottom))] z-30 flex flex-col gap-4 rounded-2xl border border-[var(--border-strong)] bg-[var(--bg-elevated)]/95 p-5 shadow-2xl backdrop-blur-md sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             {isDirty ? (
               <span className="flex items-center gap-2 font-mono text-xs text-[var(--accent-amber)]">

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createAdminClient } from '@/utils/supabase/admin'
+import StarRating from '@/components/ui/StarRating'
 import {
   adminSoftDeleteReview,
   adminRestoreReview,
@@ -33,10 +34,6 @@ function fmt(date: string) {
     day: 'numeric',
     year: 'numeric',
   })
-}
-
-function stars(n: number) {
-  return '★'.repeat(n) + '☆'.repeat(5 - n)
 }
 
 function truncate(s: string | null, len = 90) {
@@ -309,8 +306,8 @@ export default async function DashboardPage({ searchParams }: Props) {
                         <span className="ml-1 text-[var(--text-muted)]">({r.films.release_year})</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-[var(--accent-amber)]">
-                      {stars(r.rating)}
+                    <td className="px-4 py-3">
+                      <StarRating value={r.rating} />
                     </td>
                     <td className="max-w-xs px-4 py-3 text-xs text-[var(--text-secondary)]">
                       {truncate(r.content)}
@@ -380,8 +377,8 @@ export default async function DashboardPage({ searchParams }: Props) {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-[var(--accent-amber)]">
-                      {stars(r.rating)}
+                    <td className="px-4 py-3">
+                      <StarRating value={r.rating} />
                     </td>
                     <td className="max-w-xs px-4 py-3 text-xs text-[var(--text-secondary)]">
                       {truncate(r.content)}

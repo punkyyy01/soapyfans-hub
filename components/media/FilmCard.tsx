@@ -108,7 +108,7 @@ export default function FilmCard({
       </div>
 
       <div className="mt-2.5 space-y-0.5 px-0.5">
-        <h3 className="line-clamp-1 font-display text-[0.92rem] font-medium leading-snug text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent-amber)]">
+        <h3 className="line-clamp-2 font-display text-[0.92rem] font-medium leading-snug text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent-amber)]">
           {credit.title}
         </h3>
         <div className="flex items-baseline justify-between gap-2 text-xs">

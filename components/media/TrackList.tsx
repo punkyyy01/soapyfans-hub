@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import YoutubeModal from './YoutubeModal'
 
 type Track = {
@@ -26,8 +26,18 @@ function formatDuration(ms: number): string {
   return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`
 }
 
+export function getTotalDuration(tracks: Track[]): string | null {
+  const totalMs = tracks.reduce((sum, t) => sum + (t.duration_ms ?? 0), 0)
+  if (totalMs <= 0) return null
+  const totalMinutes = Math.round(totalMs / 60000)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+}
+
 export default function TrackList({ tracks }: Props) {
   const [activeVideo, setActiveVideo] = useState<{ videoId: string; title: string } | null>(null)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
 
   return (
     <>
@@ -57,7 +67,10 @@ export default function TrackList({ tracks }: Props) {
               {videoId && (
                 <button
                   type="button"
-                  onClick={() => setActiveVideo({ videoId, title: track.title })}
+                  onClick={(e) => {
+                    triggerRef.current = e.currentTarget
+                    setActiveVideo({ videoId, title: track.title })
+                  }}
                   className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-[var(--text-secondary)] transition-all hover:border-[var(--accent-amber)] hover:text-[var(--text-primary)] focus-ring cursor-pointer"
                 >
                   <span aria-hidden="true">▶</span>
@@ -80,7 +93,10 @@ export default function TrackList({ tracks }: Props) {
         <YoutubeModal
           videoId={activeVideo.videoId}
           title={activeVideo.title}
-          onClose={() => setActiveVideo(null)}
+          onClose={() => {
+            setActiveVideo(null)
+            triggerRef.current?.focus()
+          }}
         />
       )}
     </>

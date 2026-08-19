@@ -95,7 +95,7 @@ export default function WorksSection({
 
           <Link
             href="/films"
-            className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.16em] text-[var(--text-secondary)] transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-sm py-1"
+            className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.16em] text-[var(--text-secondary)] transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs py-1"
           >
             <span>Full index</span>
             <span aria-hidden="true">→</span>

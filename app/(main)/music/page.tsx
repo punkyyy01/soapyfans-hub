@@ -5,7 +5,7 @@ import { createClient, getUser } from '@/utils/supabase/server'
 import { createPublicClient } from '@/utils/supabase/public'
 import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildCollectionPageSchema, buildMusicReleaseSchema, serializeJsonLd } from '@/utils/schema'
-import TrackList from '@/components/media/TrackList'
+import TrackList, { getTotalDuration } from '@/components/media/TrackList'
 import MusicReviewForm from '@/components/forms/MusicReviewForm'
 import PageContainer from '@/components/ui/PageContainer'
 import PageHeader from '@/components/ui/PageHeader'
@@ -13,6 +13,7 @@ import SectionHeader from '@/components/ui/SectionHeader'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import EmptyState from '@/components/ui/EmptyState'
+import StarRating from '@/components/ui/StarRating'
 import SafeImage from '@/components/ui/SafeImage'
 
 const MUSIC_DESCRIPTION =
@@ -428,6 +429,7 @@ export default async function MusicPage({ searchParams }: Props) {
                           <div className="space-y-3">
                             <p className="text-eyebrow">
                               Tracklist · {featuredRelease.tracks.length} Tracks
+                              {getTotalDuration(featuredRelease.tracks) && ` · ${getTotalDuration(featuredRelease.tracks)}`}
                             </p>
                             <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/80">
                               <TrackList tracks={featuredRelease.tracks} />
@@ -503,15 +505,7 @@ export default async function MusicPage({ searchParams }: Props) {
                                           </span>
                                         )}
                                       </span>
-                                      <span
-                                        className="font-mono text-xs text-[var(--accent-gold)]"
-                                        aria-label={`${review.rating} of 5 stars`}
-                                      >
-                                        {'★'.repeat(review.rating)}
-                                        <span className="text-[var(--text-muted)]">
-                                          {'★'.repeat(5 - review.rating)}
-                                        </span>
-                                      </span>
+                                      <StarRating value={review.rating} />
                                       <span className="ml-auto font-mono text-xs text-[var(--text-muted)]">
                                         {new Date(review.created_at).toLocaleDateString(undefined, {
                                           year: 'numeric',
@@ -696,9 +690,7 @@ export default async function MusicPage({ searchParams }: Props) {
                                     <span className="font-display font-medium text-[var(--text-primary)]">
                                       {author} {isOwn && '(You)'}
                                     </span>
-                                    <span className="font-mono text-[var(--accent-gold)]">
-                                      {'★'.repeat(review.rating)}
-                                    </span>
+                                    <StarRating value={review.rating} />
                                     <span className="ml-auto font-mono text-[var(--text-muted)]">
                                       {new Date(review.created_at).toLocaleDateString(undefined, {
                                         year: 'numeric',

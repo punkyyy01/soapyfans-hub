@@ -8,6 +8,7 @@ import type { ReviewUpdateState } from '@/app/(auth)/actions'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import SafeImage from '@/components/ui/SafeImage'
+import StarRating from '@/components/ui/StarRating'
 
 export type ActivityItem = {
   id: string
@@ -145,11 +146,7 @@ function ActivityRow({
             </Badge>
           )}
 
-          {/* Accessible Star Rating */}
-          <span className="font-mono text-xs text-[var(--accent-gold)]" aria-label={`${item.rating} out of 5 stars`}>
-            {'★'.repeat(item.rating)}
-            <span className="text-[var(--text-muted)] opacity-40">{'★'.repeat(5 - item.rating)}</span>
-          </span>
+          <StarRating value={item.rating} />
 
           <span className="ml-auto font-mono text-[0.68rem] text-[var(--text-muted)]">
             {new Date(item.created_at).toLocaleDateString('en-US', {
@@ -223,12 +220,10 @@ function FilmReviewEditForm({
   onCancel: () => void
 }) {
   const [rating, setRating] = useState(item.rating)
-  const [hovered, setHovered] = useState(0)
   const [state, formAction, isPending] = useActionState<ReviewUpdateState, FormData>(
     updateReview,
     { error: null },
   )
-  const active = hovered || rating
 
   return (
     <form action={formAction} className="space-y-4">
@@ -239,25 +234,7 @@ function FilmReviewEditForm({
         <p className="font-mono text-xs uppercase tracking-wider text-[var(--accent-amber)]">
           Editing review <span className="text-[var(--text-muted)] font-normal">— {item.title}</span>
         </p>
-        <div className="flex gap-1 text-2xl leading-none">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <button
-              key={star}
-              type="button"
-              aria-label={`Rate ${star} out of 5 stars`}
-              onClick={() => setRating(star)}
-              onMouseEnter={() => setHovered(star)}
-              onMouseLeave={() => setHovered(0)}
-              className={`cursor-pointer transition-transform duration-150 hover:scale-110 ${
-                star <= active
-                  ? 'text-[var(--accent-gold)]'
-                  : 'text-[var(--text-muted)] opacity-40 hover:opacity-100'
-              }`}
-            >
-              {star <= active ? '★' : '☆'}
-            </button>
-          ))}
-        </div>
+        <StarRating value={rating} onChange={setRating} size="lg" label={`Rate ${item.title}`} />
       </div>
 
       {state.error && (

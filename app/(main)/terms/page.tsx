@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 import { SITE_OG_IMAGE, SITE_NAME, absoluteUrl } from "@/utils/site"
+import { legalCls as cls, LegalHeader, LegalFooterNav } from "@/components/legal/legal"
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -28,31 +28,10 @@ export const metadata: Metadata = {
   },
 }
 
-const cls = {
-  h2: "font-display text-xl font-semibold text-[var(--text-primary)] mb-4",
-  h3: "mt-6 mb-2 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]",
-  p: "text-sm text-[var(--text-secondary)] leading-relaxed",
-  ul: "mt-3 list-disc pl-5 space-y-1.5",
-  li: "text-sm text-[var(--text-secondary)] leading-relaxed",
-  a: "text-[var(--accent-gold)] underline-offset-2 hover:underline",
-  strong: "font-semibold text-[var(--text-primary)]",
-  section: "border-t border-[var(--border-subtle)] pt-8 mt-8",
-}
-
 export default function TermsPage() {
   return (
     <main className="mx-auto max-w-[700px] px-6 pt-24 pb-24 sm:pt-28">
-      <header className="mb-10">
-        <h1 className="font-display text-3xl font-bold text-[var(--text-primary)] sm:text-4xl">
-          Terms of Service
-        </h1>
-        <p className="mt-3 text-sm text-[var(--text-secondary)]">
-          <strong className={cls.strong}>SoapyFans Hub</strong> — soapyhub.fans
-        </p>
-        <p className="mt-1 text-[0.7rem] uppercase tracking-[0.2em] text-[var(--text-muted)]">
-          Last updated: May 2026
-        </p>
-      </header>
+      <LegalHeader title="Terms of Service" lastUpdated="May 2026" />
 
       <section>
         <h2 className={cls.h2}>1. About This Site</h2>
@@ -223,14 +202,7 @@ export default function TermsPage() {
         </p>
       </section>
 
-      <div className="mt-12 border-t border-[var(--border-subtle)] pt-6 flex gap-6 text-[0.7rem] uppercase tracking-[0.2em] text-[var(--text-muted)]">
-        <Link href="/privacy" className="hover:text-[var(--accent-gold)] transition-colors">
-          Privacy Policy
-        </Link>
-        <Link href="/contact" className="hover:text-[var(--accent-gold)] transition-colors">
-          Copyright &amp; Contact
-        </Link>
-      </div>
+      <LegalFooterNav current="terms" />
     </main>
   )
 }

@@ -5,7 +5,7 @@ export default function Loading() {
 
       <div className="relative z-10 mx-auto max-w-4xl px-6 pb-24 sm:px-10 sm:pb-32">
         <div className="relative z-20 -mt-10 flex items-end gap-4 sm:-mt-12">
-          <div className="h-24 w-24 animate-pulse rounded-full bg-[var(--bg-elevated)] ring-4 ring-[var(--bg-base)]" />
+          <div className="h-24 w-24 animate-pulse rounded-full bg-[var(--bg-elevated)] ring-4 ring-[var(--bg-base)] sm:h-28 sm:w-28" />
         </div>
 
         <div className="mt-5 space-y-3">

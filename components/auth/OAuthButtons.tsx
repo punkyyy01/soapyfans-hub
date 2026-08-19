@@ -30,7 +30,7 @@ export default function OAuthButtons({ redirectTo }: OAuthButtonsProps) {
         <button
           type="submit"
           disabled={loadingProvider === 'discord'}
-          className="flex w-full items-center justify-center gap-3 rounded-md border border-[var(--border-strong)] bg-transparent px-4 py-3 text-sm text-[var(--text-primary)] transition-[border-color,background-color] duration-150 ease-out hover:border-[var(--accent-amber)]/50 hover:bg-[var(--bg-elevated)]/40 disabled:cursor-wait disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-3 rounded-full border border-[var(--border-strong)] bg-transparent px-4 py-3 text-sm text-[var(--text-primary)] transition-[border-color,background-color] duration-150 ease-out hover:border-[var(--accent-amber)]/50 hover:bg-[var(--bg-elevated)]/40 focus-ring disabled:cursor-wait disabled:opacity-60"
         >
           {loadingProvider === 'discord' ? (
             <>
@@ -57,7 +57,7 @@ export default function OAuthButtons({ redirectTo }: OAuthButtonsProps) {
         <button
           type="submit"
           disabled={loadingProvider === 'google'}
-          className="flex w-full items-center justify-center gap-3 rounded-md border border-[var(--border-strong)] bg-transparent px-4 py-3 text-sm text-[var(--text-primary)] transition-[border-color,background-color] duration-150 ease-out hover:border-[var(--accent-amber)]/50 hover:bg-[var(--bg-elevated)]/40 disabled:cursor-wait disabled:opacity-60"
+          className="flex w-full items-center justify-center gap-3 rounded-full border border-[var(--border-strong)] bg-transparent px-4 py-3 text-sm text-[var(--text-primary)] transition-[border-color,background-color] duration-150 ease-out hover:border-[var(--accent-amber)]/50 hover:bg-[var(--bg-elevated)]/40 focus-ring disabled:cursor-wait disabled:opacity-60"
         >
           {loadingProvider === 'google' ? (
             <>

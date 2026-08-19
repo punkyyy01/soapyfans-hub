@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { login } from '../actions'
 import { getFlash } from '@/utils/flash'
 import OAuthButtons from '@/components/auth/OAuthButtons'
+import AuthSubmitButton from '@/components/auth/AuthSubmitButton'
 
 export const metadata: Metadata = {
   title: 'Sign in',
@@ -87,7 +88,7 @@ export default async function LoginPage({ searchParams }: Props) {
               type="email"
               required
               autoComplete="email"
-              className="mt-2 w-full rounded-md border border-[var(--border-subtle)] bg-transparent px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-[border-color,box-shadow] duration-150 ease-out focus:border-[var(--accent-amber)] focus:outline-none focus:ring-0"
+              className="mt-2 w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/60 px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors focus:border-[var(--accent-amber)]/60 focus-ring"
             />
           </div>
           <div>
@@ -103,21 +104,10 @@ export default async function LoginPage({ searchParams }: Props) {
               type="password"
               required
               autoComplete="current-password"
-              className="mt-2 w-full rounded-md border border-[var(--border-subtle)] bg-transparent px-3 py-2.5 text-sm text-[var(--text-primary)] transition-[border-color,box-shadow] duration-150 ease-out focus:border-[var(--accent-amber)] focus:outline-none focus:ring-0"
+              className="mt-2 w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-elevated)]/60 px-3 py-2.5 text-sm text-[var(--text-primary)] transition-colors focus:border-[var(--accent-amber)]/60 focus-ring"
             />
           </div>
-          <button
-            type="submit"
-            className="group flex w-full items-center justify-center gap-3 rounded-full bg-[var(--accent-amber)] px-5 py-3 text-xs font-medium uppercase tracking-[0.28em] text-[var(--bg-base)] transition-[background-color,box-shadow] duration-150 ease-out hover:bg-[var(--accent-gold)] hover:shadow-[0_0_28px_rgba(255,183,0,0.35)]"
-          >
-            Sign in
-            <span
-              aria-hidden
-              className="transition-transform duration-150 ease-out group-hover:translate-x-1"
-            >
-              →
-            </span>
-          </button>
+          <AuthSubmitButton>Sign in</AuthSubmitButton>
         </form>
 
         <p className="text-center text-sm text-[var(--text-secondary)]">

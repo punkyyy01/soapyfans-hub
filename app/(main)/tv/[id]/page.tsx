@@ -187,11 +187,15 @@ export default async function TvDetailPage({ params }: Props) {
         </div>
 
         {/* ── Dossier Grid (Sidebar + Main Content) ──────────── */}
+        {/* On mobile the two wrappers below become `contents`, so their children
+            flatten into this grid and reorder via `order-*` (identity → synopsis →
+            cast → secondary details → platforms). At `lg:` they become real boxes
+            again and the original two-column sidebar layout is restored untouched. */}
         <div className="grid gap-10 pb-32 lg:grid-cols-[280px_1fr] lg:gap-14">
           {/* Left Column: Dossier Sidebar */}
-          <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+          <aside className="contents lg:sticky lg:top-24 lg:block lg:self-start lg:space-y-6">
             {/* Primary Media (Poster) */}
-            <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] shadow-lg">
+            <div className="order-1 relative aspect-[2/3] w-full overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] shadow-lg">
               {poster ? (
                 <Image
                   src={poster}
@@ -209,7 +213,7 @@ export default async function TvDetailPage({ params }: Props) {
             </div>
 
             {/* Sophie Connection Card */}
-            <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 space-y-1.5">
+            <div className="order-2 rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-5 space-y-1.5">
               <p className="text-eyebrow">
                 Archive Subject
               </p>
@@ -228,7 +232,7 @@ export default async function TvDetailPage({ params }: Props) {
             </div>
 
             {/* Factsheet Metadata Table */}
-            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-5 space-y-3 font-mono text-xs">
+            <div className="order-5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-5 space-y-3 font-mono text-xs">
               <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2.5">
                 <span className="text-[var(--text-muted)] uppercase tracking-[0.14em]">TMDB Rating</span>
                 <span className="font-medium text-[var(--accent-gold)]">
@@ -274,13 +278,15 @@ export default async function TvDetailPage({ params }: Props) {
             </div>
 
             {/* Where to Watch */}
-            <WhereToWatch providers={getWatchProvidersForCountry(tv.watchProvidersByCountry)} />
+            <div className="order-6">
+              <WhereToWatch providers={getWatchProvidersForCountry(tv.watchProvidersByCountry)} />
+            </div>
           </aside>
 
           {/* Right Column: Main Content */}
-          <div className="space-y-14">
+          <div className="contents lg:block lg:space-y-14">
             {/* Synopsis */}
-            <div className="space-y-3">
+            <div className="order-3 space-y-3">
               <p className="text-eyebrow">
                 Synopsis
               </p>
@@ -290,20 +296,22 @@ export default async function TvDetailPage({ params }: Props) {
             </div>
 
             {/* Media Detail Tabs */}
-            <MediaDetailTabs
-              tmdbId={tvId}
-              mediaType="tv"
-              cast={tv.credits.cast}
-              crew={tv.credits.crew}
-              genres={tv.genres}
-              productionCompanies={tv.production_companies}
-              productionCountries={tv.production_countries}
-              spokenLanguages={tv.spoken_languages}
-              alternativeTitles={tv.alternativeTitles}
-            />
+            <div className="order-4">
+              <MediaDetailTabs
+                tmdbId={tvId}
+                mediaType="tv"
+                cast={tv.credits.cast}
+                crew={tv.credits.crew}
+                genres={tv.genres}
+                productionCompanies={tv.production_companies}
+                productionCountries={tv.production_countries}
+                spokenLanguages={tv.spoken_languages}
+                alternativeTitles={tv.alternativeTitles}
+              />
+            </div>
 
             {/* Television Fan Notes Information */}
-            <section className="space-y-6">
+            <section className="order-7 space-y-6">
               <SectionHeader
                 kicker="Fan Notes"
                 title="Television Reviews"

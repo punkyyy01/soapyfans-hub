@@ -2,23 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { NAV_LINKS, isNavLinkActive } from './navLinks'
 
 export default function NavbarLinks() {
   const pathname = usePathname()
 
-  const links = [
-    { href: '/films', label: 'Filmography' },
-    { href: '/music', label: 'Music' },
-    { href: '/about', label: 'About' },
-  ]
-
   return (
     <div className="hidden items-center gap-7 text-xs uppercase tracking-[0.14em] font-medium sm:flex">
-      {links.map((link) => {
-        const isActive =
-          link.href === '/films'
-            ? pathname === '/films' || pathname.startsWith('/films/') || pathname.startsWith('/tv/')
-            : pathname === link.href || pathname.startsWith(`${link.href}/`)
+      {NAV_LINKS.map((link) => {
+        const isActive = isNavLinkActive(link.href, pathname)
 
         return (
           <Link

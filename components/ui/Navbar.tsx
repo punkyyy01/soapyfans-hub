@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { logout } from '@/app/(auth)/actions'
 import NavbarLinks from './NavbarLinks'
+import MobileNav from './MobileNav'
 
 export default async function Navbar() {
   const { user, profile, profileHref } = await getAuthUserWithProfile()
@@ -24,7 +25,7 @@ export default async function Navbar() {
     >
       <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-6 sm:px-10">
         {/* Left: Brand Identity + Navigation Links */}
-        <div className="flex items-center gap-10">
+        <div className="flex items-center gap-3 sm:gap-10">
           <Link
             href="/"
             aria-label="SoapyFans Hub Home"
@@ -34,6 +35,7 @@ export default async function Navbar() {
             <span className="italic text-[var(--accent-amber)] font-normal">Hub</span>
           </Link>
 
+          <MobileNav />
           <NavbarLinks />
         </div>
 
