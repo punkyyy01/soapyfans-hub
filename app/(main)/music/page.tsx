@@ -5,7 +5,8 @@ import { createClient, getUser } from '@/utils/supabase/server'
 import { createPublicClient } from '@/utils/supabase/public'
 import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildCollectionPageSchema, buildMusicReleaseSchema, serializeJsonLd } from '@/utils/schema'
-import TrackList, { getTotalDuration } from '@/components/media/TrackList'
+import TrackList from '@/components/media/TrackList'
+import { getTotalDuration } from '@/utils/music'
 import MusicReviewForm from '@/components/forms/MusicReviewForm'
 import PageContainer from '@/components/ui/PageContainer'
 import PageHeader from '@/components/ui/PageHeader'
@@ -287,6 +288,7 @@ export default async function MusicPage({ searchParams }: Props) {
                 const reviews = allReviews.filter((r) => r.release_id === featuredRelease.id)
                 const userReview = user ? reviews.find((r) => r.user_id === user.id) : undefined
                 const quoteObj = SOPHIE_QUOTES[featuredRelease.title]
+                const totalDuration = getTotalDuration(featuredRelease.tracks)
                 const spotifyUrl = safeExternalUrl(featuredRelease.spotify_url, [
                   'open.spotify.com',
                   'spotify.com',
@@ -406,7 +408,7 @@ export default async function MusicPage({ searchParams }: Props) {
                             {featuredRelease.title}
                           </h2>
                           {featuredRelease.description && (
-                            <p className="max-w-2xl font-display text-lg leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-xl">
+                            <p className="max-w-2xl text-lg leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-xl">
                               {featuredRelease.description}
                             </p>
                           )}
@@ -429,7 +431,7 @@ export default async function MusicPage({ searchParams }: Props) {
                           <div className="space-y-3">
                             <p className="text-eyebrow">
                               Tracklist · {featuredRelease.tracks.length} Tracks
-                              {getTotalDuration(featuredRelease.tracks) && ` · ${getTotalDuration(featuredRelease.tracks)}`}
+                              {totalDuration && ` · ${totalDuration}`}
                             </p>
                             <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/80">
                               <TrackList tracks={featuredRelease.tracks} />
@@ -614,7 +616,7 @@ export default async function MusicPage({ searchParams }: Props) {
                       </div>
 
                       {release.description && (
-                        <p className="max-w-2xl font-display text-base leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-lg">
+                        <p className="max-w-2xl text-base leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-lg">
                           {release.description}
                         </p>
                       )}

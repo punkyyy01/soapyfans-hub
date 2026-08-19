@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import YoutubeModal from './YoutubeModal'
+import { formatDuration } from '@/utils/music'
 
 type Track = {
   id: string
@@ -19,20 +20,6 @@ function sanitizeYoutubeId(raw: string | null): string | null {
   if (!raw) return null
   const trimmed = raw.trim()
   return /^[a-zA-Z0-9_-]{11}$/.test(trimmed) ? trimmed : null
-}
-
-function formatDuration(ms: number): string {
-  const s = Math.floor(ms / 1000)
-  return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`
-}
-
-export function getTotalDuration(tracks: Track[]): string | null {
-  const totalMs = tracks.reduce((sum, t) => sum + (t.duration_ms ?? 0), 0)
-  if (totalMs <= 0) return null
-  const totalMinutes = Math.round(totalMs / 60000)
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
-  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
 }
 
 export default function TrackList({ tracks }: Props) {

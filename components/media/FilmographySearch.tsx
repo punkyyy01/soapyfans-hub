@@ -136,20 +136,7 @@ export default function FilmographySearch({ filmList, tvList }: Props) {
             )}
           </section>
 
-          {/* 2. Editorial Transition: Yellowjackets */}
-          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/40 p-8 text-center sm:p-12">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent-forest-dim)] px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.16em] text-[var(--text-primary)] ring-1 ring-[var(--accent-forest)]/40">
-              Yellowjackets · 2021–Present
-            </span>
-            <h3 className="mt-4 font-display text-2xl font-medium tracking-tight text-[var(--text-primary)] sm:text-3xl">
-              29 episodes as Natalie Scatorccio.
-            </h3>
-            <p className="mx-auto mt-2 max-w-lg text-sm text-[var(--text-secondary)] text-pretty">
-              The breakthrough performance that anchored the wilderness and defined a generation of psychological horror.
-            </p>
-          </div>
-
-          {/* 3. Television Section */}
+          {/* 2. Television Section */}
           <section id="television" className="scroll-mt-28 space-y-8">
             <SectionHeader
               kicker="Television Series"
