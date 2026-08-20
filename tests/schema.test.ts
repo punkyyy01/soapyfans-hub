@@ -52,6 +52,76 @@ describe('Schema.org structured data generators', () => {
     assert.deepEqual(movie.genre, ['Horror', 'Thriller'])
   })
 
+  it('buildMovieSchema omits review and aggregateRating when there are no eligible reviews', () => {
+    const movie = buildMovieSchema({
+      tmdbId: 1087388,
+      title: 'Heretic',
+      overview: null,
+      releaseDate: null,
+      posterUrl: null,
+      genres: [],
+      runtime: null,
+      reviews: [],
+    })
+
+    assert.equal('review' in movie, false)
+    assert.equal('aggregateRating' in movie, false)
+  })
+
+  it('buildMovieSchema includes review + aggregateRating that match the visible review list', () => {
+    const movie = buildMovieSchema({
+      tmdbId: 1087388,
+      title: 'Heretic',
+      overview: null,
+      releaseDate: null,
+      posterUrl: null,
+      genres: [],
+      runtime: null,
+      reviews: [
+        {
+          rating: 5,
+          content: 'A genuinely unsettling watch.',
+          created_at: '2024-11-10T12:00:00Z',
+          profiles: { username: 'filmfan', display_name: 'Film Fan' },
+        },
+        {
+          rating: 3,
+          content: null,
+          created_at: '2024-11-12T12:00:00Z',
+          profiles: { username: null, display_name: null },
+        },
+      ],
+    })
+
+    assert.ok(movie.aggregateRating)
+    const aggregateRating = movie.aggregateRating as {
+      ratingValue: number
+      ratingCount: number
+      bestRating: number
+      worstRating: number
+    }
+    assert.equal(aggregateRating.ratingCount, 2)
+    assert.equal(aggregateRating.ratingValue, 4)
+    assert.equal(aggregateRating.bestRating, 5)
+    assert.equal(aggregateRating.worstRating, 1)
+
+    const reviews = movie.review as Array<{
+      author: { name: string }
+      reviewRating: { ratingValue: number }
+      datePublished: string
+      reviewBody?: string
+    }>
+    assert.equal(reviews.length, 2)
+    assert.equal(reviews[0].author.name, 'Film Fan')
+    assert.equal(reviews[0].reviewRating.ratingValue, 5)
+    assert.equal(reviews[0].datePublished, '2024-11-10')
+    assert.equal(reviews[0].reviewBody, 'A genuinely unsettling watch.')
+    // Rating-only review (no content): still a real visible review, but must
+    // not fabricate a reviewBody key.
+    assert.equal(reviews[1].author.name, 'Anonymous')
+    assert.equal('reviewBody' in reviews[1], false)
+  })
+
   it('buildTvSeriesSchema returns valid TVSeries JSON-LD', () => {
     const tv = buildTvSeriesSchema({
       tmdbId: 111110,
@@ -96,5 +166,28 @@ describe('Schema.org structured data generators', () => {
     assert.equal(release.numTracks, 1)
     const tracks = release.track as Array<{ duration?: string }> | undefined
     assert.equal(tracks?.[0]?.duration, 'PT3M30S')
+  })
+
+  it('buildMusicReleaseSchema includes aggregateRating derived from the passed-in reviews only', () => {
+    const release = buildMusicReleaseSchema({
+      title: 'Pivot & Scrape',
+      release_type: 'ep',
+      release_date: '2024-10-11',
+      cover_art_url: null,
+      description: null,
+      tracks: [],
+      reviews: [
+        {
+          rating: 4,
+          content: 'Textured and quiet.',
+          created_at: '2024-10-12T00:00:00Z',
+          profiles: { username: 'musicfan', display_name: null },
+        },
+      ],
+    })
+
+    const aggregateRating = release.aggregateRating as { ratingValue: number; ratingCount: number }
+    assert.equal(aggregateRating.ratingCount, 1)
+    assert.equal(aggregateRating.ratingValue, 4)
   })
 })

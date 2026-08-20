@@ -1,10 +1,13 @@
 import type { Metadata } from 'next'
+import { cache } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { createClient, getUser } from '@/utils/supabase/server'
+import { getBannedUserIds } from '@/utils/supabase/moderation'
 import { getMovieDetails, getTvDetails, getTmdbImageUrl, getPersonCombinedCredits, normalizeCredit } from '@/utils/tmdb'
 import { sanitizeCSS } from '@/utils/sanitize-css'
+import { isUuid, resolveCanonicalProfileSlug, profilePath, escapeIlike } from '@/utils/profile'
 import ActivityFeed, { type ActivityItem } from '@/components/profile/ActivityFeed'
 import SectionHeader from '@/components/ui/SectionHeader'
 import Button from '@/components/ui/Button'
@@ -14,11 +17,62 @@ interface Props {
   searchParams?: Promise<{ error?: string }>
 }
 
+const PROFILE_SELECT = `
+    id, username, display_name, avatar_url, bio, about_me, created_at,
+    banner_url, accent_color, profile_css, pronouns, location_text, website_url, show_activity,
+    profile_favorites(id, tmdb_id, media_type, position)
+  `
+
+type ProfileRow = {
+  id: string
+  username: string | null
+  display_name: string | null
+  avatar_url: string | null
+  bio: string | null
+  about_me: string | null
+  created_at: string
+  banner_url: string | null
+  accent_color: string | null
+  profile_css: string | null
+  pronouns: string | null
+  location_text: string | null
+  website_url: string | null
+  show_activity: boolean
+  profile_favorites: FavoriteRow[] | null
+}
+
+/**
+ * Single lookup shared by generateMetadata and the page component (React
+ * `cache()` dedupes identical calls within one request, so this only runs
+ * once even though both callers need it). Also resolves ban status here so
+ * both callers converge on one answer instead of two separate checks.
+ */
+const getProfileBySlug = cache(async (slug: string) => {
+  const supabase = await createClient()
+  const profileQuery = supabase.from('profiles').select(PROFILE_SELECT)
+
+  const { data: profile, error } = await (isUuid(slug)
+    ? profileQuery.eq('id', slug)
+    : profileQuery.ilike('username', escapeIlike(slug))
+  ).maybeSingle()
+
+  if (!profile) return { profile: null as ProfileRow | null, error, isBanned: false }
+
+  const bannedIds = await getBannedUserIds()
+  return { profile: profile as ProfileRow, error, isBanned: bannedIds.has(profile.id) }
+})
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params
-  const title = `${username} · Profile`
-  const description = `${username}'s fan profile, favorites, and reviews on SoapyFans Hub.`
-  const canonical = `/profile/${encodeURIComponent(username)}`
+  const { profile, isBanned } = await getProfileBySlug(username)
+
+  if (!profile || isBanned) return {}
+
+  const canonicalSlug = resolveCanonicalProfileSlug(profile)
+  const displayName = profile.display_name ?? profile.username ?? 'Anonymous'
+  const title = `${displayName} · Profile`
+  const description = `${displayName}'s fan profile, favorites, and reviews on SoapyFans Hub.`
+  const canonical = profilePath(canonicalSlug)
 
   return {
     title,
@@ -67,29 +121,14 @@ type EnrichedFavorite = FavoriteRow & {
 }
 
 const FALLBACK_ACCENT = '#e8890c'
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-function escapeIlike(str: string): string {
-  return str.replace(/[%_\\]/g, '\\$&')
-}
 
 export default async function ProfilePage({ params, searchParams }: Props) {
   const { username } = await params
   const { error } = (await searchParams) ?? {}
   const supabase = await createClient()
 
-  const isUuid = UUID_RE.test(username)
-  const profileQuery = supabase.from('profiles').select(`
-    id, username, display_name, avatar_url, bio, about_me, created_at,
-    banner_url, accent_color, profile_css, pronouns, location_text, website_url, show_activity,
-    profile_favorites(id, tmdb_id, media_type, position)
-  `)
-
-  const [{ data: profile, error: profileError }, user] = await Promise.all([
-    (isUuid
-      ? profileQuery.eq('id', username)
-      : profileQuery.ilike('username', escapeIlike(username))
-    ).maybeSingle(),
+  const [{ profile, error: profileError, isBanned }, user] = await Promise.all([
+    getProfileBySlug(username),
     getUser(),
   ])
 
@@ -98,10 +137,17 @@ export default async function ProfilePage({ params, searchParams }: Props) {
     throw new Error('Failed to load profile. Please try again.')
   }
 
-  if (!profile) notFound()
+  // A banned user contributes no normal public content: same 404 as a
+  // profile that never existed, no ban status leaked to the response.
+  if (!profile || isBanned) notFound()
+
+  const canonicalSlug = resolveCanonicalProfileSlug(profile)
+  if (canonicalSlug !== username) {
+    permanentRedirect(profilePath(canonicalSlug))
+  }
 
   const isOwner = user?.id === profile.id
-  const profileSlug = profile.username ?? profile.id
+  const profileSlug = canonicalSlug
   const displayName = profile.display_name ?? profile.username ?? 'Anonymous'
   const avatarInitial = displayName[0]?.toUpperCase() ?? '?'
   const joinYear = new Date(profile.created_at).getFullYear()

@@ -3,8 +3,10 @@ import Link from 'next/link'
 import { unstable_cache } from 'next/cache'
 import { createClient, getUser } from '@/utils/supabase/server'
 import { createPublicClient } from '@/utils/supabase/public'
+import { getBannedUserIds } from '@/utils/supabase/moderation'
 import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildCollectionPageSchema, buildMusicReleaseSchema, serializeJsonLd } from '@/utils/schema'
+import { isVisibleReview, reviewAuthorProfilePath } from '@/utils/reviews'
 import TrackList from '@/components/media/TrackList'
 import { getTotalDuration } from '@/utils/music'
 import MusicReviewForm from '@/components/forms/MusicReviewForm'
@@ -141,13 +143,14 @@ export default async function MusicPage({ searchParams }: Props) {
   const { error } = await searchParams
   const supabase = await createClient()
 
-  const [user, releasesOrNull, reviewsResult] = await Promise.all([
+  const [user, releasesOrNull, reviewsResult, bannedUserIds] = await Promise.all([
     getUser(),
     getReleasesWithTracks().catch(() => null),
     supabase
       .from('music_reviews')
       .select('id, user_id, release_id, rating, content, created_at, deleted_at, profiles(username, display_name)')
       .is('deleted_at', null),
+    getBannedUserIds(),
   ])
 
   if (reviewsResult.error) {
@@ -174,7 +177,9 @@ export default async function MusicPage({ searchParams }: Props) {
 
   const allReviews: MusicReviewWithProfile[] = (
     (reviewsResult.data ?? []) as unknown as MusicReviewWithProfile[]
-  ).sort((a, b) => b.created_at.localeCompare(a.created_at))
+  )
+    .filter((r) => isVisibleReview(r, bannedUserIds))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
 
   // Determine the primary/featured release
   const featuredRelease =
@@ -490,6 +495,7 @@ export default async function MusicPage({ searchParams }: Props) {
                                   review.profiles?.username ??
                                   'Anonymous Fan'
                                 const isOwn = review.user_id === user?.id
+                                const authorHref = reviewAuthorProfilePath(review.profiles)
                                 return (
                                   <li
                                     key={review.id}
@@ -500,7 +506,16 @@ export default async function MusicPage({ searchParams }: Props) {
                                         {author[0]?.toUpperCase() ?? '?'}
                                       </span>
                                       <span className="font-display text-base font-medium text-[var(--text-primary)]">
-                                        {author}
+                                        {authorHref ? (
+                                          <Link
+                                            href={authorHref}
+                                            className="transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
+                                          >
+                                            {author}
+                                          </Link>
+                                        ) : (
+                                          author
+                                        )}
                                         {isOwn && (
                                           <span className="ml-2 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-[var(--accent-amber)]">
                                             (You)
@@ -680,6 +695,7 @@ export default async function MusicPage({ searchParams }: Props) {
                                 review.profiles?.username ??
                                 'Anonymous Fan'
                               const isOwn = review.user_id === user?.id
+                              const authorHref = reviewAuthorProfilePath(review.profiles)
                               return (
                                 <li
                                   key={review.id}
@@ -690,7 +706,17 @@ export default async function MusicPage({ searchParams }: Props) {
                                       {author[0]?.toUpperCase() ?? '?'}
                                     </span>
                                     <span className="font-display font-medium text-[var(--text-primary)]">
-                                      {author} {isOwn && '(You)'}
+                                      {authorHref ? (
+                                        <Link
+                                          href={authorHref}
+                                          className="transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
+                                        >
+                                          {author}
+                                        </Link>
+                                      ) : (
+                                        author
+                                      )}{' '}
+                                      {isOwn && '(You)'}
                                     </span>
                                     <StarRating value={review.rating} />
                                     <span className="ml-auto font-mono text-[var(--text-muted)]">

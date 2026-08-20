@@ -7,7 +7,9 @@ import { getMovieDetails, getTmdbImageUrl, getWatchProvidersForCountry } from '@
 import WhereToWatch from '@/components/media/WhereToWatch'
 import MediaDetailTabs from '@/components/media/MediaDetailTabs'
 import { createClient, getUser } from '@/utils/supabase/server'
+import { getBannedUserIds } from '@/utils/supabase/moderation'
 import { buildMovieSchema, serializeJsonLd } from '@/utils/schema'
+import { isVisibleReview, reviewAuthorProfilePath } from '@/utils/reviews'
 import ReviewForm from '@/components/forms/ReviewForm'
 import PageContainer from '@/components/ui/PageContainer'
 import SectionHeader from '@/components/ui/SectionHeader'
@@ -88,35 +90,66 @@ async function FilmReviewsSection({
   tmdbId,
   filmTitle,
   releaseYear,
+  releaseDate,
   posterPath,
+  posterUrl,
   overview,
+  genres,
+  runtime,
   error,
 }: {
   tmdbId: number
   filmTitle: string
   releaseYear: number | null
+  releaseDate: string | null
   posterPath: string | null
+  posterUrl: string | null
   overview: string | null
+  genres: Array<{ name: string }>
+  runtime: number | null
   error?: string
 }) {
   const supabase = await createClient()
-  const [user, { data: dbFilm }] = await Promise.all([
+  const [user, { data: dbFilm }, bannedUserIds] = await Promise.all([
     getUser(),
     supabase
       .from('films')
       .select('id, reviews(id, user_id, rating, content, created_at, deleted_at, profiles(username, display_name))')
       .eq('tmdb_id', tmdbId)
       .maybeSingle(),
+    getBannedUserIds(),
   ])
 
   const reviews: ReviewWithProfile[] = ((dbFilm?.reviews ?? []) as ReviewWithProfile[])
-    .filter((r) => r.deleted_at === null)
+    .filter((r) => isVisibleReview(r, bannedUserIds))
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
 
   const userReview = user ? reviews.find((r) => r.user_id === user.id) : undefined
 
+  // Same eligible/visible review set rendered below, so the Movie JSON-LD
+  // never asserts a review or rating the page doesn't actually show.
+  const movieSchema = buildMovieSchema({
+    tmdbId,
+    title: filmTitle,
+    overview,
+    releaseDate,
+    posterUrl,
+    genres,
+    runtime,
+    reviews: reviews.map((r) => ({
+      rating: r.rating,
+      content: r.content,
+      created_at: r.created_at,
+      profiles: r.profiles,
+    })),
+  })
+
   return (
     <section className="space-y-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(movieSchema) }}
+      />
       <SectionHeader
         kicker="Community Archive"
         title="Fan Reviews"
@@ -178,6 +211,7 @@ async function FilmReviewsSection({
               review.profiles?.username ??
               'Anonymous Fan'
             const isOwn = review.user_id === user?.id
+            const authorHref = reviewAuthorProfilePath(review.profiles)
             return (
               <li
                 key={review.id}
@@ -188,7 +222,16 @@ async function FilmReviewsSection({
                     {author[0]?.toUpperCase() ?? '?'}
                   </span>
                   <span className="font-display text-base font-medium text-[var(--text-primary)]">
-                    {author}
+                    {authorHref ? (
+                      <Link
+                        href={authorHref}
+                        className="transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
+                      >
+                        {author}
+                      </Link>
+                    ) : (
+                      author
+                    )}
                     {isOwn && (
                       <span className="ml-2 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-[var(--accent-amber)]">
                         (You)
@@ -253,24 +296,11 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
   )
   const sophieCharacter = sophieCastMember?.character?.trim() || null
 
-  const movieSchema = buildMovieSchema({
-    tmdbId,
-    title: film.title,
-    overview: film.overview,
-    releaseDate: film.release_date,
-    posterUrl: poster,
-    genres: film.genres,
-    runtime: film.runtime,
-    reviews: [],
-  })
-
   return (
     <main className="min-h-screen bg-[var(--bg-base)]">
-      {/* ── Structured Data (SEO JSON-LD) ────────────────────── */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: serializeJsonLd(movieSchema) }}
-      />
+      {/* ── Structured Data (SEO JSON-LD): Movie schema, incl. reviews,
+          renders inside <FilmReviewsSection> below, alongside the same
+          eligible review data it describes. ─────────────────────────── */}
 
       {/* ── Contained Backdrop Header ───────────────────────── */}
       <section className="relative h-48 w-full overflow-hidden sm:h-64">
@@ -446,8 +476,12 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
                   tmdbId={tmdbId}
                   filmTitle={film.title}
                   releaseYear={releaseYear}
+                  releaseDate={film.release_date}
                   posterPath={film.poster_path}
+                  posterUrl={poster}
                   overview={film.overview}
+                  genres={film.genres}
+                  runtime={film.runtime}
                   error={error}
                 />
               </Suspense>
