@@ -24,3 +24,10 @@ export function absoluteUrl(path: string = '/'): string {
   if (!path.startsWith('/')) return `${base}/${path}`
   return `${base}${path}`
 }
+
+// Truthful, stable "last modified" for pages with no per-row DB timestamp
+// (home, films index, music index, about, contact, legal). Bump this only
+// when those pages' actual content changes -- never replace with
+// `new Date()`, which would falsely claim every sitemap regeneration is a
+// content update.
+export const STATIC_CONTENT_LAST_MODIFIED = new Date('2026-08-20T00:00:00.000Z')
