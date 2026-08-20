@@ -7,6 +7,10 @@ import {
   buildMovieSchema,
   buildTvSeriesSchema,
   buildMusicReleaseSchema,
+  buildSophieThatcherPersonSchema,
+  buildBreadcrumbSchema,
+  buildProfilePageSchema,
+  SOPHIE_PERSON_ID,
 } from '../utils/schema'
 
 describe('Schema.org structured data generators', () => {
@@ -189,5 +193,102 @@ describe('Schema.org structured data generators', () => {
     const aggregateRating = release.aggregateRating as { ratingValue: number; ratingCount: number }
     assert.equal(aggregateRating.ratingCount, 1)
     assert.equal(aggregateRating.ratingValue, 4)
+  })
+})
+
+describe('Sophie Thatcher stable Person entity', () => {
+  it('has a stable @id anchored at /about, name, and url', () => {
+    const person = buildSophieThatcherPersonSchema()
+    assert.equal(person['@context'], 'https://schema.org')
+    assert.equal(person['@type'], 'Person')
+    assert.equal(person['@id'], SOPHIE_PERSON_ID)
+    assert.ok((person['@id'] as string).includes('/about#sophie-thatcher'))
+    assert.equal(person.name, 'Sophie Thatcher')
+    assert.ok((person.url as string).endsWith('/about'))
+  })
+
+  it('produces the exact same @id on every call (single stable identity)', () => {
+    const a = buildSophieThatcherPersonSchema()
+    const b = buildSophieThatcherPersonSchema()
+    assert.equal(a['@id'], b['@id'])
+  })
+
+  it('Movie, TVSeries, and MusicAlbum schemas all reference the same Person @id, not an inline stub', () => {
+    const movie = buildMovieSchema({
+      tmdbId: 1,
+      title: 'X',
+      overview: null,
+      releaseDate: null,
+      posterUrl: null,
+      genres: [],
+      runtime: null,
+      reviews: [],
+    })
+    const tv = buildTvSeriesSchema({
+      tmdbId: 2,
+      title: 'Y',
+      overview: null,
+      firstAirDate: null,
+      lastAirDate: null,
+      posterUrl: null,
+      genres: [],
+      numberOfSeasons: null,
+      numberOfEpisodes: null,
+    })
+    const music = buildMusicReleaseSchema({
+      title: 'Z',
+      release_type: 'single',
+      release_date: null,
+      cover_art_url: null,
+      description: null,
+      tracks: [],
+      reviews: [],
+    })
+
+    assert.deepEqual(movie.actor, { '@id': SOPHIE_PERSON_ID })
+    assert.deepEqual(tv.actor, { '@id': SOPHIE_PERSON_ID })
+    assert.deepEqual(music.byArtist, { '@id': SOPHIE_PERSON_ID })
+  })
+})
+
+describe('buildBreadcrumbSchema', () => {
+  it('emits positions starting at 1 with absolute canonical URLs', () => {
+    const schema = buildBreadcrumbSchema([
+      { name: 'Home', path: '/' },
+      { name: 'Filmography', path: '/films' },
+      { name: 'Heretic', path: '/films/1087388' },
+    ])
+    assert.equal(schema['@type'], 'BreadcrumbList')
+    const items = schema.itemListElement as Array<{ position: number; name: string; item: string }>
+    assert.equal(items.length, 3)
+    assert.deepEqual(items.map((i) => i.position), [1, 2, 3])
+    assert.deepEqual(items.map((i) => i.name), ['Home', 'Filmography', 'Heretic'])
+    assert.ok(items[2].item.endsWith('/films/1087388'))
+    assert.ok(items.every((i) => i.item.startsWith('http')))
+  })
+})
+
+describe('buildProfilePageSchema', () => {
+  it('includes name, url, and a Person mainEntity with the identifier when username exists', () => {
+    const schema = buildProfilePageSchema({
+      displayName: 'Jamie Fan',
+      username: 'jamiefan',
+      path: '/profile/jamiefan',
+    })
+    assert.equal(schema['@type'], 'ProfilePage')
+    assert.ok((schema.url as string).endsWith('/profile/jamiefan'))
+    const mainEntity = schema.mainEntity as { name: string; identifier?: string }
+    assert.equal(mainEntity.name, 'Jamie Fan')
+    assert.equal(mainEntity.identifier, 'jamiefan')
+  })
+
+  it('omits identifier when there is no username', () => {
+    const schema = buildProfilePageSchema({
+      displayName: 'Anonymous',
+      username: null,
+      path: '/profile/some-uuid',
+    })
+    const mainEntity = schema.mainEntity as { identifier?: string }
+    assert.equal('identifier' in mainEntity, false)
   })
 })

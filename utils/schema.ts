@@ -9,6 +9,13 @@ export function serializeJsonLd(schema: unknown): string {
 
 const FAN_PUBLISHER_ID = absoluteUrl('/#organization')
 
+// The one stable Sophie Thatcher Person entity for the whole site. Every
+// Movie/TVSeries/MusicAlbum schema references this @id instead of embedding
+// its own inline Person stub, so there is exactly one Sophie identity in
+// the site's structured-data graph. Anchored at /about, where the full
+// Person schema (name/url/sameAs) actually renders.
+export const SOPHIE_PERSON_ID = absoluteUrl('/about#sophie-thatcher')
+
 const FAN_PUBLISHER = {
   '@type': 'Organization',
   '@id': FAN_PUBLISHER_ID,
@@ -84,6 +91,67 @@ export function buildCollectionPageSchema({
   }
 }
 
+export function buildSophieThatcherPersonSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    '@id': SOPHIE_PERSON_ID,
+    name: 'Sophie Thatcher',
+    url: absoluteUrl('/about'),
+    jobTitle: ['Actor', 'Musician'],
+    description:
+      'American actor and musician, known for Yellowjackets, Heretic, and Companion, and for her debut EP Pivot & Scrape.',
+    sameAs: [
+      'https://www.themoviedb.org/person/1981044',
+      'https://instagram.com/soapy.t',
+      'https://youtube.com/@SophieThatcher',
+    ],
+  }
+}
+
+export interface BreadcrumbEntry {
+  name: string
+  path: string
+}
+
+export function buildBreadcrumbSchema(items: BreadcrumbEntry[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: item.name,
+      item: absoluteUrl(item.path),
+    })),
+  }
+}
+
+export function buildProfilePageSchema({
+  displayName,
+  username,
+  path,
+}: {
+  displayName: string
+  username: string | null
+  path: string
+}) {
+  const url = absoluteUrl(path)
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ProfilePage',
+    '@id': `${url}#profilepage`,
+    url,
+    name: `${displayName} · Profile`,
+    isPartOf: { '@id': absoluteUrl('/#website') },
+    mainEntity: {
+      '@type': 'Person',
+      name: displayName,
+      ...(username ? { identifier: username } : {}),
+    },
+  }
+}
+
 export function buildMovieSchema({
   tmdbId,
   title,
@@ -114,7 +182,7 @@ export function buildMovieSchema({
     '@id': absoluteUrl(`/films/${tmdbId}#movie`),
     name: title,
     url: absoluteUrl(`/films/${tmdbId}`),
-    actor: { '@type': 'Person', name: 'Sophie Thatcher' },
+    actor: { '@id': SOPHIE_PERSON_ID },
     inLanguage: 'en',
     publisher: { '@id': FAN_PUBLISHER_ID },
   }
@@ -196,7 +264,7 @@ export function buildMusicReleaseSchema({
     '@type': 'MusicAlbum',
     '@id': absoluteUrl(`/music#release-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`),
     name: title,
-    byArtist: { '@type': 'Person', name: 'Sophie Thatcher' },
+    byArtist: { '@id': SOPHIE_PERSON_ID },
     inLanguage: 'en',
     publisher: { '@id': FAN_PUBLISHER_ID },
   }
@@ -278,7 +346,7 @@ export function buildTvSeriesSchema({
     '@id': absoluteUrl(`/tv/${tmdbId}#series`),
     name: title,
     url: absoluteUrl(`/tv/${tmdbId}`),
-    actor: { '@type': 'Person', name: 'Sophie Thatcher' },
+    actor: { '@id': SOPHIE_PERSON_ID },
     inLanguage: 'en',
     publisher: { '@id': FAN_PUBLISHER_ID },
   }
