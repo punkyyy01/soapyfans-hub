@@ -8,6 +8,7 @@ import { createPublicClient } from '@/utils/supabase/public'
 import { getBannedUserIds } from '@/utils/supabase/moderation'
 import { evaluateProfileSeo } from '@/utils/profile-seo'
 import { profilePath } from '@/utils/profile'
+import { getReleasesWithSlugs, type ReleaseWithSlug } from '@/utils/releases'
 import { createLastKnownGood } from '@/utils/sitemap-resilience'
 import { getSiteUrl, STATIC_CONTENT_LAST_MODIFIED } from '@/utils/site'
 
@@ -47,6 +48,15 @@ export function buildFilmTvRoutes(credits: NormalizedCredit[], siteUrl: string):
     }))
 
   return [...filmRoutes, ...tvRoutes]
+}
+
+export function buildReleaseRoutes(releases: ReleaseWithSlug[], siteUrl: string): MetadataRoute.Sitemap {
+  return releases.map((r) => ({
+    url: `${siteUrl}/music/${r.slug}`,
+    lastModified: new Date(r.updated_at),
+    changeFrequency: 'monthly',
+    priority: 0.6,
+  }))
 }
 
 export type ProfileSitemapCandidate = {
@@ -165,13 +175,20 @@ async function fetchProfileEntries(siteUrl: string): Promise<MetadataRoute.Sitem
 }
 
 const resolveCredits = createLastKnownGood<NormalizedCredit[]>(SNAPSHOT_MAX_AGE_MS)
+const resolveReleases = createLastKnownGood<ReleaseWithSlug[]>(SNAPSHOT_MAX_AGE_MS)
 const resolveProfileEntries = createLastKnownGood<MetadataRoute.Sitemap>(SNAPSHOT_MAX_AGE_MS)
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl()
 
   const credits = await resolveCredits(fetchCredits, [])
+  const releases = await resolveReleases(getReleasesWithSlugs, [])
   const profileEntries = await resolveProfileEntries(() => fetchProfileEntries(siteUrl), [])
 
-  return [...buildStaticRoutes(siteUrl), ...buildFilmTvRoutes(credits, siteUrl), ...profileEntries]
+  return [
+    ...buildStaticRoutes(siteUrl),
+    ...buildFilmTvRoutes(credits, siteUrl),
+    ...buildReleaseRoutes(releases, siteUrl),
+    ...profileEntries,
+  ]
 }

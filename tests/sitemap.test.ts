@@ -4,10 +4,12 @@ import {
   buildStaticRoutes,
   buildFilmTvRoutes,
   buildProfileSitemapEntries,
+  buildReleaseRoutes,
   type ProfileSitemapCandidate,
 } from '../app/sitemap'
 import { STATIC_CONTENT_LAST_MODIFIED } from '../utils/site'
 import type { NormalizedCredit } from '../utils/tmdb'
+import type { ReleaseWithSlug } from '../utils/releases'
 
 const SITE_URL = 'https://soapyhub.fans'
 
@@ -58,6 +60,49 @@ describe('buildFilmTvRoutes', () => {
   it('falls back to the static constant when a credit has no date', () => {
     const routes = buildFilmTvRoutes([credit({ id: 3, mediaType: 'movie', date: '' })], SITE_URL)
     assert.equal(routes[0].lastModified, STATIC_CONTENT_LAST_MODIFIED)
+  })
+})
+
+describe('buildReleaseRoutes', () => {
+  function release(overrides: Partial<ReleaseWithSlug>): ReleaseWithSlug {
+    return {
+      id: 'release-1',
+      title: 'Pivot & Scrape',
+      slug: 'pivot-scrape',
+      release_type: 'ep',
+      release_date: '2024-10-11',
+      cover_art_url: null,
+      spotify_url: null,
+      bandcamp_url: null,
+      twitter_url: null,
+      description: null,
+      updated_at: '2026-01-01T00:00:00Z',
+      tracks: [],
+      ...overrides,
+    }
+  }
+
+  it('builds a URL from the slug for every release', () => {
+    const routes = buildReleaseRoutes([release({})], SITE_URL)
+    assert.equal(routes[0].url, `${SITE_URL}/music/pivot-scrape`)
+  })
+
+  it('uses the release row updated_at as lastModified, never "now"', () => {
+    const routes = buildReleaseRoutes([release({ updated_at: '2025-06-01T00:00:00Z' })], SITE_URL)
+    assert.equal((routes[0].lastModified as Date).toISOString(), '2025-06-01T00:00:00.000Z')
+    assert.notEqual((routes[0].lastModified as Date).getTime(), Date.now())
+  })
+
+  it('includes every release passed in', () => {
+    const routes = buildReleaseRoutes(
+      [release({ id: 'a', slug: 'a' }), release({ id: 'b', slug: 'b' })],
+      SITE_URL,
+    )
+    assert.deepEqual(routes.map((r) => r.url).sort(), [`${SITE_URL}/music/a`, `${SITE_URL}/music/b`])
+  })
+
+  it('returns nothing for an empty release list', () => {
+    assert.deepEqual(buildReleaseRoutes([], SITE_URL), [])
   })
 })
 
