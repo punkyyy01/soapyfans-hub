@@ -6,7 +6,7 @@ import {
   type TmdbPersonImages,
 } from '@/utils/tmdb'
 import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
-import { buildWebPageSchema, serializeJsonLd } from '@/utils/schema'
+import { buildWebPageSchema, buildSophieThatcherPersonSchema, serializeJsonLd } from '@/utils/schema'
 import PageContainer from '@/components/ui/PageContainer'
 import Reveal from '@/components/ui/Reveal'
 import Badge from '@/components/ui/Badge'
@@ -84,6 +84,10 @@ export default async function AboutPage() {
           ),
         }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildSophieThatcherPersonSchema()) }}
+      />
 
       <PageContainer size="dossier">
         {/* ── 01. OPENING ────────────────────────────────────────── */}
@@ -94,7 +98,10 @@ export default async function AboutPage() {
               <span>Born 2000 · Chicago, Illinois</span>
             </div>
 
-            <h1 className="mt-4 font-display text-[clamp(2.4rem,5vw,3.6rem)] font-medium leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)]">
+            <h1
+              id="sophie-thatcher"
+              className="mt-4 font-display text-[clamp(2.4rem,5vw,3.6rem)] font-medium leading-[1.05] tracking-[-0.02em] text-[var(--text-primary)]"
+            >
               Sophie Thatcher
             </h1>
 
