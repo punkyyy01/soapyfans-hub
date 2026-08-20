@@ -8,9 +8,12 @@ import { getBannedUserIds } from '@/utils/supabase/moderation'
 import { getMovieDetails, getTvDetails, getTmdbImageUrl, getPersonCombinedCredits, normalizeCredit } from '@/utils/tmdb'
 import { sanitizeCSS } from '@/utils/sanitize-css'
 import { isUuid, resolveCanonicalProfileSlug, profilePath, escapeIlike } from '@/utils/profile'
+import { evaluateProfileSeo } from '@/utils/profile-seo'
+import { buildBreadcrumbSchema, buildProfilePageSchema, serializeJsonLd } from '@/utils/schema'
 import ActivityFeed, { type ActivityItem } from '@/components/profile/ActivityFeed'
 import SectionHeader from '@/components/ui/SectionHeader'
 import Button from '@/components/ui/Button'
+import Breadcrumbs from '@/components/ui/Breadcrumbs'
 
 interface Props {
   params: Promise<{ username: string }>
@@ -62,6 +65,22 @@ const getProfileBySlug = cache(async (slug: string) => {
   return { profile: profile as ProfileRow, error, isBanned: bannedIds.has(profile.id) }
 })
 
+/**
+ * Review body text for this profile's SEO-quality evaluation, independent
+ * of `show_activity` -- a review already appears publicly on its film/music
+ * page (with a link back to this profile) even when the profile's own
+ * activity feed is hidden, so it must still count as a public content
+ * signal here.
+ */
+const getProfileReviewContents = cache(async (profileId: string): Promise<(string | null)[]> => {
+  const supabase = await createClient()
+  const [{ data: filmReviews }, { data: musicReviews }] = await Promise.all([
+    supabase.from('reviews').select('content').eq('user_id', profileId).is('deleted_at', null),
+    supabase.from('music_reviews').select('content').eq('user_id', profileId).is('deleted_at', null),
+  ])
+  return [...(filmReviews ?? []), ...(musicReviews ?? [])].map((r) => r.content)
+})
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username } = await params
   const { profile, isBanned } = await getProfileBySlug(username)
@@ -70,14 +89,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const canonicalSlug = resolveCanonicalProfileSlug(profile)
   const displayName = profile.display_name ?? profile.username ?? 'Anonymous'
-  const title = `${displayName} · Profile`
-  const description = `${displayName}'s fan profile, favorites, and reviews on SoapyFans Hub.`
   const canonical = profilePath(canonicalSlug)
+
+  const reviewContents = await getProfileReviewContents(profile.id)
+  const quality = evaluateProfileSeo({
+    exists: true,
+    isBanned: false,
+    username: profile.username,
+    bio: profile.bio,
+    aboutMe: profile.about_me,
+    favoritesCount: (profile.profile_favorites ?? []).length,
+    reviewContents,
+  })
+
+  const title = profile.username ? `${displayName} (@${profile.username})` : displayName
+  const aboutMe = profile.about_me?.trim()
+  const bio = profile.bio?.trim()
+  const description = aboutMe
+    ? `${aboutMe.slice(0, 155)}${aboutMe.length > 155 ? '…' : ''}`
+    : bio
+      ? `${bio.slice(0, 155)}${bio.length > 155 ? '…' : ''}`
+      : `${displayName}'s fan profile, favorites, and reviews on SoapyFans Hub.`
 
   return {
     title,
     description,
     alternates: { canonical },
+    ...(quality === 'noindex' ? { robots: { index: false, follow: true } } : {}),
     openGraph: {
       title,
       description,
@@ -156,6 +194,21 @@ export default async function ProfilePage({ params, searchParams }: Props) {
   const sortedFavorites = ((profile.profile_favorites ?? []) as FavoriteRow[])
     .slice()
     .sort((a, b) => a.position - b.position)
+
+  const reviewContents = await getProfileReviewContents(profile.id)
+  const seoQuality = evaluateProfileSeo({
+    exists: true,
+    isBanned: false,
+    username: profile.username,
+    bio: profile.bio,
+    aboutMe: profile.about_me,
+    favoritesCount: sortedFavorites.length,
+    reviewContents,
+  })
+  const breadcrumbItems = [
+    { name: 'Home', path: '/' },
+    { name: displayName, path: profilePath(profileSlug) },
+  ]
 
   // Fast path: resolve favorite titles and posters from cached combined credits
   const creditsPromise = sortedFavorites.length > 0
@@ -252,10 +305,34 @@ export default async function ProfilePage({ params, searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-[var(--bg-base)] px-4 pb-24 pt-20 sm:px-6 sm:pb-32 sm:pt-24">
+      {/* ── Structured Data (SEO JSON-LD) ────────────────────── */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildBreadcrumbSchema(breadcrumbItems)) }}
+      />
+      {seoQuality === 'indexable' && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: serializeJsonLd(
+              buildProfilePageSchema({
+                displayName,
+                username: profile.username,
+                path: profilePath(profileSlug),
+              }),
+            ),
+          }}
+        />
+      )}
+
       {/* ── Scoped Custom CSS (Strictly Isolated to Canvas) ──── */}
       {sanitizedCss && (
         <style>{`#profile-canvas { ${sanitizedCss} }`}</style>
       )}
+
+      <div className="mx-auto mb-4 max-w-5xl">
+        <Breadcrumbs items={breadcrumbItems} />
+      </div>
 
       {/* ── USER PROFILE CANVAS ─────────────────────────────── */}
       <div
