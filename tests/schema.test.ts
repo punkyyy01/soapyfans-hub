@@ -146,7 +146,7 @@ describe('Schema.org structured data generators', () => {
     assert.equal(tv.numberOfEpisodes, 29)
   })
 
-  it('buildMusicReleaseSchema returns valid MusicAlbum JSON-LD with tracks', () => {
+  it('buildMusicReleaseSchema returns valid MusicAlbum JSON-LD with tracks, anchored at the real release URL', () => {
     const release = buildMusicReleaseSchema({
       title: 'Pivot & Scrape',
       release_type: 'ep',
@@ -161,6 +161,7 @@ describe('Schema.org structured data generators', () => {
         },
       ],
       reviews: [],
+      path: '/music/pivot-scrape',
     })
 
     assert.equal(release['@context'], 'https://schema.org')
@@ -168,6 +169,8 @@ describe('Schema.org structured data generators', () => {
     assert.equal(release.name, 'Pivot & Scrape')
     assert.equal(release.albumReleaseType, 'EPRelease')
     assert.equal(release.numTracks, 1)
+    assert.ok((release.url as string).endsWith('/music/pivot-scrape'))
+    assert.ok((release['@id'] as string).startsWith(release.url as string))
     const tracks = release.track as Array<{ duration?: string }> | undefined
     assert.equal(tracks?.[0]?.duration, 'PT3M30S')
   })
@@ -188,6 +191,7 @@ describe('Schema.org structured data generators', () => {
           profiles: { username: 'musicfan', display_name: null },
         },
       ],
+      path: '/music/pivot-scrape',
     })
 
     const aggregateRating = release.aggregateRating as { ratingValue: number; ratingCount: number }
@@ -243,6 +247,7 @@ describe('Sophie Thatcher stable Person entity', () => {
       description: null,
       tracks: [],
       reviews: [],
+      path: '/music/z',
     })
 
     assert.deepEqual(movie.actor, { '@id': SOPHIE_PERSON_ID })

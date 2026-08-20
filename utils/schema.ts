@@ -245,6 +245,7 @@ export function buildMusicReleaseSchema({
   description,
   tracks,
   reviews,
+  path,
 }: {
   title: string
   release_type: string
@@ -258,11 +259,15 @@ export function buildMusicReleaseSchema({
     created_at: string
     profiles: { username: string | null; display_name: string | null } | null
   }>
+  /** The release's own canonical page, e.g. `/music/pivot-scrape`. */
+  path: string
 }) {
+  const url = absoluteUrl(path)
   const schema: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'MusicAlbum',
-    '@id': absoluteUrl(`/music#release-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`),
+    '@id': `${url}#release`,
+    url,
     name: title,
     byArtist: { '@id': SOPHIE_PERSON_ID },
     inLanguage: 'en',
