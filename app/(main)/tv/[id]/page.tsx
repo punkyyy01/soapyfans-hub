@@ -5,11 +5,12 @@ import { notFound } from 'next/navigation'
 import { getTvDetails, getTmdbImageUrl, getWatchProvidersForCountry } from '@/utils/tmdb'
 import WhereToWatch from '@/components/media/WhereToWatch'
 import MediaDetailTabs from '@/components/media/MediaDetailTabs'
-import { buildTvSeriesSchema, serializeJsonLd } from '@/utils/schema'
+import { buildTvSeriesSchema, buildBreadcrumbSchema, serializeJsonLd } from '@/utils/schema'
 import PageContainer from '@/components/ui/PageContainer'
 import SectionHeader from '@/components/ui/SectionHeader'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
+import Breadcrumbs from '@/components/ui/Breadcrumbs'
 
 export const revalidate = 3600
 
@@ -111,12 +112,22 @@ export default async function TvDetailPage({ params }: Props) {
     numberOfEpisodes: tv.number_of_episodes,
   })
 
+  const breadcrumbItems = [
+    { name: 'Home', path: '/' },
+    { name: 'Filmography', path: '/films' },
+    { name: tv.name, path: `/tv/${tvId}` },
+  ]
+
   return (
     <main className="min-h-screen bg-[var(--bg-base)]">
       {/* ── Structured Data (SEO JSON-LD) ────────────────────── */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(seriesSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildBreadcrumbSchema(breadcrumbItems)) }}
       />
 
       {/* ── Contained Backdrop Header ───────────────────────── */}
@@ -138,6 +149,8 @@ export default async function TvDetailPage({ params }: Props) {
       {/* ── Header Title Block ──────────────────────────────── */}
       <PageContainer size="default" className="relative z-10 -mt-16 sm:-mt-24">
         <div className="mb-10 space-y-4">
+          <Breadcrumbs items={breadcrumbItems} />
+
           <Link
             href="/films#television"
             className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.16em] text-[var(--text-secondary)] transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs py-1"
