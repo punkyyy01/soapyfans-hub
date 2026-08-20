@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { createClient, getUser } from '@/utils/supabase/server'
+import { createClient } from '@/utils/supabase/server'
 import { getBannedUserIds } from '@/utils/supabase/moderation'
 import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildCollectionPageSchema, serializeJsonLd } from '@/utils/schema'
-import { isVisibleReview, reviewAuthorProfilePath } from '@/utils/reviews'
+import { isVisibleReview } from '@/utils/reviews'
 import TrackList from '@/components/media/TrackList'
 import {
   getTotalDuration,
@@ -13,14 +13,12 @@ import {
   SOPHIE_MUSIC_QUOTES as SOPHIE_QUOTES,
 } from '@/utils/music'
 import { getReleasesWithSlugs, type ReleaseWithSlug } from '@/utils/releases'
-import MusicReviewForm from '@/components/forms/MusicReviewForm'
 import PageContainer from '@/components/ui/PageContainer'
 import PageHeader from '@/components/ui/PageHeader'
 import SectionHeader from '@/components/ui/SectionHeader'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import EmptyState from '@/components/ui/EmptyState'
-import StarRating from '@/components/ui/StarRating'
 import SafeImage from '@/components/ui/SafeImage'
 
 const MUSIC_DESCRIPTION =
@@ -53,15 +51,13 @@ export const metadata: Metadata = {
   },
 }
 
-type MusicReviewWithProfile = {
+// Only what's needed to compute a per-release review count on the index --
+// full review bodies (content/rating/author) render on /music/[slug] only.
+type MusicReviewSummary = {
   id: string
   user_id: string
   release_id: string
-  rating: number
-  content: string | null
-  created_at: string
   deleted_at: string | null
-  profiles: { username: string | null; display_name: string | null } | null
 }
 
 function formatReleaseDate(dateStr: string | null) {
@@ -81,13 +77,9 @@ export default async function MusicPage({ searchParams }: Props) {
   const { error } = await searchParams
   const supabase = await createClient()
 
-  const [user, releasesOrNull, reviewsResult, bannedUserIds] = await Promise.all([
-    getUser(),
+  const [releasesOrNull, reviewsResult, bannedUserIds] = await Promise.all([
     getReleasesWithSlugs().catch(() => null),
-    supabase
-      .from('music_reviews')
-      .select('id, user_id, release_id, rating, content, created_at, deleted_at, profiles(username, display_name)')
-      .is('deleted_at', null),
+    supabase.from('music_reviews').select('id, user_id, release_id, deleted_at').is('deleted_at', null),
     getBannedUserIds(),
   ])
 
@@ -98,11 +90,9 @@ export default async function MusicPage({ searchParams }: Props) {
   const releasesError = releasesOrNull === null
   const releaseList: ReleaseWithSlug[] = releasesOrNull ?? []
 
-  const allReviews: MusicReviewWithProfile[] = (
-    (reviewsResult.data ?? []) as unknown as MusicReviewWithProfile[]
-  )
-    .filter((r) => isVisibleReview(r, bannedUserIds))
-    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+  const allReviews: MusicReviewSummary[] = (
+    (reviewsResult.data ?? []) as unknown as MusicReviewSummary[]
+  ).filter((r) => isVisibleReview(r, bannedUserIds))
 
   // Determine the primary/featured release
   const featuredRelease =
@@ -200,7 +190,6 @@ export default async function MusicPage({ searchParams }: Props) {
 
               {(() => {
                 const reviews = allReviews.filter((r) => r.release_id === featuredRelease.id)
-                const userReview = user ? reviews.find((r) => r.user_id === user.id) : undefined
                 const quoteObj = SOPHIE_QUOTES[featuredRelease.title]
                 const totalDuration = getTotalDuration(featuredRelease.tracks)
                 const spotifyUrl = safeExternalUrl(featuredRelease.spotify_url, [
@@ -358,108 +347,14 @@ export default async function MusicPage({ searchParams }: Props) {
                           </div>
                         )}
 
-                        {/* Reviews for Featured Release */}
-                        <div className="space-y-6 pt-4">
-                          <SectionHeader
-                            kicker="Fan Floor · Notes &amp; Reviews"
-                            title="Community Impressions"
-                            action={
-                              <span className="font-mono text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                                {reviews.length} {reviews.length === 1 ? 'voice' : 'voices'}
-                              </span>
-                            }
-                          />
-
-                          {user ? (
-                            <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-6 backdrop-blur-xs">
-                              <MusicReviewForm
-                                releaseId={featuredRelease.id}
-                                existingReview={
-                                  userReview
-                                    ? {
-                                        id: userReview.id,
-                                        rating: userReview.rating,
-                                        content: userReview.content,
-                                      }
-                                    : undefined
-                                }
-                              />
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-6 sm:flex-row sm:items-center">
-                              <div className="space-y-1">
-                                <p className="font-display text-base font-medium text-[var(--text-primary)]">
-                                  Have you listened to {featuredRelease.title}?
-                                </p>
-                                <p className="text-xs text-[var(--text-secondary)]">
-                                  Sign in to rate this release and add your thoughts to the fan archive.
-                                </p>
-                              </div>
-                              <Button href="/login" variant="secondary" size="sm">
-                                Sign in to review
-                              </Button>
-                            </div>
-                          )}
-
-                          {reviews.length > 0 ? (
-                            <ul className="space-y-4">
-                              {reviews.map((review) => {
-                                const author =
-                                  review.profiles?.display_name ??
-                                  review.profiles?.username ??
-                                  'Anonymous Fan'
-                                const isOwn = review.user_id === user?.id
-                                const authorHref = reviewAuthorProfilePath(review.profiles)
-                                return (
-                                  <li
-                                    key={review.id}
-                                    className="group relative rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-6 transition-all hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface)]"
-                                  >
-                                    <div className="flex flex-wrap items-center gap-3">
-                                      <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--accent-amber)]/40 bg-[var(--bg-card)] font-mono text-xs font-semibold text-[var(--accent-amber)]">
-                                        {author[0]?.toUpperCase() ?? '?'}
-                                      </span>
-                                      <span className="font-display text-base font-medium text-[var(--text-primary)]">
-                                        {authorHref ? (
-                                          <Link
-                                            href={authorHref}
-                                            className="transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
-                                          >
-                                            {author}
-                                          </Link>
-                                        ) : (
-                                          author
-                                        )}
-                                        {isOwn && (
-                                          <span className="ml-2 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-[var(--accent-amber)]">
-                                            (You)
-                                          </span>
-                                        )}
-                                      </span>
-                                      <StarRating value={review.rating} />
-                                      <span className="ml-auto font-mono text-xs text-[var(--text-muted)]">
-                                        {new Date(review.created_at).toLocaleDateString(undefined, {
-                                          year: 'numeric',
-                                          month: 'short',
-                                          day: 'numeric',
-                                        })}
-                                      </span>
-                                    </div>
-                                    {review.content && (
-                                      <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)] text-pretty">
-                                        {review.content}
-                                      </p>
-                                    )}
-                                  </li>
-                                )
-                              })}
-                            </ul>
-                          ) : (
-                            <EmptyState
-                              title="No fan notes yet"
-                              description="Be the first person to leave a note and star rating for this release."
-                            />
-                          )}
+                        {/* Reviews Summary — full reviews + review form live on the release page */}
+                        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border-subtle)] pt-6">
+                          <p className="font-mono text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
+                            {reviews.length} community {reviews.length === 1 ? 'note' : 'notes'}
+                          </p>
+                          <Button href={`/music/${featuredRelease.slug}`} variant="secondary" size="sm">
+                            Read reviews &amp; rate this release →
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -485,7 +380,6 @@ export default async function MusicPage({ searchParams }: Props) {
               <div className="space-y-12">
                 {otherReleases.map((release) => {
                   const reviews = allReviews.filter((r) => r.release_id === release.id)
-                  const userReview = user ? reviews.find((r) => r.user_id === user.id) : undefined
                   const typeLabel = TYPE_LABEL[release.release_type] ?? release.release_type
                   const quoteObj = SOPHIE_QUOTES[release.title]
                   const spotifyUrl = safeExternalUrl(release.spotify_url, [
@@ -573,93 +467,17 @@ export default async function MusicPage({ searchParams }: Props) {
                         </div>
                       )}
 
-                      {/* Integrated Reviews for Secondary Release */}
-                      <div className="border-t border-[var(--border-subtle)] pt-6 space-y-6">
-                        <div className="flex items-center justify-between">
-                          <p className="text-eyebrow">
-                            Fan Notes ({reviews.length})
-                          </p>
-                          {!user && (
-                            <Link
-                              href="/login"
-                              className="font-mono text-xs uppercase tracking-[0.14em] text-[var(--accent-amber)] hover:underline focus-ring rounded-xs"
-                            >
-                              Sign in to review →
-                            </Link>
-                          )}
-                        </div>
-
-                        {user && (
-                          <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] p-5">
-                            <MusicReviewForm
-                              releaseId={release.id}
-                              existingReview={
-                                userReview
-                                  ? {
-                                      id: userReview.id,
-                                      rating: userReview.rating,
-                                      content: userReview.content,
-                                    }
-                                  : undefined
-                              }
-                            />
-                          </div>
-                        )}
-
-                        {reviews.length > 0 ? (
-                          <ul className="space-y-3">
-                            {reviews.map((review) => {
-                              const author =
-                                review.profiles?.display_name ??
-                                review.profiles?.username ??
-                                'Anonymous Fan'
-                              const isOwn = review.user_id === user?.id
-                              const authorHref = reviewAuthorProfilePath(review.profiles)
-                              return (
-                                <li
-                                  key={review.id}
-                                  className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/40 p-4 transition-colors hover:bg-[var(--bg-surface)]"
-                                >
-                                  <div className="flex flex-wrap items-center gap-2.5 text-xs">
-                                    <span className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--accent-amber)]/40 bg-[var(--bg-card)] font-mono text-[0.65rem] font-semibold text-[var(--accent-amber)]">
-                                      {author[0]?.toUpperCase() ?? '?'}
-                                    </span>
-                                    <span className="font-display font-medium text-[var(--text-primary)]">
-                                      {authorHref ? (
-                                        <Link
-                                          href={authorHref}
-                                          className="transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
-                                        >
-                                          {author}
-                                        </Link>
-                                      ) : (
-                                        author
-                                      )}{' '}
-                                      {isOwn && '(You)'}
-                                    </span>
-                                    <StarRating value={review.rating} />
-                                    <span className="ml-auto font-mono text-[var(--text-muted)]">
-                                      {new Date(review.created_at).toLocaleDateString(undefined, {
-                                        year: 'numeric',
-                                        month: 'short',
-                                        day: 'numeric',
-                                      })}
-                                    </span>
-                                  </div>
-                                  {review.content && (
-                                    <p className="mt-2 text-xs leading-relaxed text-[var(--text-secondary)]">
-                                      {review.content}
-                                    </p>
-                                  )}
-                                </li>
-                              )
-                            })}
-                          </ul>
-                        ) : (
-                          <p className="text-xs italic text-[var(--text-muted)]">
-                            No fan notes yet for this release.
-                          </p>
-                        )}
+                      {/* Reviews Summary — full reviews + review form live on the release page */}
+                      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border-subtle)] pt-6">
+                        <p className="text-eyebrow">
+                          Fan Notes ({reviews.length})
+                        </p>
+                        <Link
+                          href={`/music/${release.slug}`}
+                          className="font-mono text-xs uppercase tracking-[0.14em] text-[var(--accent-amber)] hover:underline focus-ring rounded-xs"
+                        >
+                          View release &amp; reviews →
+                        </Link>
                       </div>
                     </article>
                   )
