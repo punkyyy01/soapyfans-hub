@@ -4,78 +4,35 @@ import {
   normalizeCredit,
   type NormalizedCredit,
 } from '@/utils/tmdb'
-import { getSiteUrl } from '@/utils/site'
+import { createPublicClient } from '@/utils/supabase/public'
+import { getBannedUserIds } from '@/utils/supabase/moderation'
+import { evaluateProfileSeo } from '@/utils/profile-seo'
+import { profilePath } from '@/utils/profile'
+import { createLastKnownGood } from '@/utils/sitemap-resilience'
+import { getSiteUrl, STATIC_CONTENT_LAST_MODIFIED } from '@/utils/site'
 
 export const revalidate = 3600
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const siteUrl = getSiteUrl()
-  const now = new Date()
+const SNAPSHOT_MAX_AGE_MS = 24 * 60 * 60 * 1000
 
-  const staticRoutes: MetadataRoute.Sitemap = [
-    {
-      url: `${siteUrl}/`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 1.0,
-    },
-    {
-      url: `${siteUrl}/films`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${siteUrl}/music`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
-      url: `${siteUrl}/about`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
-    {
-      url: `${siteUrl}/contact`,
-      lastModified: now,
-      changeFrequency: 'yearly',
-      priority: 0.4,
-    },
-    {
-      url: `${siteUrl}/privacy`,
-      lastModified: now,
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
-    {
-      url: `${siteUrl}/terms`,
-      lastModified: now,
-      changeFrequency: 'yearly',
-      priority: 0.3,
-    },
+export function buildStaticRoutes(siteUrl: string): MetadataRoute.Sitemap {
+  return [
+    { url: `${siteUrl}/`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'weekly', priority: 1.0 },
+    { url: `${siteUrl}/films`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.9 },
+    { url: `${siteUrl}/music`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${siteUrl}/about`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${siteUrl}/contact`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'yearly', priority: 0.4 },
+    { url: `${siteUrl}/privacy`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${siteUrl}/terms`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'yearly', priority: 0.3 },
   ]
+}
 
-  let credits: NormalizedCredit[] = []
-  try {
-    const combined = await getPersonCombinedCredits()
-    const seen = new Set<string>()
-    for (const c of combined.cast) {
-      const key = `${c.media_type}:${c.id}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      credits.push(normalizeCredit(c))
-    }
-  } catch {
-    return staticRoutes
-  }
-
+export function buildFilmTvRoutes(credits: NormalizedCredit[], siteUrl: string): MetadataRoute.Sitemap {
   const filmRoutes: MetadataRoute.Sitemap = credits
     .filter((c) => c.mediaType === 'movie')
     .map((c) => ({
       url: `${siteUrl}/films/${c.id}`,
-      lastModified: c.date ? new Date(c.date) : now,
+      lastModified: c.date ? new Date(c.date) : STATIC_CONTENT_LAST_MODIFIED,
       changeFrequency: 'monthly',
       priority: 0.7,
     }))
@@ -84,10 +41,137 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .filter((c) => c.mediaType === 'tv')
     .map((c) => ({
       url: `${siteUrl}/tv/${c.id}`,
-      lastModified: c.date ? new Date(c.date) : now,
+      lastModified: c.date ? new Date(c.date) : STATIC_CONTENT_LAST_MODIFIED,
       changeFrequency: 'monthly',
       priority: 0.7,
     }))
 
-  return [...staticRoutes, ...filmRoutes, ...tvRoutes]
+  return [...filmRoutes, ...tvRoutes]
+}
+
+export type ProfileSitemapCandidate = {
+  id: string
+  username: string | null
+  bio: string | null
+  about_me: string | null
+  updated_at: string
+  favoritesCount: number
+  latestFavoriteAt: string | null
+  reviewContents: (string | null)[]
+}
+
+/**
+ * Only `indexable` profiles (per the shared evaluateProfileSeo policy) get
+ * a sitemap entry -- noindex/unavailable/no-username profiles are excluded
+ * here, not just annotated. `profiles.updated_at` doesn't change when a
+ * favorite is added/removed/reordered (see app/(main)/profile/edit/actions.ts:
+ * only saveProfile bumps it), so the latest favorite timestamp is used
+ * instead whenever it's more recent -- the smallest safe fix for that gap
+ * rather than trusting a stale updated_at.
+ */
+export function buildProfileSitemapEntries(
+  candidates: ProfileSitemapCandidate[],
+  bannedIds: Set<string>,
+  siteUrl: string,
+): MetadataRoute.Sitemap {
+  const entries: MetadataRoute.Sitemap = []
+
+  for (const candidate of candidates) {
+    const quality = evaluateProfileSeo({
+      exists: true,
+      isBanned: bannedIds.has(candidate.id),
+      username: candidate.username,
+      bio: candidate.bio,
+      aboutMe: candidate.about_me,
+      favoritesCount: candidate.favoritesCount,
+      reviewContents: candidate.reviewContents,
+    })
+
+    if (quality !== 'indexable') continue
+
+    const lastModified =
+      candidate.latestFavoriteAt && candidate.latestFavoriteAt > candidate.updated_at
+        ? new Date(candidate.latestFavoriteAt)
+        : new Date(candidate.updated_at)
+
+    entries.push({
+      url: `${siteUrl}${profilePath(candidate.username as string)}`,
+      lastModified,
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    })
+  }
+
+  return entries
+}
+
+async function fetchCredits(): Promise<NormalizedCredit[]> {
+  const combined = await getPersonCombinedCredits()
+  const seen = new Set<string>()
+  const credits: NormalizedCredit[] = []
+  for (const c of combined.cast) {
+    const key = `${c.media_type}:${c.id}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    credits.push(normalizeCredit(c))
+  }
+  return credits
+}
+
+async function fetchProfileCandidates(): Promise<ProfileSitemapCandidate[]> {
+  const supabase = createPublicClient()
+  const [{ data: profiles }, { data: favorites }, { data: filmReviews }, { data: musicReviews }] =
+    await Promise.all([
+      supabase.from('profiles').select('id, username, bio, about_me, updated_at'),
+      supabase.from('profile_favorites').select('user_id, created_at'),
+      supabase.from('reviews').select('user_id, content').is('deleted_at', null),
+      supabase.from('music_reviews').select('user_id, content').is('deleted_at', null),
+    ])
+
+  const favoritesByUser = new Map<string, { count: number; latest: string | null }>()
+  for (const fav of favorites ?? []) {
+    const entry = favoritesByUser.get(fav.user_id) ?? { count: 0, latest: null }
+    entry.count += 1
+    if (fav.created_at && (!entry.latest || fav.created_at > entry.latest)) entry.latest = fav.created_at
+    favoritesByUser.set(fav.user_id, entry)
+  }
+
+  const reviewsByUser = new Map<string, (string | null)[]>()
+  for (const review of [...(filmReviews ?? []), ...(musicReviews ?? [])]) {
+    const list = reviewsByUser.get(review.user_id) ?? []
+    list.push(review.content)
+    reviewsByUser.set(review.user_id, list)
+  }
+
+  return (profiles ?? []).map((p) => ({
+    id: p.id,
+    username: p.username,
+    bio: p.bio,
+    about_me: p.about_me,
+    updated_at: p.updated_at,
+    favoritesCount: favoritesByUser.get(p.id)?.count ?? 0,
+    latestFavoriteAt: favoritesByUser.get(p.id)?.latest ?? null,
+    reviewContents: reviewsByUser.get(p.id) ?? [],
+  }))
+}
+
+async function fetchProfileEntries(siteUrl: string): Promise<MetadataRoute.Sitemap> {
+  // Fetched together so a banned-list failure can never leave a banned
+  // profile in the sitemap just because the candidates query happened to
+  // succeed -- either both succeed and get filtered correctly, or the
+  // whole thing throws and falls back to the last known-safe snapshot.
+  const [candidates, bannedIds] = await Promise.all([fetchProfileCandidates(), getBannedUserIds()])
+  return buildProfileSitemapEntries(candidates, bannedIds, siteUrl)
+}
+
+const resolveCredits = createLastKnownGood<NormalizedCredit[]>(SNAPSHOT_MAX_AGE_MS)
+const resolveProfileEntries = createLastKnownGood<MetadataRoute.Sitemap>(SNAPSHOT_MAX_AGE_MS)
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const siteUrl = getSiteUrl()
+
+  const credits = await resolveCredits(fetchCredits, [])
+  const profileEntries = await resolveProfileEntries(() => fetchProfileEntries(siteUrl), [])
+
+  return [...buildStaticRoutes(siteUrl), ...buildFilmTvRoutes(credits, siteUrl), ...profileEntries]
 }
