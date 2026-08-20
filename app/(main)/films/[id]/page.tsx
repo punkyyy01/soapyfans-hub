@@ -8,10 +8,11 @@ import WhereToWatch from '@/components/media/WhereToWatch'
 import MediaDetailTabs from '@/components/media/MediaDetailTabs'
 import { createClient, getUser } from '@/utils/supabase/server'
 import { getBannedUserIds } from '@/utils/supabase/moderation'
-import { buildMovieSchema, serializeJsonLd } from '@/utils/schema'
+import { buildMovieSchema, buildBreadcrumbSchema, serializeJsonLd } from '@/utils/schema'
 import { isVisibleReview, reviewAuthorProfilePath } from '@/utils/reviews'
 import ReviewForm from '@/components/forms/ReviewForm'
 import PageContainer from '@/components/ui/PageContainer'
+import Breadcrumbs from '@/components/ui/Breadcrumbs'
 import SectionHeader from '@/components/ui/SectionHeader'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
@@ -296,11 +297,21 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
   )
   const sophieCharacter = sophieCastMember?.character?.trim() || null
 
+  const breadcrumbItems = [
+    { name: 'Home', path: '/' },
+    { name: 'Filmography', path: '/films' },
+    { name: film.title, path: `/films/${tmdbId}` },
+  ]
+
   return (
     <main className="min-h-screen bg-[var(--bg-base)]">
       {/* ── Structured Data (SEO JSON-LD): Movie schema, incl. reviews,
           renders inside <FilmReviewsSection> below, alongside the same
           eligible review data it describes. ─────────────────────────── */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildBreadcrumbSchema(breadcrumbItems)) }}
+      />
 
       {/* ── Contained Backdrop Header ───────────────────────── */}
       <section className="relative h-48 w-full overflow-hidden sm:h-64">
@@ -321,6 +332,8 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
       {/* ── Header Title Block ──────────────────────────────── */}
       <PageContainer size="default" className="relative z-10 -mt-16 sm:-mt-24">
         <div className="mb-10 space-y-4">
+          <Breadcrumbs items={breadcrumbItems} />
+
           <Link
             href="/films"
             className="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.16em] text-[var(--text-secondary)] transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs py-1"
