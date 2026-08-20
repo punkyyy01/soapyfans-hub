@@ -1,14 +1,18 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { unstable_cache } from 'next/cache'
 import { createClient, getUser } from '@/utils/supabase/server'
-import { createPublicClient } from '@/utils/supabase/public'
 import { getBannedUserIds } from '@/utils/supabase/moderation'
 import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
-import { buildCollectionPageSchema, buildMusicReleaseSchema, serializeJsonLd } from '@/utils/schema'
+import { buildCollectionPageSchema, serializeJsonLd } from '@/utils/schema'
 import { isVisibleReview, reviewAuthorProfilePath } from '@/utils/reviews'
 import TrackList from '@/components/media/TrackList'
-import { getTotalDuration } from '@/utils/music'
+import {
+  getTotalDuration,
+  safeExternalUrl,
+  RELEASE_TYPE_LABEL as TYPE_LABEL,
+  SOPHIE_MUSIC_QUOTES as SOPHIE_QUOTES,
+} from '@/utils/music'
+import { getReleasesWithSlugs, type ReleaseWithSlug } from '@/utils/releases'
 import MusicReviewForm from '@/components/forms/MusicReviewForm'
 import PageContainer from '@/components/ui/PageContainer'
 import PageHeader from '@/components/ui/PageHeader'
@@ -49,27 +53,6 @@ export const metadata: Metadata = {
   },
 }
 
-type TrackRow = {
-  id: string
-  title: string
-  duration_ms: number | null
-  track_number: number | null
-  youtube_video_id: string | null
-}
-
-type ReleaseWithTracks = {
-  id: string
-  title: string
-  release_type: string
-  release_date: string | null
-  cover_art_url: string | null
-  spotify_url: string | null
-  bandcamp_url: string | null
-  twitter_url: string | null
-  description: string | null
-  tracks: TrackRow[]
-}
-
 type MusicReviewWithProfile = {
   id: string
   user_id: string
@@ -80,51 +63,6 @@ type MusicReviewWithProfile = {
   deleted_at: string | null
   profiles: { username: string | null; display_name: string | null } | null
 }
-
-const TYPE_LABEL: Record<string, string> = {
-  ep: 'Debut EP',
-  single: 'Single',
-  soundtrack: 'Soundtrack',
-  album: 'Album',
-}
-
-const SOPHIE_QUOTES: Record<string, { quote: string; attribution: string }> = {
-  'Pivot & Scrape': {
-    quote:
-      'The imagery and lyrics were inspired by dreams I kept having about throwing myself into glass. It felt guttural and like a strong juxtaposition with the dreaminess of the sound.',
-    attribution: 'Sophie Thatcher, 2024',
-  },
-  "Knockin' on Heaven's Door": {
-    quote: 'The cover feels very melancholic and feminine, more dreamy and atmospheric.',
-    attribution: 'Sophie Thatcher (Heretic OST)',
-  },
-}
-
-function safeExternalUrl(raw: string | null, allowedHosts: string[]): string | null {
-  if (!raw) return null
-  try {
-    const url = new URL(raw)
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null
-    if (!allowedHosts.includes(url.hostname)) return null
-    return url.toString()
-  } catch {
-    return null
-  }
-}
-
-const getReleasesWithTracks = unstable_cache(
-  async () => {
-    const result = await createPublicClient()
-      .from('releases')
-      .select(
-        'id, title, release_type, release_date, cover_art_url, spotify_url, bandcamp_url, twitter_url, description, tracks(id, title, duration_ms, track_number, youtube_video_id)',
-      )
-      .order('release_date', { ascending: false })
-    return result.data ?? []
-  },
-  ['releases', 'with-tracks'],
-  { revalidate: 300 }
-)
 
 function formatReleaseDate(dateStr: string | null) {
   if (!dateStr) return '—'
@@ -145,7 +83,7 @@ export default async function MusicPage({ searchParams }: Props) {
 
   const [user, releasesOrNull, reviewsResult, bannedUserIds] = await Promise.all([
     getUser(),
-    getReleasesWithTracks().catch(() => null),
+    getReleasesWithSlugs().catch(() => null),
     supabase
       .from('music_reviews')
       .select('id, user_id, release_id, rating, content, created_at, deleted_at, profiles(username, display_name)')
@@ -158,22 +96,7 @@ export default async function MusicPage({ searchParams }: Props) {
   }
 
   const releasesError = releasesOrNull === null
-  const rawReleases = releasesOrNull ?? []
-
-  const releaseList: ReleaseWithTracks[] = rawReleases.map((r) => ({
-    id: r.id,
-    title: r.title,
-    release_type: r.release_type,
-    release_date: r.release_date,
-    cover_art_url: r.cover_art_url,
-    spotify_url: r.spotify_url,
-    bandcamp_url: r.bandcamp_url,
-    twitter_url: r.twitter_url,
-    description: r.description,
-    tracks: ((r.tracks ?? []) as TrackRow[]).sort(
-      (a, b) => (a.track_number ?? 999) - (b.track_number ?? 999),
-    ),
-  }))
+  const releaseList: ReleaseWithSlug[] = releasesOrNull ?? []
 
   const allReviews: MusicReviewWithProfile[] = (
     (reviewsResult.data ?? []) as unknown as MusicReviewWithProfile[]
@@ -188,13 +111,6 @@ export default async function MusicPage({ searchParams }: Props) {
     ) ?? releaseList[0]
 
   const otherReleases = releaseList.filter((r) => r.id !== featuredRelease?.id)
-
-  const releaseSchemas = releaseList.map((release) =>
-    buildMusicReleaseSchema({
-      ...release,
-      reviews: allReviews.filter((r) => r.release_id === release.id),
-    }),
-  )
 
   return (
     <main className="min-h-screen bg-[var(--bg-base)] pt-24 sm:pt-28">
@@ -211,13 +127,6 @@ export default async function MusicPage({ searchParams }: Props) {
           ),
         }}
       />
-      {releaseSchemas.map((schema, i) => (
-        <script
-          key={i}
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }}
-        />
-      ))}
 
       <PageContainer size="default">
         {/* ── 01 — Music Page Header ──────────────────────────── */}
@@ -410,7 +319,12 @@ export default async function MusicPage({ searchParams }: Props) {
                       <div className="space-y-10">
                         <div className="space-y-3">
                           <h2 className="font-display text-3xl font-medium tracking-tight text-[var(--text-primary)] sm:text-4xl">
-                            {featuredRelease.title}
+                            <Link
+                              href={`/music/${featuredRelease.slug}`}
+                              className="transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
+                            >
+                              {featuredRelease.title}
+                            </Link>
                           </h2>
                           {featuredRelease.description && (
                             <p className="max-w-2xl text-lg leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-xl">
@@ -597,7 +511,12 @@ export default async function MusicPage({ searchParams }: Props) {
                             </span>
                           </div>
                           <h3 className="font-display text-2xl font-medium tracking-tight text-[var(--text-primary)] sm:text-3xl">
-                            {release.title}
+                            <Link
+                              href={`/music/${release.slug}`}
+                              className="transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
+                            >
+                              {release.title}
+                            </Link>
                           </h3>
                         </div>
 
