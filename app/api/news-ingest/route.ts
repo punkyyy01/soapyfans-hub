@@ -114,11 +114,19 @@ export async function GET(req: Request) {
   // a Groq call on an item; anything inserted during this same run is
   // appended below so duplicates within one run (the common case) are also
   // caught, not just across runs.
+  //
+  // Filtered by created_at (when WE ingested it), not published_at (the
+  // story's own original date) -- confirmed live: Google News resurfaced a
+  // July 22 Variety story via IMDb on August 23, 33 days later. A
+  // published_at filter had already aged the Variety row out of the
+  // window by then, so the IMDb duplicate found nothing to match against
+  // and was approved a second time. created_at reflects our own dedup
+  // history and can't have that gap.
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
   const { data: recentItems } = await supabase
     .from('news_items')
     .select('title')
-    .gte('published_at', thirtyDaysAgo)
+    .gte('created_at', thirtyDaysAgo)
   const recentTitles: string[] = (recentItems ?? []).map((r) => r.title)
 
   for (const source of NEWS_SOURCES) {
