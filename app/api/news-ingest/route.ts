@@ -17,7 +17,13 @@ const parser = new Parser({
   customFields: {
     item: ['media:content', 'media:thumbnail', 'media:group', 'enclosure', 'content:encoded'],
   },
-  requestOptions: { timeout: 8000 },
+  // Some outlets (People.com confirmed) 403 a request with no User-Agent,
+  // treating it as a bot -- this is a normal-looking browser UA, not a
+  // spoof of any specific client.
+  requestOptions: {
+    timeout: 8000,
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SoapyFansHubBot/1.0; +https://soapyhub.fans)' },
+  },
 })
 
 export async function GET(req: Request) {

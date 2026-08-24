@@ -1,9 +1,9 @@
 /**
  * Groq-backed relevance filter for the news ingest pipeline. Same shape as
  * vzla-sismo-feed's factchecker.ts (OpenAI-compatible chat completions,
- * llama-3.3-70b-versatile, JSON-only response) -- proven pattern, swapped
- * from "verify an earthquake news event" to "verify this is actually about
- * the actress Sophie Thatcher, and tag it".
+ * JSON-only response) -- proven pattern, swapped from "verify an earthquake
+ * news event" to "verify this is actually about the actress Sophie
+ * Thatcher, and tag it".
  */
 
 import { NEWS_TAGS } from './news'
@@ -57,7 +57,13 @@ export async function classifyNewsItem(
         Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        // llama-3.3-70b-versatile was decommissioned by Groq for
+        // free/developer-tier usage in August 2026 (every request started
+        // returning 404, which classifyNewsItem's catch block silently
+        // turned into "uncertain" -- confirmed live: 14/14 items rejected
+        // with confidence 0). openai/gpt-oss-120b is Groq's own recommended
+        // replacement.
+        model: 'openai/gpt-oss-120b',
         max_tokens: 200,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
