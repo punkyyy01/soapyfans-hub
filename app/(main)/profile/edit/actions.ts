@@ -14,6 +14,11 @@ type Supabase = Awaited<ReturnType<typeof createClient>>
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/
+// Must match the cooldown interval in
+// supabase/migrations/20260824150000_add_username_change_cooldown.sql --
+// this is only used to fail fast client-side; the DB trigger is what
+// actually enforces it (see tests/schema-drift.test.ts for the parity guard).
+const USERNAME_COOLDOWN_DAYS = 14
 
 export type SaveProfileState = {
   error: string | null
@@ -95,20 +100,34 @@ function escapeIlike(str: string): string {
   return str.replace(/[%_\\]/g, '\\$&')
 }
 
-  const { data: taken } = await supabase
-    .from('profiles')
-    .select('id')
-    .ilike('username', escapeIlike(username))
-    .neq('id', user.id)
-    .maybeSingle()
-  if (taken) return { error: 'That username is already taken.', success: false, username: null }
-
-  // Fetch current URLs for atomic cleanup after successful DB update
+  // Fetch once: current username/cooldown (for the checks below) and
+  // current URLs (for atomic cleanup after a successful DB update).
   const { data: currentProfile } = await supabase
     .from('profiles')
-    .select('avatar_url, banner_url')
+    .select('avatar_url, banner_url, username, username_changed_at')
     .eq('id', user.id)
     .single()
+
+  const usernameChanged = currentProfile?.username !== username
+  if (usernameChanged && currentProfile?.username_changed_at) {
+    const cooldownMs = USERNAME_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
+    const elapsedMs = Date.now() - new Date(currentProfile.username_changed_at).getTime()
+    const remainingMs = cooldownMs - elapsedMs
+    if (remainingMs > 0) {
+      const remainingDays = Math.ceil(remainingMs / (24 * 60 * 60 * 1000))
+      return { error: `You can change your username again in ${remainingDays} day(s).`, success: false, username: null }
+    }
+  }
+
+  if (usernameChanged) {
+    const { data: taken } = await supabase
+      .from('profiles')
+      .select('id')
+      .ilike('username', escapeIlike(username))
+      .neq('id', user.id)
+      .maybeSingle()
+    if (taken) return { error: 'That username is already taken.', success: false, username: null }
+  }
 
   let uploadedAvatar: UploadedArtifact | undefined
   let uploadedBanner: UploadedArtifact | undefined
@@ -161,6 +180,18 @@ function escapeIlike(str: string): string {
     }
     if (uploadedBanner) {
       await supabase.storage.from(uploadedBanner.bucket).remove([uploadedBanner.path]).catch(() => {})
+    }
+
+    // Backstop for the pre-checks above, which read-then-write and so can
+    // race a concurrent request: the DB enforces both invariants for real
+    // (profiles_username_lower_key unique index, profiles_username_change_cooldown
+    // trigger), so surface their errors with the same friendly copy instead
+    // of the generic fallback below.
+    if (error.code === '23505') {
+      return { error: 'That username is already taken.', success: false, username: null }
+    }
+    if (error.message?.includes('change your username again')) {
+      return { error: error.message, success: false, username: null }
     }
     return { error: 'Failed to update profile. Please try again.', success: false, username: null }
   }
