@@ -31,9 +31,19 @@ async function extractImageFromArticlePage(url: string): Promise<string | null> 
       signal: AbortSignal.timeout(5000),
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SoapyFansHubBot/1.0; +https://soapyhub.fans)' },
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      // TEMP diagnostic: every Google News item is coming back null here
+      // with no thrown error, and this codepath had no logging at all --
+      // this line exists to find out which case it actually is before
+      // deciding on a real fix.
+      console.log('[news-ingest] og:image fetch not ok:', res.status, res.url)
+      return null
+    }
     const contentType = res.headers.get('content-type') ?? ''
-    if (!contentType.includes('text/html')) return null
+    if (!contentType.includes('text/html')) {
+      console.log('[news-ingest] og:image fetch wrong content-type:', contentType, res.url)
+      return null
+    }
 
     const html = await res.text()
     // og:image/twitter:image live in <head>; stop at 64KB so a multi-MB
@@ -41,7 +51,10 @@ async function extractImageFromArticlePage(url: string): Promise<string | null> 
     const head = html.slice(0, 65536)
     const match = head.match(OG_IMAGE_RE)
     const src = match?.[1] ?? match?.[2] ?? null
-    if (!src) return null
+    if (!src) {
+      console.log('[news-ingest] og:image no meta tag found, final url:', res.url)
+      return null
+    }
 
     try {
       const parsed = new URL(src, url)
@@ -50,7 +63,8 @@ async function extractImageFromArticlePage(url: string): Promise<string | null> 
     } catch {
       return null
     }
-  } catch {
+  } catch (err) {
+    console.log('[news-ingest] og:image fetch threw:', err)
     return null
   }
 }
