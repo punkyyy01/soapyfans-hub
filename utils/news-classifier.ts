@@ -15,39 +15,35 @@ export type NewsClassification = {
   reason: string
 }
 
-const SYSTEM_PROMPT = `You are a relevance filter for a fan site about Sophie Thatcher, the actress (born 1996, known for Yellowjackets, The Boogeyman, Heretic, MaXXXine). Your only job is deciding whether a news item is genuinely about HER, and if so, tagging it.
+// Kept short deliberately: it's sent on every single call (no prompt
+// caching here), and openai/gpt-oss-120b's free tier is capped at 8,000
+// TPM -- a verbose prompt directly shrinks how many items one run can
+// classify before hitting a 429.
+const SYSTEM_PROMPT = `Relevance filter for a Sophie Thatcher (actress, b.1996, Yellowjackets/The Boogeyman/Heretic/MaXXXine) fan site. Decide if a news item is genuinely about HER.
 
-REJECT if:
-- It is about a different person who happens to share a name (e.g. Margaret Thatcher, a different "Sophie", a different "Thatcher").
-- It merely name-drops her in passing (a listicle, a cast-list roundup with no real content about her) rather than being substantively about her or her work.
-- It is spam, an ad, or unrelated content that slipped past the keyword filter.
+REJECT: different person sharing a name (e.g. Margaret Thatcher); mere name-drop in a listicle/cast roundup; spam/unrelated.
+UNCERTAIN: plausibly her, but title/description alone can't confirm it.
+APPROVE: clearly, substantively about her (role, project, interview, appearance, award, etc).
 
-MARK AS UNCERTAIN if it plausibly involves her but the title/description alone can't confirm it.
+If approved, pick exactly one tag: ${NEWS_TAGS.join(', ')}.
 
-APPROVE if it is clearly, substantively about Sophie Thatcher the actress: a role, a project, an interview, an appearance, awards recognition, etc.
+Respond with ONLY this JSON, no other text, no markdown fences:
+{"status":"approved"|"rejected"|"uncertain","tag":"<tag or null>","confidence":<0-100>,"reason":"<max 100 chars>"}`
 
-If approved, assign exactly one tag from this list: ${NEWS_TAGS.join(', ')}.
-- new-project: a new film/TV/other project announced, cast, or released
-- interview: an interview or profile piece
-- red-carpet: premieres, red carpet appearances, event photos
-- social-media: something she posted or said on social media
-- awards: award nominations, wins, campaigns
-- streaming: news about where/when to watch an existing project
-- general: doesn't fit the above but is still substantively about her
-
-Respond with ONLY this JSON shape, no other text:
-{
-  "status": "approved" | "rejected" | "uncertain",
-  "tag": "<one of the tags above>" | null,
-  "confidence": <0-100>,
-  "reason": "<short explanation, max 100 chars>"
-}`
-
+/**
+ * Returns null on any failure (HTTP error, rate limit, malformed JSON) --
+ * NEVER a fake "uncertain" result. news-ingest/route.ts's dedup check is
+ * keyed on source_url, so persisting a placeholder here would permanently
+ * block a perfectly good story from ever being reclassified on a later
+ * run. A genuine "uncertain" (the model's own judgment call) is a real
+ * NewsClassification and still gets stored -- only a failed *attempt* is
+ * null, so the caller can skip it and let the next cron tick retry.
+ */
 export async function classifyNewsItem(
   title: string,
   description: string,
   sourceName: string,
-): Promise<NewsClassification> {
+): Promise<NewsClassification | null> {
   try {
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -58,13 +54,15 @@ export async function classifyNewsItem(
       },
       body: JSON.stringify({
         // llama-3.3-70b-versatile was decommissioned by Groq for
-        // free/developer-tier usage in August 2026 (every request started
-        // returning 404, which classifyNewsItem's catch block silently
-        // turned into "uncertain" -- confirmed live: 14/14 items rejected
-        // with confidence 0). openai/gpt-oss-120b is Groq's own recommended
-        // replacement.
+        // free/developer-tier usage in August 2026; openai/gpt-oss-120b is
+        // Groq's own recommended replacement. It's a reasoning model that
+        // spends completion tokens on hidden reasoning before the answer,
+        // which was silently truncating the JSON output at max_tokens:200
+        // (confirmed live via "Unexpected end of JSON input" errors) --
+        // reasoning_effort:'low' plus a larger budget fixes that.
         model: 'openai/gpt-oss-120b',
-        max_tokens: 200,
+        reasoning_effort: 'low',
+        max_tokens: 400,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
           {
@@ -93,7 +91,6 @@ export async function classifyNewsItem(
     }
   } catch (err) {
     console.error('[news-classifier] Error:', err)
-    // Fail closed: an unclassifiable item never reaches the public feed.
-    return { status: 'uncertain', tag: null, confidence: 0, reason: 'Classification failed' }
+    return null
   }
 }
