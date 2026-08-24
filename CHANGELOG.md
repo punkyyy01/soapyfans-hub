@@ -5,6 +5,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+- Feed de noticias en `/news`: ingesta automática de RSS de medios de entretenimiento, filtrada por keyword y clasificada por relevancia con un LLM (Groq) antes de publicarse — título, mini descripción, imagen y link directo a la fuente
+- Watchlist ("quiero ver") en perfiles y en las páginas de película/serie
+
 ## [0.1.0] — 2026
 
 ### Added

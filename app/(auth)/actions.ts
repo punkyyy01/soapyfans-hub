@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { getSiteUrl } from '@/utils/site'
 import { setFlash } from '@/utils/flash'
+import { isWatchlistMediaType, watchlistTargetPath } from '@/utils/watchlist'
 
 export async function login(formData: FormData) {
   const nextRaw = formData.get('next') as string | null
@@ -390,4 +391,75 @@ export async function submitReview(formData: FormData) {
   revalidatePath(`/profile/${user.id}`)
   revalidatePath('/dashboard-s9k2mx')
   redirect(`/films/${tmdbId}`)
+}
+
+async function revalidateWatchlistViews(userId: string, targetPath: string) {
+  const supabase = await createClient()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', userId)
+    .maybeSingle()
+  const profileSlug = profile?.username ?? userId
+
+  revalidatePath(targetPath)
+  revalidatePath(`/profile/${profileSlug}`)
+  revalidatePath(`/profile/${userId}`)
+}
+
+export async function addToWatchlist(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const tmdbId = Number(formData.get('tmdb_id'))
+  const mediaType = formData.get('media_type') as string
+
+  if (!Number.isFinite(tmdbId) || tmdbId <= 0 || !isWatchlistMediaType(mediaType)) {
+    redirect('/')
+  }
+
+  const targetPath = watchlistTargetPath(mediaType, tmdbId)
+
+  const { error } = await supabase
+    .from('watchlist')
+    .insert({ user_id: user.id, tmdb_id: tmdbId, media_type: mediaType })
+
+  // 23505 = already on the watchlist (unique constraint) -- treat as a
+  // no-op success rather than surfacing an error for a harmless re-click.
+  if (error && error.code !== '23505') {
+    redirect(`${targetPath}?error=${encodeURIComponent('Could not add to your watchlist. Please try again.')}`)
+  }
+
+  await revalidateWatchlistViews(user.id, targetPath)
+  redirect(targetPath)
+}
+
+export async function removeFromWatchlist(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const tmdbId = Number(formData.get('tmdb_id'))
+  const mediaType = formData.get('media_type') as string
+
+  if (!Number.isFinite(tmdbId) || tmdbId <= 0 || !isWatchlistMediaType(mediaType)) {
+    redirect('/')
+  }
+
+  const targetPath = watchlistTargetPath(mediaType, tmdbId)
+
+  const { error } = await supabase
+    .from('watchlist')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('tmdb_id', tmdbId)
+    .eq('media_type', mediaType)
+
+  if (error) {
+    redirect(`${targetPath}?error=${encodeURIComponent('Could not update your watchlist. Please try again.')}`)
+  }
+
+  await revalidateWatchlistViews(user.id, targetPath)
+  redirect(targetPath)
 }

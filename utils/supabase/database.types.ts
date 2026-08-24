@@ -134,6 +134,48 @@ export type Database = {
           },
         ]
       }
+      news_items: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          published_at: string
+          source_name: string
+          source_url: string
+          status: string
+          tag: string | null
+          title: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          published_at?: string
+          source_name: string
+          source_url: string
+          status?: string
+          tag?: string | null
+          title: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          published_at?: string
+          source_name?: string
+          source_url?: string
+          status?: string
+          tag?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       profile_favorites: {
         Row: {
           created_at: string | null
@@ -368,6 +410,38 @@ export type Database = {
             columns: ["release_id"]
             isOneToOne: false
             referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      watchlist: {
+        Row: {
+          created_at: string
+          id: string
+          media_type: string
+          tmdb_id: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          media_type: string
+          tmdb_id: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          media_type?: string
+          tmdb_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watchlist_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

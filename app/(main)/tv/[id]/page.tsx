@@ -1,16 +1,49 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getTvDetails, getTmdbImageUrl, getWatchProvidersForCountry } from '@/utils/tmdb'
+import { createClient, getUser } from '@/utils/supabase/server'
 import WhereToWatch from '@/components/media/WhereToWatch'
 import MediaDetailTabs from '@/components/media/MediaDetailTabs'
+import WatchlistButton from '@/components/media/WatchlistButton'
 import { buildTvSeriesSchema, buildBreadcrumbSchema, serializeJsonLd } from '@/utils/schema'
 import PageContainer from '@/components/ui/PageContainer'
 import SectionHeader from '@/components/ui/SectionHeader'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
+
+// Streamed independently via its own Suspense boundary so a slow watchlist
+// lookup never delays the rest of the page (same pattern as
+// FilmWatchlistButton in app/(main)/films/[id]/page.tsx).
+async function TvWatchlistButton({ tmdbId }: { tmdbId: number }) {
+  const [supabase, user] = await Promise.all([createClient(), getUser()])
+
+  const isOnWatchlist = user
+    ? Boolean(
+        (
+          await supabase
+            .from('watchlist')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('tmdb_id', tmdbId)
+            .eq('media_type', 'tv')
+            .maybeSingle()
+        ).data,
+      )
+    : false
+
+  return (
+    <WatchlistButton
+      tmdbId={tmdbId}
+      mediaType="tv"
+      isOnWatchlist={isOnWatchlist}
+      isSignedIn={Boolean(user)}
+    />
+  )
+}
 
 export const revalidate = 3600
 
@@ -242,6 +275,13 @@ export default async function TvDetailPage({ params }: Props) {
                   Series Credit
                 </p>
               )}
+              <div className="pt-2">
+                <Suspense
+                  fallback={<div className="h-9 w-full animate-pulse rounded-full bg-[var(--bg-elevated)]" />}
+                >
+                  <TvWatchlistButton tmdbId={tvId} />
+                </Suspense>
+              </div>
             </div>
 
             {/* Factsheet Metadata Table */}
