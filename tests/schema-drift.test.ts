@@ -214,3 +214,96 @@ describe('Username format parity: app regex vs DB constraints', () => {
     assert.equal(USERNAME_RE.test('bad-name'), false) // violates username_format
   })
 })
+
+describe('Schema drift guard: recovered baseline migrations (profiles/films/reviews/music/favorites)', () => {
+  // The repo's tracked migration history used to start at
+  // add_about_me_to_profiles (2026-08-18), but the live project's
+  // supabase_migrations.schema_migrations table has 9 earlier applied
+  // versions (2026-05-19 through 2026-05-29) that create the base schema --
+  // profiles, films, reviews, the music tables, banned_users, and
+  // profile_favorites -- and were never committed here. That's the same
+  // class of repo/live drift this file already guards against (see the
+  // about_me and OAuth-username describes above), just in the opposite
+  // direction: applied-but-uncommitted instead of committed-but-unapplied.
+  // This guard keeps them from silently disappearing again.
+  const expectedBaselineVersions = [
+    '20260519015508', // create_updated_at_trigger_function
+    '20260519015524', // create_profiles_table
+    '20260519015535', // create_films_table
+    '20260519015552', // create_reviews_table
+    '20260519134111', // create_music_tables
+    '20260519185021', // add_twitter_url_to_releases
+    '20260521191205', // create_admin_and_banned_users
+    '20260529231513', // expand_profiles_columns
+    '20260529231521', // create_profile_favorites
+  ]
+
+  it('has a migration file for every recovered baseline version', () => {
+    const migrations = readMigrations()
+    for (const version of expectedBaselineVersions) {
+      assert.ok(
+        migrations.some((f) => f.startsWith(version)),
+        `Expected a migration file starting with ${version}`,
+      )
+    }
+  })
+
+  it('the recovered profiles-table migration defines username_format and username_length', () => {
+    const migrations = readMigrations()
+    const file = migrations.find((f) => f.includes('create_profiles_table'))
+    assert.ok(file, 'Expected the create_profiles_table baseline migration')
+    const sql = fs.readFileSync(path.join(migrationsDir, file!), 'utf8')
+    assert.match(sql, /create table public\.profiles/)
+    assert.match(sql, /constraint username_length check/)
+    assert.match(sql, /constraint username_format check \(username ~ '\^\[a-zA-Z0-9_\]\+\$'\)/)
+  })
+})
+
+describe('Schema drift guard: username change cooldown', () => {
+  it('has a migration adding username_changed_at and the cooldown trigger', () => {
+    const migrations = readMigrations()
+    const hasMigration = migrations.some((f) => {
+      const sql = fs.readFileSync(path.join(migrationsDir, f), 'utf8')
+      return (
+        sql.includes('ADD COLUMN IF NOT EXISTS username_changed_at') &&
+        sql.includes('enforce_username_change_cooldown') &&
+        sql.includes("WHEN (OLD.username IS DISTINCT FROM NEW.username)")
+      )
+    })
+    assert.ok(hasMigration, 'Expected a migration adding the username change cooldown trigger')
+  })
+
+  it('generated types declare username_changed_at on Row, Insert, and Update', () => {
+    const types = fs.readFileSync(typesPath, 'utf8')
+    const profilesBlock = types.slice(types.indexOf('profiles: {'), types.indexOf('releases: {'))
+    const occurrences = profilesBlock.match(/username_changed_at\??:\s*string \| null/g) ?? []
+    assert.equal(occurrences.length, 3, 'username_changed_at must appear in Row, Insert, and Update')
+  })
+
+  it('cooldown length matches between the app pre-check and the DB trigger', () => {
+    const actionsSrc = fs.readFileSync(
+      path.join(repoRoot, 'app', '(main)', 'profile', 'edit', 'actions.ts'),
+      'utf8',
+    )
+    const appMatch = actionsSrc.match(/USERNAME_COOLDOWN_DAYS\s*=\s*(\d+)/)
+    assert.ok(appMatch, 'Expected USERNAME_COOLDOWN_DAYS in profile edit actions.ts')
+
+    const migrations = readMigrations()
+    const cooldownFile = migrations.find((f) => f.includes('username_change_cooldown'))
+    assert.ok(cooldownFile, 'Expected the username change cooldown migration')
+    const sql = fs.readFileSync(path.join(migrationsDir, cooldownFile!), 'utf8')
+    const dbMatch = sql.match(/interval '(\d+) days'/)
+    assert.ok(dbMatch, "Expected interval '<n> days' in the cooldown migration")
+
+    assert.equal(appMatch![1], dbMatch![1], 'USERNAME_COOLDOWN_DAYS must match the DB trigger cooldown interval')
+  })
+
+  it('saveProfile treats the DB unique-violation and cooldown errors as friendly messages, not the generic fallback', () => {
+    const actionsSrc = fs.readFileSync(
+      path.join(repoRoot, 'app', '(main)', 'profile', 'edit', 'actions.ts'),
+      'utf8',
+    )
+    assert.match(actionsSrc, /error\.code === '23505'/)
+    assert.match(actionsSrc, /error\.message\?\.includes\('change your username again'\)/)
+  })
+})

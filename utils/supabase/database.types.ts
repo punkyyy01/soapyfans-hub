@@ -186,6 +186,7 @@ export type Database = {
           show_activity: boolean
           updated_at: string
           username: string | null
+          username_changed_at: string | null
           website_url: string | null
         }
         Insert: {
@@ -204,6 +205,7 @@ export type Database = {
           show_activity?: boolean
           updated_at?: string
           username?: string | null
+          username_changed_at?: string | null
           website_url?: string | null
         }
         Update: {
@@ -222,6 +224,7 @@ export type Database = {
           show_activity?: boolean
           updated_at?: string
           username?: string | null
+          username_changed_at?: string | null
           website_url?: string | null
         }
         Relationships: []

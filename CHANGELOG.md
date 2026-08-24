@@ -5,6 +5,13 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+- Cooldown de 14 días entre cambios de username, enforced tanto en la app (chequeo rápido) como en un trigger de BD (`profiles_username_change_cooldown`), que es la garantía real.
+- 9 migraciones recuperadas que documentan el esquema base (`profiles`, `films`, `reviews`, tablas de música, `banned_users`, `profile_favorites`), aplicadas en producción pero ausentes del historial de migraciones del repo hasta ahora.
+
+### Fixed
+- `saveProfile` ahora distingue el error de unicidad de username (`23505`) y el de cooldown en la respuesta del `UPDATE`, en vez de devolver siempre el mensaje genérico de fallo cuando la validación previa (no atómica) pierde una carrera.
+
 ## [0.1.0] — 2026
 
 ### Added
