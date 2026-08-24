@@ -13,8 +13,9 @@ This repository exists to power the site — it is not published as a template, 
 
 - Filmography browsing and detail pages
 - Fan reviews tied to entries
-- Profiles (basic identity + review history)
+- Profiles (basic identity + review history + watchlist)
 - A small music corner (releases)
+- A live news feed, ingested from entertainment RSS and classified for relevance before publishing
 
 Editorial note: the site’s UI copy is intentionally written to feel like a fan space, not a generic app.
 

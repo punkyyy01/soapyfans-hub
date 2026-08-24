@@ -1,0 +1,16 @@
+name: News ingest cron
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger news ingest
+        run: |
+          curl -sS -X GET "${{ secrets.SITE_URL }}/api/news-ingest" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            --fail-with-body

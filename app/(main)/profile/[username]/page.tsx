@@ -158,6 +158,17 @@ type EnrichedFavorite = FavoriteRow & {
   title: string | null
 }
 
+type WatchlistRow = {
+  id: string
+  tmdb_id: number
+  media_type: string
+}
+
+type EnrichedWatchlistItem = WatchlistRow & {
+  posterPath: string | null
+  title: string | null
+}
+
 const FALLBACK_ACCENT = '#e8890c'
 
 export default async function ProfilePage({ params, searchParams }: Props) {
@@ -215,7 +226,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
     ? getPersonCombinedCredits().catch(() => ({ id: 0, cast: [], crew: [] }))
     : Promise.resolve({ id: 0, cast: [], crew: [] })
 
-  const [combinedCredits, filmReviewsResult, musicReviewsResult] = await Promise.all([
+  const [combinedCredits, filmReviewsResult, musicReviewsResult, watchlistResult] = await Promise.all([
     creditsPromise,
     profile.show_activity
       ? supabase
@@ -234,6 +245,16 @@ export default async function ProfilePage({ params, searchParams }: Props) {
           .is('deleted_at', null)
           .order('created_at', { ascending: false })
           .limit(20)
+      : Promise.resolve({ data: [] }),
+    // Same show_activity gate as Recent Activity below -- a watchlist is
+    // just as much "what I'm doing" as a review is.
+    profile.show_activity
+      ? supabase
+          .from('watchlist')
+          .select('id, tmdb_id, media_type')
+          .eq('user_id', profile.id)
+          .order('created_at', { ascending: false })
+          .limit(24)
       : Promise.resolve({ data: [] }),
   ])
 
@@ -261,6 +282,26 @@ export default async function ProfilePage({ params, searchParams }: Props) {
         return { ...fav, posterPath: d.poster_path, title: d.name }
       } catch {
         return { ...fav, posterPath: null, title: null }
+      }
+    })
+  )
+
+  const watchlistRows = (watchlistResult.data ?? []) as WatchlistRow[]
+  const watchlistDetails: EnrichedWatchlistItem[] = await Promise.all(
+    watchlistRows.map(async (item): Promise<EnrichedWatchlistItem> => {
+      const fromCache = creditMap.get(`${item.media_type}:${item.tmdb_id}`)
+      if (fromCache) {
+        return { ...item, posterPath: fromCache.posterPath, title: fromCache.title }
+      }
+      try {
+        if (item.media_type === 'movie') {
+          const d = await getMovieDetails(item.tmdb_id)
+          return { ...item, posterPath: d.poster_path, title: d.title }
+        }
+        const d = await getTvDetails(item.tmdb_id)
+        return { ...item, posterPath: d.poster_path, title: d.name }
+      } catch {
+        return { ...item, posterPath: null, title: null }
       }
     })
   )
@@ -524,6 +565,68 @@ export default async function ProfilePage({ params, searchParams }: Props) {
                             {fav.title}
                           </p>
                           {fav.media_type === 'tv' && (
+                            <span className="font-mono text-[0.55rem] uppercase tracking-wider text-white/70">
+                              Series
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* 3b. WATCHLIST (Want to watch, gated by show_activity like Activity below) */}
+          {profile.show_activity && watchlistDetails.length > 0 && (
+            <section id="watchlist" className="mb-16 space-y-6">
+              <SectionHeader
+                kicker="Want to Watch"
+                title="Watchlist"
+                action={
+                  <span className="font-mono text-xs uppercase tracking-wider text-[var(--text-muted)]">
+                    {watchlistDetails.length} {watchlistDetails.length === 1 ? 'Title' : 'Titles'}
+                  </span>
+                }
+              />
+
+              <div className="grid grid-cols-3 gap-3.5 sm:grid-cols-6 sm:gap-4">
+                {watchlistDetails.map((item) => {
+                  const posterUrl = item.posterPath
+                    ? getTmdbImageUrl(item.posterPath, 'w342')
+                    : null
+                  const href =
+                    item.media_type === 'movie'
+                      ? `/films/${item.tmdb_id}`
+                      : `/tv/${item.tmdb_id}`
+
+                  return (
+                    <Link
+                      key={item.id}
+                      href={href}
+                      className="group relative block aspect-[2/3] overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-elevated)] transition-all duration-300 hover:border-[var(--accent-amber)]/60 hover:shadow-lg focus-ring"
+                    >
+                      {posterUrl ? (
+                        <Image
+                          src={posterUrl}
+                          alt={item.title ?? ''}
+                          fill
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                          sizes="(max-width: 640px) 33vw, 15vw"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center font-mono text-xs text-[var(--text-muted)]">
+                          ?
+                        </div>
+                      )}
+
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                          <p className="font-display text-xs font-medium leading-tight text-white line-clamp-2">
+                            {item.title}
+                          </p>
+                          {item.media_type === 'tv' && (
                             <span className="font-mono text-[0.55rem] uppercase tracking-wider text-white/70">
                               Series
                             </span>

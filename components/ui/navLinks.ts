@@ -1,6 +1,7 @@
 export const NAV_LINKS = [
   { href: '/films', label: 'Filmography' },
   { href: '/music', label: 'Music' },
+  { href: '/news', label: 'News' },
   { href: '/about', label: 'About' },
 ] as const
 

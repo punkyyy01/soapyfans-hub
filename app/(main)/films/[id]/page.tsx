@@ -11,6 +11,7 @@ import { getBannedUserIds } from '@/utils/supabase/moderation'
 import { buildMovieSchema, buildBreadcrumbSchema, serializeJsonLd } from '@/utils/schema'
 import { isVisibleReview, reviewAuthorProfilePath } from '@/utils/reviews'
 import ReviewForm from '@/components/forms/ReviewForm'
+import WatchlistButton from '@/components/media/WatchlistButton'
 import PageContainer from '@/components/ui/PageContainer'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
 import SectionHeader from '@/components/ui/SectionHeader'
@@ -84,6 +85,36 @@ function ReviewsSkeleton() {
       <div className="h-8 w-40 animate-pulse rounded bg-[var(--bg-elevated)]" />
       <div className="h-28 animate-pulse rounded-xl bg-[var(--bg-elevated)]/40" />
     </section>
+  )
+}
+
+// Streamed independently of FilmReviewsSection below (its own Suspense
+// boundary) so a slow watchlist lookup never delays the reviews list, and
+// vice versa -- the poster/header above both still paints immediately.
+async function FilmWatchlistButton({ tmdbId }: { tmdbId: number }) {
+  const [supabase, user] = await Promise.all([createClient(), getUser()])
+
+  const isOnWatchlist = user
+    ? Boolean(
+        (
+          await supabase
+            .from('watchlist')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('tmdb_id', tmdbId)
+            .eq('media_type', 'movie')
+            .maybeSingle()
+        ).data,
+      )
+    : false
+
+  return (
+    <WatchlistButton
+      tmdbId={tmdbId}
+      mediaType="movie"
+      isOnWatchlist={isOnWatchlist}
+      isSignedIn={Boolean(user)}
+    />
   )
 }
 
@@ -417,6 +448,13 @@ export default async function FilmDetailPage({ params, searchParams }: Props) {
                   Cast Credit
                 </p>
               )}
+              <div className="pt-2">
+                <Suspense
+                  fallback={<div className="h-9 w-full animate-pulse rounded-full bg-[var(--bg-elevated)]" />}
+                >
+                  <FilmWatchlistButton tmdbId={tmdbId} />
+                </Suspense>
+              </div>
             </div>
 
             {/* Factsheet Metadata Table */}
