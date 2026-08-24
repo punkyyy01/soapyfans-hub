@@ -15,6 +15,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 ### Fixed
 - `saveProfile` ahora distingue el error de unicidad de username (`23505`) y el de cooldown en la respuesta del `UPDATE`, en vez de devolver siempre el mensaje genérico de fallo cuando la validación previa (no atómica) pierde una carrera.
 - El ingest de `/news` ya no publica la misma noticia varias veces cuando el feed de búsqueda de Google News la reporta con links distintos por outlet: dedup por similitud de título (además del dedup existente por `source_url`), corrido antes de clasificar con Groq para no gastar presupuesto de rate-limit en duplicados.
+- Imágenes rotas en `/news`: los links de Google News nunca resuelven a la página real del lado del servidor, así que nunca había imagen para scrapear. Cuando un outlet directo (Variety, THR, etc.) reporta después la misma historia que ya se aprobó vía Google News, la fila se actualiza a la URL e imagen reales en vez de descartarse como duplicado.
 
 ## [0.1.0] — 2026
 

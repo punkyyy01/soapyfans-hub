@@ -106,6 +106,7 @@ export async function GET(req: Request) {
   let approved = 0
   let rejected = 0
   let duplicates = 0
+  let upgraded = 0
 
   // The Google News search feed returns the same real-world story multiple
   // times -- once per outlet it links to, each with its own opaque
@@ -123,11 +124,13 @@ export async function GET(req: Request) {
   // and was approved a second time. created_at reflects our own dedup
   // history and can't have that gap.
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-  const { data: recentItems } = await supabase
+  const { data: recentItemsData } = await supabase
     .from('news_items')
-    .select('title')
+    .select('id, title, source_name, status')
     .gte('created_at', thirtyDaysAgo)
-  const recentTitles: string[] = (recentItems ?? []).map((r) => r.title)
+  const recentItems: { id: string; title: string; sourceName: string; status: string }[] = (
+    recentItemsData ?? []
+  ).map((r) => ({ id: r.id, title: r.title, sourceName: r.source_name, status: r.status }))
 
   for (const source of NEWS_SOURCES) {
     try {
@@ -146,8 +149,42 @@ export async function GET(req: Request) {
 
         if (!passesKeywordFilter(title, description)) continue
 
-        if (recentTitles.some((seen) => areSimilarTitles(seen, title))) {
-          duplicates++
+        const match = recentItems.find((seen) => areSimilarTitles(seen.title, title))
+        if (match) {
+          // Root fix for broken images/links on Google News items: its RSS
+          // link is an opaque news.google.com redirect that never resolves
+          // to the real article server-side (confirmed live -- fetching it
+          // returns Google's own interstitial HTML, 200 OK, with no
+          // og:image, not a redirect to the publisher). Reverse-engineering
+          // Google's internal batchexecute decoder to unwrap it was
+          // considered and rejected: it's an undocumented endpoint, already
+          // broke once before when Google changed it, and trades a fragile
+          // dependency for a marginal gain. Instead: when a direct outlet
+          // feed (Variety, THR, etc. -- real URLs, real og:image) later
+          // reports the same story a Google News item already got approved
+          // under, swap the row over to the real source instead of just
+          // discarding the duplicate. Only upgrades approved rows (nobody
+          // ever sees a rejected/uncertain one) and only Google News ->
+          // real (never the reverse, so a good row can't regress).
+          const isUpgrade =
+            match.status === 'approved' && match.sourceName === 'Google News' && source.name !== 'Google News'
+
+          if (isUpgrade) {
+            const upgradeImage = extractImageFromRssItem(item) ?? (await extractImageFromArticlePage(url))
+            const { error: upgradeError } = await supabase
+              .from('news_items')
+              .update({ source_name: source.name, source_url: url, image_url: upgradeImage })
+              .eq('id', match.id)
+            if (upgradeError) {
+              console.error('[news-ingest] Error upgrading duplicate to real source:', upgradeError.message)
+              duplicates++
+            } else {
+              upgraded++
+              match.sourceName = source.name
+            }
+          } else {
+            duplicates++
+          }
           continue
         }
 
@@ -183,17 +220,21 @@ export async function GET(req: Request) {
         }
         const imageUrl = extractImageFromRssItem(item) ?? (await extractImageFromArticlePage(url))
 
-        const { error: insertError } = await supabase.from('news_items').insert({
-          source_name: source.name,
-          source_url: url,
-          title,
-          description: description.slice(0, 500),
-          image_url: imageUrl,
-          tag: result.tag,
-          status: result.status,
-          confidence: result.confidence,
-          published_at: publishedAt.toISOString(),
-        })
+        const { data: inserted, error: insertError } = await supabase
+          .from('news_items')
+          .insert({
+            source_name: source.name,
+            source_url: url,
+            title,
+            description: description.slice(0, 500),
+            image_url: imageUrl,
+            tag: result.tag,
+            status: result.status,
+            confidence: result.confidence,
+            published_at: publishedAt.toISOString(),
+          })
+          .select('id')
+          .single()
 
         if (insertError) {
           // A concurrent run (or a second feed carrying the same story in
@@ -206,7 +247,7 @@ export async function GET(req: Request) {
           continue
         }
 
-        recentTitles.push(title)
+        recentItems.push({ id: inserted.id, title, sourceName: source.name, status: result.status })
 
         if (result.status === 'approved') approved++
         else rejected++
@@ -253,6 +294,7 @@ export async function GET(req: Request) {
     approved,
     rejected,
     duplicates,
+    upgraded,
     imagesBackfilled,
     timestamp: new Date().toISOString(),
   })
