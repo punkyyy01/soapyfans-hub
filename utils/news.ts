@@ -1,6 +1,6 @@
 /**
  * Entertainment-news ingest: sources, keyword pre-filter, title normalization,
- * title similarity dedup, Google News URL decoding, and image extraction.
+ * title similarity dedup, Google News URL decoding, and robust multi-layer image extraction.
  * Pure and dependency-light where possible for unit testability.
  */
 
@@ -9,11 +9,12 @@ export type NewsSource = {
   url: string
 }
 
+/**
+ * 28 verified direct entertainment, film, TV, music, and fashion feeds,
+ * plus Google News as an aggregator/fallback.
+ */
 export const NEWS_SOURCES: NewsSource[] = [
-  {
-    name: 'Google News',
-    url: 'https://news.google.com/rss/search?q=%22Sophie%20Thatcher%22&hl=en-US&gl=US&ceid=US:en',
-  },
+  // Trade & Major Entertainment Press
   { name: 'Variety', url: 'https://variety.com/feed/' },
   { name: 'The Hollywood Reporter', url: 'https://www.hollywoodreporter.com/feed/' },
   { name: 'Deadline', url: 'https://deadline.com/feed/' },
@@ -21,8 +22,41 @@ export const NEWS_SOURCES: NewsSource[] = [
   { name: 'Collider', url: 'https://collider.com/feed/' },
   { name: '/Film', url: 'https://www.slashfilm.com/feed/' },
   { name: 'TheWrap', url: 'https://www.thewrap.com/feed/' },
+  { name: 'ScreenRant', url: 'https://screenrant.com/feed/' },
+  { name: 'The Playlist', url: 'https://theplaylist.net/feed/' },
+  { name: 'MovieWeb', url: 'https://movieweb.com/feed/' },
+  { name: 'ComingSoon', url: 'https://www.comingsoon.net/feed' },
+
+  // TV & Streaming
+  { name: 'TVLine', url: 'https://tvline.com/feed/' },
+  { name: 'TV Insider', url: 'https://www.tvinsider.com/feed/' },
+
+  // Music & Culture Press
+  { name: 'Billboard', url: 'https://www.billboard.com/feed/' },
+  { name: 'NME', url: 'https://www.nme.com/feed' },
+  { name: 'Rolling Stone', url: 'https://www.rollingstone.com/feed/' },
+  { name: 'Consequence', url: 'https://consequence.net/feed/' },
+  { name: 'Stereogum', url: 'https://www.stereogum.com/feed/' },
+
+  // Fashion, Style, Red Carpet & Cover Features
   { name: 'Vogue', url: 'https://www.vogue.com/feed/rss' },
   { name: 'W Magazine', url: 'https://www.wmagazine.com/rss' },
+  { name: "Harper's Bazaar", url: 'https://www.harpersbazaar.com/rss/all.xml/' },
+  { name: 'i-D', url: 'https://i-d.co/feed/' },
+  { name: 'Esquire', url: 'https://www.esquire.com/rss/all.xml/' },
+  { name: 'GQ', url: 'https://www.gq.com/feed/rss' },
+  { name: 'Elle', url: 'https://www.elle.com/rss/all.xml/' },
+  { name: 'Cosmopolitan', url: 'https://www.cosmopolitan.com/rss/all.xml/' },
+
+  // Celebrity & Red Carpet Moments
+  { name: 'Entertainment Tonight', url: 'https://www.etonline.com/news/rss' },
+  { name: 'Us Weekly', url: 'https://www.usmagazine.com/feed/' },
+
+  // Google News Search Net (Aggregator & Complement for unlisted / bot-blocked feeds like People/EW)
+  {
+    name: 'Google News',
+    url: 'https://news.google.com/rss/search?q=%22Sophie%20Thatcher%22&hl=en-US&gl=US&ceid=US:en',
+  },
 ]
 
 const REQUIRED_PHRASE = 'sophie thatcher'
@@ -347,9 +381,59 @@ const META_IMAGE_PATTERNS = [
 ]
 
 /**
- * Scrapes og:image / twitter:image from an article page.
- * Handles Google News redirect URLs by decoding them to the target article page,
- * decodes HTML entities in attributes, resolves relative URLs, and validates protocols.
+ * Extracts image URL from JSON-LD schema objects (NewsArticle, Article, BlogPosting, etc.).
+ */
+export function extractImageFromJsonLd(html: string): string | null {
+  const scriptMatches = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)]
+
+  for (const match of scriptMatches) {
+    try {
+      const parsed = JSON.parse(match[1].trim())
+
+      const findImage = (obj: unknown): string | null => {
+        if (!obj || typeof obj !== 'object') return null
+        const record = obj as Record<string, unknown>
+
+        if (typeof record.image === 'string' && record.image.startsWith('http')) {
+          return record.image
+        }
+        if (Array.isArray(record.image) && typeof record.image[0] === 'string' && record.image[0].startsWith('http')) {
+          return record.image[0]
+        }
+        if (record.image && typeof record.image === 'object') {
+          const imgObj = record.image as Record<string, unknown>
+          if (typeof imgObj.url === 'string' && imgObj.url.startsWith('http')) return imgObj.url
+        }
+        if (typeof record.thumbnailUrl === 'string' && record.thumbnailUrl.startsWith('http')) {
+          return record.thumbnailUrl
+        }
+        if (Array.isArray(record['@graph'])) {
+          for (const node of record['@graph']) {
+            const found = findImage(node)
+            if (found) return found
+          }
+        }
+        return null
+      }
+
+      const img = findImage(parsed)
+      if (img) return img
+    } catch {
+      // ignore malformed JSON-LD scripts
+    }
+  }
+
+  return null
+}
+
+/**
+ * Scrapes image from an article page using a waterfall:
+ * 1. OpenGraph meta (`og:image`, `og:image:secure_url`)
+ * 2. Twitter Cards meta (`twitter:image`, `twitter:image:src`)
+ * 3. `<link rel="image_src">`
+ * 4. JSON-LD structured data (`schema.org/NewsArticle`, `Article`, etc.)
+ * 5. HTML lead image (`<figure><img ...></figure>`)
+ * Handles Google News redirect URLs, decodes HTML entities in URLs, and resolves relative paths.
  */
 export async function extractImageFromArticlePage(url: string): Promise<string | null> {
   try {
@@ -375,15 +459,28 @@ export async function extractImageFromArticlePage(url: string): Promise<string |
     if (!contentType.includes('text/html')) return null
 
     const html = await res.text()
-    // Read up to 512KB to cover long <head> scripts
     const head = html.slice(0, 524288)
 
+    // 1. Meta tags
     let rawImage: string | null = null
     for (const pattern of META_IMAGE_PATTERNS) {
       const match = head.match(pattern)
       if (match?.[1]) {
         rawImage = match[1]
         break
+      }
+    }
+
+    // 2. JSON-LD fallback
+    if (!rawImage) {
+      rawImage = extractImageFromJsonLd(head) || extractImageFromJsonLd(html.slice(0, 1048576))
+    }
+
+    // 3. Lead image in <figure> / <article>
+    if (!rawImage) {
+      const figureMatch = html.match(/<(?:figure|article)[^>]*>[\s\S]*?<img[^>]+(?:src|data-src)=["']([^"']+)["']/i)
+      if (figureMatch?.[1]) {
+        rawImage = figureMatch[1]
       }
     }
 

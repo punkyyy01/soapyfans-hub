@@ -1,15 +1,14 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { createClient } from '@/utils/supabase/server'
 import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildCollectionPageSchema, buildBreadcrumbSchema, serializeJsonLd } from '@/utils/schema'
 import { isValidNewsTag } from '@/utils/news'
-import { NEWS_TAG_FILTERS, NEWS_TAG_LABEL, dedupNewsForDisplay } from '@/utils/news-display'
-import NewsCard, { type NewsCardItem } from '@/components/news/NewsCard'
+import { dedupNewsForDisplay } from '@/utils/news-display'
+import type { NewsCardItem } from '@/components/news/NewsCard'
+import NewsFeed from '@/components/news/NewsFeed'
 import PageContainer from '@/components/ui/PageContainer'
 import PageHeader from '@/components/ui/PageHeader'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
-import EmptyState from '@/components/ui/EmptyState'
 
 const NEWS_DESCRIPTION =
   'A live feed of Sophie Thatcher news from entertainment outlets — new projects, interviews, red carpet moments, and more, verified and tagged automatically. Every story links straight to its original source.'
@@ -42,31 +41,43 @@ export const metadata: Metadata = {
 }
 
 interface Props {
-  searchParams: Promise<{ tag?: string }>
+  searchParams: Promise<{ tag?: string; q?: string }>
 }
 
+const PAGE_SIZE = 12
+
 export default async function NewsPage({ searchParams }: Props) {
-  const { tag: rawTag } = await searchParams
+  const { tag: rawTag, q: rawQ } = await searchParams
   const activeTag = rawTag && isValidNewsTag(rawTag) ? rawTag : null
+  const query = rawQ?.trim() ? rawQ.trim() : ''
+  const cleanQ = query ? query.replace(/[%_]/g, '') : ''
 
   const supabase = await createClient()
-  let query = supabase
+  let q = supabase
     .from('news_items')
     .select('id, title, description, source_name, source_url, canonical_url, tag, published_at, image_url')
     .eq('status', 'approved')
     .order('published_at', { ascending: false })
-    .limit(60)
 
-  if (activeTag) query = query.eq('tag', activeTag)
-
-  const { data, error } = await query
-
-  if (error) {
-    console.error('[NewsPage] Database query error:', error)
+  if (activeTag) {
+    q = q.eq('tag', activeTag)
   }
 
-  const rawItems = (data ?? []) as NewsCardItem[]
-  const items = dedupNewsForDisplay(rawItems)
+  if (cleanQ) {
+    q = q.or(`title.ilike.%${cleanQ}%,description.ilike.%${cleanQ}%,source_name.ilike.%${cleanQ}%`)
+  }
+
+  // Fetch PAGE_SIZE + 1 to detect if more pages exist without a separate count query
+  const { data, error } = await q.range(0, PAGE_SIZE)
+
+  if (error) {
+    console.error('[NewsPage] Database query error:', error.message)
+  }
+
+  const rawRows = (data ?? []) as NewsCardItem[]
+  const initialHasMore = rawRows.length > PAGE_SIZE
+  const initialRows = initialHasMore ? rawRows.slice(0, PAGE_SIZE) : rawRows
+  const initialItems = dedupNewsForDisplay(initialRows)
 
   const breadcrumbItems = [
     { name: 'Home', path: '/' },
@@ -104,47 +115,12 @@ export default async function NewsPage({ searchParams }: Props) {
           description="Pulled automatically from entertainment outlets and verified for relevance before it lands here. Click through to read the full story at its original source."
         />
 
-        {/* Tag filters */}
-        <div className="mb-10 flex flex-wrap items-center gap-2">
-          <Link
-            href="/news"
-            className={`rounded-full border px-3.5 py-1.5 font-mono text-xs uppercase tracking-[0.14em] transition-all focus-ring ${
-              !activeTag
-                ? 'border-[var(--accent-amber)] bg-[var(--accent-amber-dim)] text-[var(--accent-amber)]'
-                : 'border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
-            }`}
-          >
-            All
-          </Link>
-          {NEWS_TAG_FILTERS.map(({ tag, label }) => (
-            <Link
-              key={tag}
-              href={`/news?tag=${tag}`}
-              className={`rounded-full border px-3.5 py-1.5 font-mono text-xs uppercase tracking-[0.14em] transition-all focus-ring ${
-                activeTag === tag
-                  ? 'border-[var(--accent-amber)] bg-[var(--accent-amber-dim)] text-[var(--accent-amber)]'
-                  : 'border-[var(--border-default)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-
-        <div className="pb-32">
-          {items.length > 0 ? (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((item) => (
-                <NewsCard key={item.id} item={item} />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title={activeTag ? `No ${NEWS_TAG_LABEL[activeTag] ?? activeTag} stories yet` : 'No news yet'}
-              description="The feed refreshes automatically as new, verified stories come in."
-            />
-          )}
-        </div>
+        <NewsFeed
+          initialItems={initialItems}
+          initialHasMore={initialHasMore}
+          activeTag={activeTag}
+          initialQuery={query}
+        />
       </PageContainer>
     </main>
   )

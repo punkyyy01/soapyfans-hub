@@ -8,7 +8,9 @@ import {
   areSimilarTitles,
   decodeHtmlEntities,
   extractOutletName,
+  extractImageFromJsonLd,
   extractImageFromArticlePage,
+  NEWS_SOURCES,
 } from '../utils/news'
 import { dedupNewsForDisplay } from '../utils/news-display'
 
@@ -35,6 +37,38 @@ describe('passesKeywordFilter', () => {
 
   it('rejects unrelated entertainment news', () => {
     assert.equal(passesKeywordFilter('New trailer drops for upcoming blockbuster', 'Fans are excited.'), false)
+  })
+})
+
+describe('NEWS_SOURCES configuration', () => {
+  it('includes direct verified feeds from entertainment, film, TV, music and fashion', () => {
+    const names = NEWS_SOURCES.map((s) => s.name)
+    assert.ok(names.includes('Variety'))
+    assert.ok(names.includes('The Hollywood Reporter'))
+    assert.ok(names.includes('Deadline'))
+    assert.ok(names.includes('IndieWire'))
+    assert.ok(names.includes('Collider'))
+    assert.ok(names.includes('/Film'))
+    assert.ok(names.includes('TheWrap'))
+    assert.ok(names.includes('ScreenRant'))
+    assert.ok(names.includes('Billboard'))
+    assert.ok(names.includes('NME'))
+    assert.ok(names.includes('Rolling Stone'))
+    assert.ok(names.includes('Consequence'))
+    assert.ok(names.includes('Stereogum'))
+    assert.ok(names.includes('Vogue'))
+    assert.ok(names.includes('W Magazine'))
+    assert.ok(names.includes("Harper's Bazaar"))
+    assert.ok(names.includes('i-D'))
+    assert.ok(names.includes('Esquire'))
+    assert.ok(names.includes('GQ'))
+    assert.ok(names.includes('Elle'))
+    assert.ok(names.includes('Cosmopolitan'))
+    assert.ok(names.includes('Google News'))
+  })
+
+  it('has at least 25 configured feeds', () => {
+    assert.ok(NEWS_SOURCES.length >= 25)
   })
 })
 
@@ -259,9 +293,55 @@ describe('extractImageFromRssItem', () => {
   })
 })
 
+describe('extractImageFromJsonLd', () => {
+  it('extracts image string from schema.org NewsArticle', () => {
+    const html = `
+      <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "NewsArticle",
+          "headline": "Sophie Thatcher talks Heretic",
+          "image": "https://variety.com/wp-content/uploads/2026/08/sophie.jpg"
+        }
+      </script>
+    `
+    assert.equal(extractImageFromJsonLd(html), 'https://variety.com/wp-content/uploads/2026/08/sophie.jpg')
+  })
+
+  it('extracts image from array or image object with url property', () => {
+    const html = `
+      <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@type": "Article",
+          "image": {
+            "@type": "ImageObject",
+            "url": "https://hollywoodreporter.com/image.jpg"
+          }
+        }
+      </script>
+    `
+    assert.equal(extractImageFromJsonLd(html), 'https://hollywoodreporter.com/image.jpg')
+  })
+
+  it('extracts image from @graph container', () => {
+    const html = `
+      <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@graph": [
+            { "@type": "WebSite", "name": "NME" },
+            { "@type": "NewsArticle", "thumbnailUrl": "https://nme.com/thumb.jpg" }
+          ]
+        }
+      </script>
+    `
+    assert.equal(extractImageFromJsonLd(html), 'https://nme.com/thumb.jpg')
+  })
+})
+
 describe('extractImageFromArticlePage', () => {
   it('extracts og:image from mock HTML page with entity decoding and relative URL resolution', async () => {
-    // Test HTML parsing logic
     const html = `
       <!doctype html>
       <html>
@@ -273,7 +353,6 @@ describe('extractImageFromArticlePage', () => {
       </html>
     `
 
-    // Verify regex matches correctly
     const match = html.match(/<meta[^>]+property=["']og:image(?::secure_url)?["'][^>]+content=["']([^"']+)["']/i)
     assert.ok(match)
     const raw = decodeHtmlEntities(match![1])

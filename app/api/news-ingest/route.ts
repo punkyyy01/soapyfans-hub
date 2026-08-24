@@ -1,9 +1,7 @@
-// Cron entry point: pulls each configured RSS source, pre-filters by
-// keyword, classifies survivors with Groq, and stores results in
-// news_items via the service-role client (the only legitimate writer --
-// see 20260824120100_add_news_items.sql). Triggered by
-// .github/workflows/news-ingest-cron.yml, not Vercel Cron -- GitHub Actions
-// has no Hobby-plan frequency cap, so this can run more often than once a day.
+// Cron entry point: pulls configured direct RSS sources and the Google News fallback net,
+// pre-filters by keyword, classifies survivors with Groq, and stores results in
+// news_items via the service-role client (the only legitimate writer).
+// Triggered by .github/workflows/news-ingest-cron.yml, not Vercel Cron.
 
 import Parser from 'rss-parser'
 import { createAdminClient } from '@/utils/supabase/admin'
@@ -37,6 +35,8 @@ const parser = new Parser({
 })
 
 export async function GET(req: Request) {
+  const startTime = Date.now()
+
   // Fail-closed rule: in production require valid CRON_SECRET authorization.
   if (process.env.NODE_ENV === 'production' && !process.env.CRON_SECRET) {
     return new Response('Server misconfiguration', { status: 500 })
@@ -79,10 +79,15 @@ export async function GET(req: Request) {
   }
 
   for (const source of NEWS_SOURCES) {
+    // Check remaining runtime to prevent hard timeouts (stop ingest loop at 90s)
+    if (Date.now() - startTime > 90000) {
+      break
+    }
+
     try {
       const feed = await parser.parseURL(source.url)
 
-      for (const item of feed.items.slice(0, 20)) {
+      for (const item of feed.items.slice(0, 25)) {
         const rawTitle = item.title ?? ''
         const rawDescription = item.contentSnippet ?? item.summary ?? ''
         const url = item.link ?? ''
@@ -99,7 +104,7 @@ export async function GET(req: Request) {
         let canonicalUrl = url
         let outletName = source.name
 
-        // Google News RSS URLs are opaque redirects; decode to real destination URL
+        // For Google News items, decode to the real destination article and outlet name
         if (url.includes('news.google.com')) {
           const decoded = await decodeGoogleNewsUrl(url)
           if (decoded) {
@@ -198,24 +203,29 @@ export async function GET(req: Request) {
     }
   }
 
-  // Backfill: Reprocess approved items that have missing images, undecoded Google News URLs,
-  // or missing normalized titles so historical records are repaired.
+  // Progressive Batch Backfill:
+  // Reprocess approved items that have missing images, undecoded Google News URLs,
+  // or missing normalized titles so historical records are completely repaired over time.
   let imagesBackfilled = 0
+  let recordsRepaired = 0
   try {
     const { data: rowsToRepair } = await supabase
       .from('news_items')
       .select('id, title, source_name, source_url, canonical_url, image_url, normalized_title')
       .eq('status', 'approved')
-      .or('image_url.is.null,source_url.like.%news.google.com%,canonical_url.is.null,normalized_title.is.null')
-      .limit(25)
+      .or('image_url.is.null,source_name.eq.Google News,canonical_url.is.null,normalized_title.is.null')
+      .limit(30)
 
     for (const row of rowsToRepair ?? []) {
+      // Guard against hitting execution timeout
+      if (Date.now() - startTime > 110000) break
+
       let targetUrl = row.canonical_url || row.source_url
       let newCanonical = row.canonical_url
       let newSourceName = row.source_name
       let newNormalized = row.normalized_title || normalizeNewsTitle(row.title)
 
-      if (row.source_url.includes('news.google.com') && !row.canonical_url) {
+      if (row.source_url.includes('news.google.com') && (!row.canonical_url || row.source_name === 'Google News')) {
         const decoded = await decodeGoogleNewsUrl(row.source_url)
         if (decoded) {
           newCanonical = decoded
@@ -223,6 +233,8 @@ export async function GET(req: Request) {
           if (row.source_name === 'Google News') {
             newSourceName = extractOutletName(row.title, decoded, 'Google News')
           }
+        } else {
+          newSourceName = extractOutletName(row.title, null, 'Google News')
         }
       }
 
@@ -253,7 +265,8 @@ export async function GET(req: Request) {
       }
 
       if (Object.keys(updates).length > 0) {
-        await supabase.from('news_items').update(updates).eq('id', row.id)
+        const { error } = await supabase.from('news_items').update(updates).eq('id', row.id)
+        if (!error) recordsRepaired++
       }
     }
   } catch (err) {
@@ -267,6 +280,8 @@ export async function GET(req: Request) {
     rejected,
     duplicates,
     imagesBackfilled,
+    recordsRepaired,
+    durationMs: Date.now() - startTime,
     timestamp: new Date().toISOString(),
   })
 }
