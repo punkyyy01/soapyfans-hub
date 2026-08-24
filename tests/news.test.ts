@@ -1,6 +1,12 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { passesKeywordFilter, extractImageFromRssItem, isValidNewsTag } from '../utils/news'
+import {
+  passesKeywordFilter,
+  extractImageFromRssItem,
+  isValidNewsTag,
+  normalizeNewsTitle,
+  areSimilarTitles,
+} from '../utils/news'
 
 describe('passesKeywordFilter', () => {
   it('passes when the title contains the full "Sophie Thatcher" phrase', () => {
@@ -39,6 +45,62 @@ describe('isValidNewsTag', () => {
 
   it('rejects null', () => {
     assert.equal(isValidNewsTag(null), false)
+  })
+})
+
+describe('normalizeNewsTitle', () => {
+  it('strips a trailing " - <Outlet>" suffix', () => {
+    assert.equal(
+      normalizeNewsTitle('Sophie Thatcher at Deauville American Film Festival - IMDb'),
+      'sophie thatcher at deauville american film festival',
+    )
+  })
+
+  it('lowercases the title', () => {
+    assert.equal(normalizeNewsTitle('Sophie Thatcher Talks Heretic'), 'sophie thatcher talks heretic')
+  })
+
+  it('strips punctuation', () => {
+    assert.equal(normalizeNewsTitle("Sophie Thatcher: It's a Wrap!"), 'sophie thatcher its a wrap')
+  })
+
+  it('collapses repeated whitespace', () => {
+    assert.equal(normalizeNewsTitle('Sophie   Thatcher    News'), 'sophie thatcher news')
+  })
+})
+
+describe('areSimilarTitles', () => {
+  it('matches the same story reported by different outlets (real dedup case)', () => {
+    assert.ok(
+      areSimilarTitles(
+        'Sophie Thatcher at Deauville American Film Festival - IMDb',
+        'Sophie Thatcher at Deauville American Film Festival - Variety',
+      ),
+    )
+    assert.ok(
+      areSimilarTitles(
+        'Sophie Thatcher at Deauville American Film Festival - IMDb',
+        'Sophie Thatcher at Deauville American Film Festival - wtyefm.com',
+      ),
+    )
+  })
+
+  it('matches titles that are identical after normalization', () => {
+    assert.ok(areSimilarTitles('Sophie Thatcher Talks Heretic', 'sophie thatcher talks heretic!!'))
+  })
+
+  it('does not match unrelated stories', () => {
+    assert.equal(
+      areSimilarTitles('Sophie Thatcher joins new A24 thriller', 'Sophie Thatcher walks Cannes red carpet'),
+      false,
+    )
+  })
+
+  it('does not match near-miss titles that only share a couple of words', () => {
+    assert.equal(
+      areSimilarTitles('Sophie Thatcher wins Best Actress at Deauville', 'Sophie Thatcher spotted at LAX'),
+      false,
+    )
   })
 })
 
