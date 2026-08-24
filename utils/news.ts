@@ -25,11 +25,17 @@ export const NEWS_SOURCES: NewsSource[] = [
   { name: 'The Hollywood Reporter', url: 'https://www.hollywoodreporter.com/feed/' },
   { name: 'Deadline', url: 'https://deadline.com/feed/' },
   { name: 'IndieWire', url: 'https://www.indiewire.com/feed/' },
-  // People.com is deliberately absent: its feed 403s every request from
-  // Vercel's serverless IPs regardless of User-Agent (confirmed live,
-  // both with and without one set) -- looks like an IP/ASN-level bot
-  // block, not something a header fixes. Not a real gap: its stories
-  // already surface through the Google News search feed above.
+  { name: 'Collider', url: 'https://collider.com/feed/' },
+  { name: '/Film', url: 'https://www.slashfilm.com/feed/' },
+  { name: 'TheWrap', url: 'https://www.thewrap.com/feed/' },
+  { name: 'Vogue', url: 'https://www.vogue.com/feed/rss' },
+  { name: 'W Magazine', url: 'https://www.wmagazine.com/rss' },
+  // People.com and Entertainment Weekly are deliberately absent: both
+  // feeds 403 every request from Vercel's serverless IPs regardless of
+  // User-Agent (confirmed live) -- looks like an IP/ASN-level bot block,
+  // not something a header fixes. Vulture has no public RSS feed left
+  // (every documented URL 404s). None of these are a real gap: their
+  // stories already surface through the Google News search feed above.
 ]
 
 // Requires the full "sophie thatcher" phrase (not just "sophie") so a
@@ -40,6 +46,39 @@ const REQUIRED_PHRASE = 'sophie thatcher'
 export function passesKeywordFilter(title: string, description: string): boolean {
   const text = `${title} ${description}`.toLowerCase()
   return text.includes(REQUIRED_PHRASE)
+}
+
+/**
+ * Normalizes a news title for duplicate detection: strips a trailing
+ * " - <Outlet>" suffix (how Google News' search feed labels the same story
+ * from different outlets, e.g. " - IMDb" / " - Variety"), lowercases, and
+ * strips punctuation/extra whitespace.
+ */
+export function normalizeNewsTitle(title: string): string {
+  return title
+    .replace(/\s+-\s+[^-]+$/, '')
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
+ * True if two titles look like the same story. Exact match after
+ * normalization covers Google News' outlet-suffix duplicates (the only
+ * real-world case seen so far); the Jaccard word-overlap threshold gives a
+ * little slack for minor rewording without needing real edit-distance math.
+ */
+export function areSimilarTitles(a: string, b: string): boolean {
+  const normA = normalizeNewsTitle(a)
+  const normB = normalizeNewsTitle(b)
+  if (normA === normB) return true
+
+  const wordsA = new Set(normA.split(' ').filter(Boolean))
+  const wordsB = new Set(normB.split(' ').filter(Boolean))
+  const intersection = [...wordsA].filter((w) => wordsB.has(w)).length
+  const union = new Set([...wordsA, ...wordsB]).size
+  return union > 0 && intersection / union >= 0.8
 }
 
 export const NEWS_TAGS = [

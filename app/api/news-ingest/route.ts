@@ -7,7 +7,7 @@
 
 import Parser from 'rss-parser'
 import { createAdminClient } from '@/utils/supabase/admin'
-import { NEWS_SOURCES, passesKeywordFilter, extractImageFromRssItem } from '@/utils/news'
+import { NEWS_SOURCES, passesKeywordFilter, extractImageFromRssItem, areSimilarTitles } from '@/utils/news'
 import { classifyNewsItem } from '@/utils/news-classifier'
 
 export const dynamic = 'force-dynamic'
@@ -107,6 +107,20 @@ export async function GET(req: Request) {
   let rejected = 0
   let duplicates = 0
 
+  // The Google News search feed returns the same real-world story multiple
+  // times -- once per outlet it links to, each with its own opaque
+  // redirect URL -- so the source_url dedup below never catches them. Load
+  // recent titles once per run and check title similarity before spending
+  // a Groq call on an item; anything inserted during this same run is
+  // appended below so duplicates within one run (the common case) are also
+  // caught, not just across runs.
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  const { data: recentItems } = await supabase
+    .from('news_items')
+    .select('title')
+    .gte('published_at', thirtyDaysAgo)
+  const recentTitles: string[] = (recentItems ?? []).map((r) => r.title)
+
   for (const source of NEWS_SOURCES) {
     try {
       const feed = await parser.parseURL(source.url)
@@ -123,6 +137,11 @@ export async function GET(req: Request) {
         if (!url || !url.startsWith('http') || !title) continue
 
         if (!passesKeywordFilter(title, description)) continue
+
+        if (recentTitles.some((seen) => areSimilarTitles(seen, title))) {
+          duplicates++
+          continue
+        }
 
         // maybeSingle() returns null (no error) when there are no rows;
         // single() throws for both "no rows" AND a real DB failure, which
@@ -178,6 +197,8 @@ export async function GET(req: Request) {
           }
           continue
         }
+
+        recentTitles.push(title)
 
         if (result.status === 'approved') approved++
         else rejected++

@@ -10,9 +10,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 - Watchlist ("quiero ver") en perfiles y en las páginas de película/serie
 - Cooldown de 14 días entre cambios de username, enforced tanto en la app (chequeo rápido) como en un trigger de BD (`profiles_username_change_cooldown`), que es la garantía real.
 - 9 migraciones recuperadas que documentan el esquema base (`profiles`, `films`, `reviews`, tablas de música, `banned_users`, `profile_favorites`), aplicadas en producción pero ausentes del historial de migraciones del repo hasta ahora.
+- 5 fuentes de noticias nuevas en `/news`: Collider, /Film, TheWrap, Vogue y W Magazine.
 
 ### Fixed
 - `saveProfile` ahora distingue el error de unicidad de username (`23505`) y el de cooldown en la respuesta del `UPDATE`, en vez de devolver siempre el mensaje genérico de fallo cuando la validación previa (no atómica) pierde una carrera.
+- El ingest de `/news` ya no publica la misma noticia varias veces cuando el feed de búsqueda de Google News la reporta con links distintos por outlet: dedup por similitud de título (además del dedup existente por `source_url`), corrido antes de clasificar con Groq para no gastar presupuesto de rate-limit en duplicados.
 
 ## [0.1.0] — 2026
 
