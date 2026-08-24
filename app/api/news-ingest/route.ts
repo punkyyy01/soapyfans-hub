@@ -13,6 +13,48 @@ import { classifyNewsItem } from '@/utils/news-classifier'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
+const OG_IMAGE_RE =
+  /<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]+content=["']([^"']+)["']|<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image)["']/i
+
+/**
+ * Fallback when the RSS item itself carries no image -- true for every
+ * Google News search-feed item (that feed format has no media fields at
+ * all, confirmed live: 100% of currently-approved items came from it and
+ * all had image_url null). Scrapes the article's own og:image/twitter:image
+ * meta tag instead. Only ever returns an absolute http(s) URL, same
+ * contract as extractImageFromRssItem -- this becomes what
+ * app/api/news-image/[id]/route.ts fetches later.
+ */
+async function extractImageFromArticlePage(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(5000),
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SoapyFansHubBot/1.0; +https://soapyhub.fans)' },
+    })
+    if (!res.ok) return null
+    const contentType = res.headers.get('content-type') ?? ''
+    if (!contentType.includes('text/html')) return null
+
+    const html = await res.text()
+    // og:image/twitter:image live in <head>; stop at 64KB so a multi-MB
+    // article body is never regex-scanned.
+    const head = html.slice(0, 65536)
+    const match = head.match(OG_IMAGE_RE)
+    const src = match?.[1] ?? match?.[2] ?? null
+    if (!src) return null
+
+    try {
+      const parsed = new URL(src, url)
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+      return parsed.toString()
+    } catch {
+      return null
+    }
+  } catch {
+    return null
+  }
+}
+
 const parser = new Parser({
   customFields: {
     item: ['media:content', 'media:thumbnail', 'media:group', 'enclosure', 'content:encoded'],
@@ -98,7 +140,7 @@ export async function GET(req: Request) {
           await new Promise((r) => setTimeout(r, 2100))
           continue
         }
-        const imageUrl = extractImageFromRssItem(item)
+        const imageUrl = extractImageFromRssItem(item) ?? (await extractImageFromArticlePage(url))
 
         const { error: insertError } = await supabase.from('news_items').insert({
           source_name: source.name,
@@ -137,12 +179,38 @@ export async function GET(req: Request) {
     }
   }
 
+  // Backfill: approved rows that were inserted before this endpoint knew
+  // how to scrape og:image (or whose source page failed transiently at
+  // insert time) never get revisited otherwise -- news_items has no
+  // per-run signal telling this route "try their image again", since
+  // dedup is keyed on source_url. Capped at 5/run to keep this well
+  // within maxDuration even on a cold run with many backlogged rows.
+  let imagesBackfilled = 0
+  try {
+    const { data: missingImages } = await supabase
+      .from('news_items')
+      .select('id, source_url')
+      .eq('status', 'approved')
+      .is('image_url', null)
+      .limit(5)
+
+    for (const row of missingImages ?? []) {
+      const image = await extractImageFromArticlePage(row.source_url)
+      if (!image) continue
+      const { error } = await supabase.from('news_items').update({ image_url: image }).eq('id', row.id)
+      if (!error) imagesBackfilled++
+    }
+  } catch (err) {
+    console.error('[news-ingest] Error backfilling images:', err)
+  }
+
   return Response.json({
     ok: true,
     processed,
     approved,
     rejected,
     duplicates,
+    imagesBackfilled,
     timestamp: new Date().toISOString(),
   })
 }
