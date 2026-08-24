@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildCollectionPageSchema, buildBreadcrumbSchema, serializeJsonLd } from '@/utils/schema'
 import { isValidNewsTag } from '@/utils/news'
-import { NEWS_TAG_FILTERS, NEWS_TAG_LABEL } from '@/utils/news-display'
+import { NEWS_TAG_FILTERS, NEWS_TAG_LABEL, dedupNewsForDisplay } from '@/utils/news-display'
 import NewsCard, { type NewsCardItem } from '@/components/news/NewsCard'
 import PageContainer from '@/components/ui/PageContainer'
 import PageHeader from '@/components/ui/PageHeader'
@@ -52,7 +52,7 @@ export default async function NewsPage({ searchParams }: Props) {
   const supabase = await createClient()
   let query = supabase
     .from('news_items')
-    .select('id, title, description, source_name, source_url, tag, published_at, image_url')
+    .select('id, title, description, source_name, source_url, canonical_url, tag, published_at, image_url')
     .eq('status', 'approved')
     .order('published_at', { ascending: false })
     .limit(60)
@@ -65,7 +65,8 @@ export default async function NewsPage({ searchParams }: Props) {
     console.error('[NewsPage] Database query error:', error)
   }
 
-  const items = (data ?? []) as NewsCardItem[]
+  const rawItems = (data ?? []) as NewsCardItem[]
+  const items = dedupNewsForDisplay(rawItems)
 
   const breadcrumbItems = [
     { name: 'Home', path: '/' },

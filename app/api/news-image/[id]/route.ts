@@ -8,6 +8,7 @@
 // item id, never a target URL.
 
 import { createClient } from '@/utils/supabase/server'
+import { decodeHtmlEntities } from '@/utils/news'
 
 const MAX_BYTES = 5 * 1024 * 1024
 
@@ -26,9 +27,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return new Response(null, { status: 404 })
   }
 
+  const cleanUrl = decodeHtmlEntities(data.image_url).trim()
+
   let target: URL
   try {
-    target = new URL(data.image_url)
+    target = new URL(cleanUrl)
   } catch {
     return new Response(null, { status: 404 })
   }
@@ -38,8 +41,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   try {
     const upstream = await fetch(target, {
-      signal: AbortSignal.timeout(5000),
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SoapyFansHubBot/1.0)' },
+      signal: AbortSignal.timeout(6000),
+      redirect: 'follow',
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
+        Accept: 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        Referer: `${target.origin}/`,
+      },
     })
     if (!upstream.ok) return new Response(null, { status: 404 })
 

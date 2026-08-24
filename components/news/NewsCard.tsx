@@ -1,5 +1,5 @@
 import Badge from '@/components/ui/Badge'
-import { isValidNewsTag } from '@/utils/news'
+import { isValidNewsTag, decodeHtmlEntities } from '@/utils/news'
 import { NEWS_TAG_LABEL } from '@/utils/news-display'
 
 export type NewsCardItem = {
@@ -8,6 +8,7 @@ export type NewsCardItem = {
   description: string | null
   source_name: string
   source_url: string
+  canonical_url?: string | null
   tag: string | null
   published_at: string
   image_url: string | null
@@ -24,9 +25,13 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function NewsCard({ item }: { item: NewsCardItem }) {
+  const displayTitle = decodeHtmlEntities(item.title)
+  const displayDescription = item.description ? decodeHtmlEntities(item.description) : null
+  const destinationUrl = item.canonical_url || item.source_url
+
   return (
     <a
-      href={item.source_url}
+      href={destinationUrl}
       target="_blank"
       rel="noopener noreferrer nofollow"
       className="group flex flex-col overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 transition-all hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface)] focus-ring"
@@ -44,8 +49,22 @@ export default function NewsCard({ item }: { item: NewsCardItem }) {
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center font-mono text-xs text-[var(--text-muted)]">
-            No image
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[var(--bg-elevated)]/60 font-mono text-xs text-[var(--text-muted)]">
+            <svg
+              className="h-7 w-7 text-[var(--text-muted)]/50"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"
+              />
+            </svg>
+            <span>Story</span>
           </div>
         )}
       </div>
@@ -63,12 +82,12 @@ export default function NewsCard({ item }: { item: NewsCardItem }) {
         </div>
 
         <h3 className="font-display text-lg font-medium leading-snug text-[var(--text-primary)] line-clamp-3 group-hover:text-[var(--accent-amber)] transition-colors">
-          {item.title}
+          {displayTitle}
         </h3>
 
-        {item.description && (
+        {displayDescription && (
           <p className="line-clamp-2 text-sm leading-relaxed text-[var(--text-secondary)] text-pretty">
-            {item.description}
+            {displayDescription}
           </p>
         )}
 

@@ -14,7 +14,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ### Fixed
 - `saveProfile` ahora distingue el error de unicidad de username (`23505`) y el de cooldown en la respuesta del `UPDATE`, en vez de devolver siempre el mensaje genérico de fallo cuando la validación previa (no atómica) pierde una carrera.
-- El ingest de `/news` ya no publica la misma noticia varias veces cuando el feed de búsqueda de Google News la reporta con links distintos por outlet: dedup por similitud de título (además del dedup existente por `source_url`), corrido antes de clasificar con Groq para no gastar presupuesto de rate-limit en duplicados.
+- Deduplicación integral en `/news`: resolución de URLs canónicas de Google News, normalización completa de títulos, comparación de similitud sin límite de 30 días (`normalized_title`, `canonical_url`), unicidad en base de datos y defensa en profundidad en la visualización.
+- Extracción y visualización de imágenes en `/news`: decodificación de URLs de redirección de Google News al artículo real, scraping robusto de `og:image`/`twitter:image`, decodificación de entidades HTML en URLs, proxy seguro con headers contra hotlink protection y backfill completo de imágenes faltantes.
+- Control de concurrencia en el cron de GitHub Actions (`news-ingest-cron.yml`).
 
 ## [0.1.0] — 2026
 

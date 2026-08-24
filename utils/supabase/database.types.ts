@@ -136,11 +136,13 @@ export type Database = {
       }
       news_items: {
         Row: {
+          canonical_url: string | null
           confidence: number | null
           created_at: string
           description: string | null
           id: string
           image_url: string | null
+          normalized_title: string | null
           published_at: string
           source_name: string
           source_url: string
@@ -149,11 +151,13 @@ export type Database = {
           title: string
         }
         Insert: {
+          canonical_url?: string | null
           confidence?: number | null
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
+          normalized_title?: string | null
           published_at?: string
           source_name: string
           source_url: string
@@ -162,11 +166,13 @@ export type Database = {
           title: string
         }
         Update: {
+          canonical_url?: string | null
           confidence?: number | null
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
+          normalized_title?: string | null
           published_at?: string
           source_name?: string
           source_url?: string

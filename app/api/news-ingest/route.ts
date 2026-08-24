@@ -7,87 +7,37 @@
 
 import Parser from 'rss-parser'
 import { createAdminClient } from '@/utils/supabase/admin'
-import { NEWS_SOURCES, passesKeywordFilter, extractImageFromRssItem, areSimilarTitles } from '@/utils/news'
+import {
+  NEWS_SOURCES,
+  passesKeywordFilter,
+  extractImageFromRssItem,
+  extractImageFromArticlePage,
+  decodeGoogleNewsUrl,
+  extractOutletName,
+  normalizeNewsTitle,
+  areSimilarTitles,
+  decodeHtmlEntities,
+} from '@/utils/news'
 import { classifyNewsItem } from '@/utils/news-classifier'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
 
-const OG_IMAGE_RE =
-  /<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]+content=["']([^"']+)["']|<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image)["']/i
-
-/**
- * Fallback when the RSS item itself carries no image -- true for every
- * Google News search-feed item (that feed format has no media fields at
- * all, confirmed live: 100% of currently-approved items came from it and
- * all had image_url null). Scrapes the article's own og:image/twitter:image
- * meta tag instead. Only ever returns an absolute http(s) URL, same
- * contract as extractImageFromRssItem -- this becomes what
- * app/api/news-image/[id]/route.ts fetches later.
- */
-async function extractImageFromArticlePage(url: string): Promise<string | null> {
-  try {
-    const res = await fetch(url, {
-      signal: AbortSignal.timeout(5000),
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SoapyFansHubBot/1.0; +https://soapyhub.fans)' },
-    })
-    if (!res.ok) {
-      // TEMP diagnostic: every Google News item is coming back null here
-      // with no thrown error, and this codepath had no logging at all --
-      // this line exists to find out which case it actually is before
-      // deciding on a real fix.
-      console.log('[news-ingest] og:image fetch not ok:', res.status, res.url)
-      return null
-    }
-    const contentType = res.headers.get('content-type') ?? ''
-    if (!contentType.includes('text/html')) {
-      console.log('[news-ingest] og:image fetch wrong content-type:', contentType, res.url)
-      return null
-    }
-
-    const html = await res.text()
-    // og:image/twitter:image live in <head>; stop at 64KB so a multi-MB
-    // article body is never regex-scanned.
-    const head = html.slice(0, 65536)
-    const match = head.match(OG_IMAGE_RE)
-    const src = match?.[1] ?? match?.[2] ?? null
-    if (!src) {
-      console.log('[news-ingest] og:image no meta tag found, final url:', res.url)
-      return null
-    }
-
-    try {
-      const parsed = new URL(src, url)
-      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
-      return parsed.toString()
-    } catch {
-      return null
-    }
-  } catch (err) {
-    console.log('[news-ingest] og:image fetch threw:', err)
-    return null
-  }
-}
-
 const parser = new Parser({
   customFields: {
     item: ['media:content', 'media:thumbnail', 'media:group', 'enclosure', 'content:encoded'],
   },
-  // A normal-looking browser UA, not a spoof of any specific client --
-  // some feed servers reject Node's unidentified default request outright.
-  // (Doesn't help against People.com specifically; see utils/news.ts for
-  // why that source is dropped instead.)
   requestOptions: {
     timeout: 8000,
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SoapyFansHubBot/1.0; +https://soapyhub.fans)' },
+    headers: {
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
+    },
   },
 })
 
 export async function GET(req: Request) {
-  // Same fail-closed rule as films' write path and vzla-sismo-feed's
-  // ingest route: if CRON_SECRET is unset in production, `authHeader !==
-  // "Bearer undefined"` would otherwise let anyone trigger this by sending
-  // that literal header value.
+  // Fail-closed rule: in production require valid CRON_SECRET authorization.
   if (process.env.NODE_ENV === 'production' && !process.env.CRON_SECRET) {
     return new Response('Server misconfiguration', { status: 500 })
   }
@@ -107,86 +57,116 @@ export async function GET(req: Request) {
   let rejected = 0
   let duplicates = 0
 
-  // The Google News search feed returns the same real-world story multiple
-  // times -- once per outlet it links to, each with its own opaque
-  // redirect URL -- so the source_url dedup below never catches them. Load
-  // recent titles once per run and check title similarity before spending
-  // a Groq call on an item; anything inserted during this same run is
-  // appended below so duplicates within one run (the common case) are also
-  // caught, not just across runs.
-  //
-  // Filtered by created_at (when WE ingested it), not published_at (the
-  // story's own original date) -- confirmed live: Google News resurfaced a
-  // July 22 Variety story via IMDb on August 23, 33 days later. A
-  // published_at filter had already aged the Variety row out of the
-  // window by then, so the IMDb duplicate found nothing to match against
-  // and was approved a second time. created_at reflects our own dedup
-  // history and can't have that gap.
-  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-  const { data: recentItems } = await supabase
+  // Load existing items without a 30-day cutoff so historical stories
+  // never get re-approved when resurfaced weeks or months later by feeds.
+  const { data: existingRows } = await supabase
     .from('news_items')
-    .select('title')
-    .gte('created_at', thirtyDaysAgo)
-  const recentTitles: string[] = (recentItems ?? []).map((r) => r.title)
+    .select('title, normalized_title, source_url, canonical_url, status')
+
+  const seenUrls = new Set<string>()
+  const seenNormalizedTitles = new Set<string>()
+  const allKnownTitles: string[] = []
+
+  for (const row of existingRows ?? []) {
+    if (row.source_url) seenUrls.add(row.source_url)
+    if (row.canonical_url) seenUrls.add(row.canonical_url)
+    if (row.normalized_title) seenNormalizedTitles.add(row.normalized_title)
+    if (row.title) {
+      allKnownTitles.push(row.title)
+      const norm = normalizeNewsTitle(row.title)
+      if (norm) seenNormalizedTitles.add(norm)
+    }
+  }
 
   for (const source of NEWS_SOURCES) {
     try {
       const feed = await parser.parseURL(source.url)
 
       for (const item of feed.items.slice(0, 20)) {
-        const title = item.title ?? ''
-        const description = item.contentSnippet ?? item.summary ?? ''
+        const rawTitle = item.title ?? ''
+        const rawDescription = item.contentSnippet ?? item.summary ?? ''
         const url = item.link ?? ''
         const pubDateRaw = new Date(item.pubDate ?? '')
         const publishedAt = Number.isNaN(pubDateRaw.getTime()) ? new Date() : pubDateRaw
 
-        // Only ever store an http(s) link: it becomes both the public
-        // "read the article" href and the dedup key below.
-        if (!url || !url.startsWith('http') || !title) continue
+        if (!url || !url.startsWith('http') || !rawTitle) continue
+
+        const title = decodeHtmlEntities(rawTitle).trim()
+        const description = decodeHtmlEntities(rawDescription).trim()
 
         if (!passesKeywordFilter(title, description)) continue
 
-        if (recentTitles.some((seen) => areSimilarTitles(seen, title))) {
+        let canonicalUrl = url
+        let outletName = source.name
+
+        // Google News RSS URLs are opaque redirects; decode to real destination URL
+        if (url.includes('news.google.com')) {
+          const decoded = await decodeGoogleNewsUrl(url)
+          if (decoded) {
+            canonicalUrl = decoded
+            outletName = extractOutletName(title, decoded, source.name)
+          } else {
+            outletName = extractOutletName(title, null, source.name)
+          }
+        }
+
+        // 1. Direct URL check
+        if (seenUrls.has(url) || seenUrls.has(canonicalUrl)) {
           duplicates++
           continue
         }
 
-        // maybeSingle() returns null (no error) when there are no rows;
-        // single() throws for both "no rows" AND a real DB failure, which
-        // would make a silent error look identical to "not seen yet" and
-        // insert a duplicate.
-        const { data: existing, error: checkError } = await supabase
+        // 2. Normalized title exact check
+        const normalizedTitle = normalizeNewsTitle(title)
+        if (normalizedTitle && seenNormalizedTitles.has(normalizedTitle)) {
+          duplicates++
+          continue
+        }
+
+        // 3. Similar title fuzzy check against known history
+        if (allKnownTitles.some((seen) => areSimilarTitles(seen, title))) {
+          duplicates++
+          continue
+        }
+
+        // 4. DB check by source_url or canonical_url
+        const { data: existingInDb, error: checkError } = await supabase
           .from('news_items')
           .select('id')
-          .eq('source_url', url)
+          .or(`source_url.eq."${url}",canonical_url.eq."${canonicalUrl}"`)
           .maybeSingle()
 
         if (checkError) {
           console.error('[news-ingest] Error checking duplicate:', checkError.message)
           continue
         }
-        if (existing) {
+        if (existingInDb) {
           duplicates++
+          seenUrls.add(url)
+          seenUrls.add(canonicalUrl)
           continue
         }
 
         processed++
 
-        const result = await classifyNewsItem(title, description, source.name)
+        const result = await classifyNewsItem(title, description, outletName)
         if (!result) {
-          // Classification attempt itself failed (network, rate limit,
-          // malformed response) -- skip without inserting anything, so
-          // source_url isn't marked "seen" and the next cron tick retries
-          // this exact story fresh instead of it being stuck forever.
+          // Classification attempt failed (network, rate limit, etc.) --
+          // skip so next cron can retry fresh instead of losing the story.
           await new Promise((r) => setTimeout(r, 2100))
           continue
         }
-        const imageUrl = extractImageFromRssItem(item) ?? (await extractImageFromArticlePage(url))
+
+        // Image extraction: prefer RSS media, then scrape destination page
+        const imageUrl =
+          extractImageFromRssItem(item) ?? (await extractImageFromArticlePage(canonicalUrl))
 
         const { error: insertError } = await supabase.from('news_items').insert({
-          source_name: source.name,
+          source_name: outletName,
           source_url: url,
+          canonical_url: canonicalUrl,
           title,
+          normalized_title: normalizedTitle,
           description: description.slice(0, 500),
           image_url: imageUrl,
           tag: result.tag,
@@ -196,25 +176,21 @@ export async function GET(req: Request) {
         })
 
         if (insertError) {
-          // A concurrent run (or a second feed carrying the same story in
-          // the same pass) can race this insert past the maybeSingle()
-          // check above -- the unique index on source_url is the real
-          // guard, this is just a duplicate losing the race, not a bug.
           if (insertError.code !== '23505') {
             console.error('[news-ingest] Error inserting:', insertError.message)
           }
           continue
         }
 
-        recentTitles.push(title)
+        seenUrls.add(url)
+        seenUrls.add(canonicalUrl)
+        if (normalizedTitle) seenNormalizedTitles.add(normalizedTitle)
+        allKnownTitles.push(title)
 
         if (result.status === 'approved') approved++
         else rejected++
 
-        // openai/gpt-oss-120b's free tier is capped at 30 requests/minute
-        // (confirmed via Groq's published limits) -- 300ms allowed up to
-        // 200/min and was producing live 429s. 2.1s keeps every run
-        // comfortably under ~28/min.
+        // Rate limiting pause for Groq free-tier
         await new Promise((r) => setTimeout(r, 2100))
       }
     } catch (err) {
@@ -222,29 +198,66 @@ export async function GET(req: Request) {
     }
   }
 
-  // Backfill: approved rows that were inserted before this endpoint knew
-  // how to scrape og:image (or whose source page failed transiently at
-  // insert time) never get revisited otherwise -- news_items has no
-  // per-run signal telling this route "try their image again", since
-  // dedup is keyed on source_url. Capped at 5/run to keep this well
-  // within maxDuration even on a cold run with many backlogged rows.
+  // Backfill: Reprocess approved items that have missing images, undecoded Google News URLs,
+  // or missing normalized titles so historical records are repaired.
   let imagesBackfilled = 0
   try {
-    const { data: missingImages } = await supabase
+    const { data: rowsToRepair } = await supabase
       .from('news_items')
-      .select('id, source_url')
+      .select('id, title, source_name, source_url, canonical_url, image_url, normalized_title')
       .eq('status', 'approved')
-      .is('image_url', null)
-      .limit(5)
+      .or('image_url.is.null,source_url.like.%news.google.com%,canonical_url.is.null,normalized_title.is.null')
+      .limit(25)
 
-    for (const row of missingImages ?? []) {
-      const image = await extractImageFromArticlePage(row.source_url)
-      if (!image) continue
-      const { error } = await supabase.from('news_items').update({ image_url: image }).eq('id', row.id)
-      if (!error) imagesBackfilled++
+    for (const row of rowsToRepair ?? []) {
+      let targetUrl = row.canonical_url || row.source_url
+      let newCanonical = row.canonical_url
+      let newSourceName = row.source_name
+      let newNormalized = row.normalized_title || normalizeNewsTitle(row.title)
+
+      if (row.source_url.includes('news.google.com') && !row.canonical_url) {
+        const decoded = await decodeGoogleNewsUrl(row.source_url)
+        if (decoded) {
+          newCanonical = decoded
+          targetUrl = decoded
+          if (row.source_name === 'Google News') {
+            newSourceName = extractOutletName(row.title, decoded, 'Google News')
+          }
+        }
+      }
+
+      let newImage = row.image_url
+      if (!newImage) {
+        newImage = await extractImageFromArticlePage(targetUrl)
+      }
+
+      const updates: {
+        image_url?: string | null
+        canonical_url?: string | null
+        source_name?: string
+        normalized_title?: string | null
+      } = {}
+
+      if (newImage && newImage !== row.image_url) {
+        updates.image_url = newImage
+        imagesBackfilled++
+      }
+      if (newCanonical && newCanonical !== row.canonical_url) {
+        updates.canonical_url = newCanonical
+      }
+      if (newSourceName && newSourceName !== row.source_name) {
+        updates.source_name = newSourceName
+      }
+      if (newNormalized && newNormalized !== row.normalized_title) {
+        updates.normalized_title = newNormalized
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await supabase.from('news_items').update(updates).eq('id', row.id)
+      }
     }
   } catch (err) {
-    console.error('[news-ingest] Error backfilling images:', err)
+    console.error('[news-ingest] Error backfilling news items:', err)
   }
 
   return Response.json({
