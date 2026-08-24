@@ -17,9 +17,10 @@ const parser = new Parser({
   customFields: {
     item: ['media:content', 'media:thumbnail', 'media:group', 'enclosure', 'content:encoded'],
   },
-  // Some outlets (People.com confirmed) 403 a request with no User-Agent,
-  // treating it as a bot -- this is a normal-looking browser UA, not a
-  // spoof of any specific client.
+  // A normal-looking browser UA, not a spoof of any specific client --
+  // some feed servers reject Node's unidentified default request outright.
+  // (Doesn't help against People.com specifically; see utils/news.ts for
+  // why that source is dropped instead.)
   requestOptions: {
     timeout: 8000,
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SoapyFansHubBot/1.0; +https://soapyhub.fans)' },
@@ -89,6 +90,14 @@ export async function GET(req: Request) {
         processed++
 
         const result = await classifyNewsItem(title, description, source.name)
+        if (!result) {
+          // Classification attempt itself failed (network, rate limit,
+          // malformed response) -- skip without inserting anything, so
+          // source_url isn't marked "seen" and the next cron tick retries
+          // this exact story fresh instead of it being stuck forever.
+          await new Promise((r) => setTimeout(r, 2100))
+          continue
+        }
         const imageUrl = extractImageFromRssItem(item)
 
         const { error: insertError } = await supabase.from('news_items').insert({
@@ -117,8 +126,11 @@ export async function GET(req: Request) {
         if (result.status === 'approved') approved++
         else rejected++
 
-        // Stay well under Groq's free-tier rate limit.
-        await new Promise((r) => setTimeout(r, 300))
+        // openai/gpt-oss-120b's free tier is capped at 30 requests/minute
+        // (confirmed via Groq's published limits) -- 300ms allowed up to
+        // 200/min and was producing live 429s. 2.1s keeps every run
+        // comfortably under ~28/min.
+        await new Promise((r) => setTimeout(r, 2100))
       }
     } catch (err) {
       console.error(`[news-ingest] Error processing ${source.name}:`, err)

@@ -25,7 +25,11 @@ export const NEWS_SOURCES: NewsSource[] = [
   { name: 'The Hollywood Reporter', url: 'https://www.hollywoodreporter.com/feed/' },
   { name: 'Deadline', url: 'https://deadline.com/feed/' },
   { name: 'IndieWire', url: 'https://www.indiewire.com/feed/' },
-  { name: 'People', url: 'https://people.com/feed/' },
+  // People.com is deliberately absent: its feed 403s every request from
+  // Vercel's serverless IPs regardless of User-Agent (confirmed live,
+  // both with and without one set) -- looks like an IP/ASN-level bot
+  // block, not something a header fixes. Not a real gap: its stories
+  // already surface through the Google News search feed above.
 ]
 
 // Requires the full "sophie thatcher" phrase (not just "sophie") so a
