@@ -53,7 +53,8 @@ export default async function ProfileEditPage() {
         }
         const d = await getTvDetails(fav.tmdb_id)
         return { ...fav, title: d.name, posterPath: d.poster_path }
-      } catch {
+      } catch (err) {
+        console.error('[ProfileEditPage] Failed to enrich favorite from TMDB:', { favoriteId: fav.id, tmdbId: fav.tmdb_id, mediaType: fav.media_type, err })
         return { ...fav, title: null, posterPath: null }
       }
     }),

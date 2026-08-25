@@ -22,9 +22,13 @@ export const getUser = cache(async () => {
   try {
     const supabase = await createClient()
     const { data: { user }, error } = await supabase.auth.getUser()
-    if (error || !user) return null
+    if (error) {
+      console.error('[getUser] Supabase auth.getUser() failed:', error)
+      return null
+    }
     return user
-  } catch {
+  } catch (err) {
+    console.error('[getUser] Unexpected exception:', err)
     return null
   }
 })
@@ -46,15 +50,20 @@ export const getAuthUserWithProfile = cache(async (): Promise<AuthUserWithProfil
 
   try {
     const supabase = await createClient()
-    const { data: profile } = await supabase
+    const { data: profile, error } = await supabase
       .from('profiles')
       .select('username, avatar_url')
       .eq('id', user.id)
       .maybeSingle()
 
+    if (error) {
+      console.error('[getAuthUserWithProfile] Failed to fetch profile:', error)
+    }
+
     const profileHref = `/profile/${profile?.username ?? user.id}`
     return { user, profile: profile ?? null, profileHref }
-  } catch {
+  } catch (err) {
+    console.error('[getAuthUserWithProfile] Unexpected exception:', err)
     return { user, profile: null, profileHref: `/profile/${user.id}` }
   }
 })

@@ -248,13 +248,19 @@ export async function submitMusicReview(formData: FormData) {
   const content = ((formData.get('content') as string) ?? '').trim().slice(0, 5000) || null
   const reviewId = (formData.get('review_id') as string) || null
 
+  const musicReviewErrorMessage = (error: { code?: string; message: string }) =>
+    error.code === '23503' ? 'That release no longer exists.' : 'Could not save your review'
+
   if (reviewId) {
     const { error } = await supabase
       .from('music_reviews')
       .update({ rating, content, deleted_at: null, updated_at: new Date().toISOString() })
       .eq('id', reviewId)
       .eq('user_id', user.id)
-    if (error) redirect('/music?error=Could+not+save+your+review')
+    if (error) {
+      console.error('[submitMusicReview] Failed to update review:', error)
+      redirect(`/music?error=${encodeURIComponent(musicReviewErrorMessage(error))}`)
+    }
   } else {
     // Check if review already exists for this user and release
     const { data: existing } = await supabase
@@ -270,12 +276,18 @@ export async function submitMusicReview(formData: FormData) {
         .update({ rating, content, deleted_at: null, updated_at: new Date().toISOString() })
         .eq('id', existing.id)
         .eq('user_id', user.id)
-      if (error) redirect('/music?error=Could+not+save+your+review')
+      if (error) {
+        console.error('[submitMusicReview] Failed to update existing review:', error)
+        redirect(`/music?error=${encodeURIComponent(musicReviewErrorMessage(error))}`)
+      }
     } else {
       const { error } = await supabase
         .from('music_reviews')
         .insert({ user_id: user.id, release_id: releaseId, rating, content })
-      if (error) redirect('/music?error=Could+not+save+your+review')
+      if (error) {
+        console.error('[submitMusicReview] Failed to insert review:', error)
+        redirect(`/music?error=${encodeURIComponent(musicReviewErrorMessage(error))}`)
+      }
     }
   }
 
