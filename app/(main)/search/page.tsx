@@ -1,11 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { createClient } from '@/utils/supabase/server'
-import { getBannedUserIds } from '@/utils/supabase/moderation'
-import { isVisibleReview, reviewAuthorProfilePath } from '@/utils/reviews'
-import { getReleasesWithSlugs } from '@/utils/releases'
-import { escapeIlike, profilePath, resolveCanonicalProfileSlug } from '@/utils/profile'
-import { getPersonCombinedCredits, getTmdbImageUrl, normalizeCredit, type NormalizedCredit } from '@/utils/tmdb'
+import { runGlobalSearch } from '@/utils/search'
+import { profilePath, resolveCanonicalProfileSlug } from '@/utils/profile'
+import { getTmdbImageUrl } from '@/utils/tmdb'
 import PageContainer from '@/components/ui/PageContainer'
 import SectionHeader from '@/components/ui/SectionHeader'
 import EmptyState from '@/components/ui/EmptyState'
@@ -20,133 +17,15 @@ interface Props {
   searchParams: Promise<{ q?: string }>
 }
 
-const RESULTS_PER_SECTION = 8
-
-type ProfileResult = { id: string; username: string | null; display_name: string | null; avatar_url: string | null }
-
-type ReviewResult = {
-  id: string
-  content: string
-  href: string
-  title: string
-  authorName: string
-  authorHref: string | null
-}
-
-type NewsResult = { id: string; title: string; description: string | null; source_name: string }
-
-async function searchProfiles(supabase: Awaited<ReturnType<typeof createClient>>, pattern: string) {
-  const [byUsername, byDisplayName, bannedUserIds] = await Promise.all([
-    supabase.from('profiles').select('id, username, display_name, avatar_url').ilike('username', pattern).limit(RESULTS_PER_SECTION),
-    supabase.from('profiles').select('id, username, display_name, avatar_url').ilike('display_name', pattern).limit(RESULTS_PER_SECTION),
-    getBannedUserIds(),
-  ])
-
-  const byId = new Map<string, ProfileResult>()
-  for (const p of [...(byUsername.data ?? []), ...(byDisplayName.data ?? [])]) {
-    if (!bannedUserIds.has(p.id)) byId.set(p.id, p)
-  }
-  return [...byId.values()].slice(0, RESULTS_PER_SECTION)
-}
-
-async function searchTitles(query: string): Promise<NormalizedCredit[]> {
-  const credits = await getPersonCombinedCredits().catch(() => ({ id: 0, cast: [], crew: [] }))
-  const q = query.toLowerCase()
-  const seen = new Set<string>()
-  const matches: NormalizedCredit[] = []
-  for (const c of credits.cast) {
-    const key = `${c.media_type}:${c.id}`
-    if (seen.has(key)) continue
-    seen.add(key)
-    const normalized = normalizeCredit(c)
-    if (!normalized.title.toLowerCase().includes(q)) continue
-    matches.push(normalized)
-    if (matches.length >= RESULTS_PER_SECTION) break
-  }
-  return matches
-}
-
-async function searchReviews(supabase: Awaited<ReturnType<typeof createClient>>, pattern: string): Promise<ReviewResult[]> {
-  const [filmRes, musicRes, bannedUserIds, releases] = await Promise.all([
-    supabase
-      .from('reviews')
-      .select('id, content, deleted_at, user_id, films(tmdb_id, title), profiles(username, display_name)')
-      .ilike('content', pattern)
-      .is('deleted_at', null)
-      .limit(RESULTS_PER_SECTION),
-    supabase
-      .from('music_reviews')
-      .select('id, content, deleted_at, user_id, release_id, profiles(username, display_name)')
-      .ilike('content', pattern)
-      .is('deleted_at', null)
-      .limit(RESULTS_PER_SECTION),
-    getBannedUserIds(),
-    getReleasesWithSlugs(),
-  ])
-
-  const releaseById = new Map(releases.map((r) => [r.id, r]))
-
-  const filmResults: ReviewResult[] = (filmRes.data ?? [])
-    .filter((r): r is typeof r & { content: string; films: NonNullable<typeof r.films> } =>
-      isVisibleReview(r, bannedUserIds) && r.content !== null && r.films !== null,
-    )
-    .map((r) => ({
-      id: r.id,
-      content: r.content,
-      href: `/films/${r.films.tmdb_id}`,
-      title: r.films.title,
-      authorName: r.profiles?.display_name ?? r.profiles?.username ?? 'Anonymous Fan',
-      authorHref: reviewAuthorProfilePath(r.profiles),
-    }))
-
-  const musicResults: ReviewResult[] = (musicRes.data ?? [])
-    .filter((r): r is typeof r & { content: string } => isVisibleReview(r, bannedUserIds) && r.content !== null && releaseById.has(r.release_id))
-    .map((r) => {
-      const release = releaseById.get(r.release_id)!
-      return {
-        id: r.id,
-        content: r.content,
-        href: `/music/${release.slug}`,
-        title: release.title,
-        authorName: r.profiles?.display_name ?? r.profiles?.username ?? 'Anonymous Fan',
-        authorHref: reviewAuthorProfilePath(r.profiles),
-      }
-    })
-
-  return [...filmResults, ...musicResults].slice(0, RESULTS_PER_SECTION)
-}
-
-async function searchNews(supabase: Awaited<ReturnType<typeof createClient>>, pattern: string): Promise<NewsResult[]> {
-  const [byTitle, byDescription] = await Promise.all([
-    supabase.from('news_items').select('id, title, description, source_name').eq('status', 'approved').ilike('title', pattern).limit(RESULTS_PER_SECTION),
-    supabase.from('news_items').select('id, title, description, source_name').eq('status', 'approved').ilike('description', pattern).limit(RESULTS_PER_SECTION),
-  ])
-  const byId = new Map<string, NewsResult>()
-  for (const n of [...(byTitle.data ?? []), ...(byDescription.data ?? [])]) byId.set(n.id, n)
-  return [...byId.values()].slice(0, RESULTS_PER_SECTION)
-}
-
 export default async function SearchPage({ searchParams }: Props) {
   const { q } = await searchParams
   const query = (q ?? '').trim().slice(0, 100)
-
-  let profiles: ProfileResult[] = []
-  let titles: NormalizedCredit[] = []
-  let reviews: ReviewResult[] = []
-  let news: NewsResult[] = []
-
-  if (query.length >= 2) {
-    const supabase = await createClient()
-    const pattern = `%${escapeIlike(query)}%`
-    ;[profiles, titles, reviews, news] = await Promise.all([
-      searchProfiles(supabase, pattern),
-      searchTitles(query),
-      searchReviews(supabase, pattern),
-      searchNews(supabase, pattern),
-    ])
-  }
-
   const hasQuery = query.length >= 2
+
+  const { profiles, titles, reviews, news } = hasQuery
+    ? await runGlobalSearch(query)
+    : { profiles: [], titles: [], reviews: [], news: [] }
+
   const hasResults = profiles.length > 0 || titles.length > 0 || reviews.length > 0 || news.length > 0
 
   return (
