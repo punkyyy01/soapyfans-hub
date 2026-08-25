@@ -3,6 +3,7 @@ import { DM_Sans, Geist_Mono, Playfair_Display } from "next/font/google";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Analytics } from "@vercel/analytics/next";
+import NextTopLoader from "nextjs-toploader";
 import "./globals.css";
 import Navbar from "@/components/ui/Navbar";
 import Footer, { FooterFallback } from "@/components/ui/Footer";
@@ -117,6 +118,12 @@ export default function RootLayout({
         className={`${dmSans.variable} ${geistMono.variable} ${playfair.variable} antialiased`}
       >
         <div className="flex min-h-screen flex-col">
+          <NextTopLoader
+            color="#e8890c"
+            height={2}
+            showSpinner={false}
+            shadow="0 0 8px rgba(232,137,12,0.55)"
+          />
           <Suspense fallback={<nav className="fixed inset-x-0 top-0 z-50 h-16 border-b border-[var(--border-subtle)] bg-[var(--bg-glass)] backdrop-blur-md" />}>
             <Navbar />
           </Suspense>
