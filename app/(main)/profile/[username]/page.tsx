@@ -11,6 +11,7 @@ import { isUuid, resolveCanonicalProfileSlug, profilePath, escapeIlike } from '@
 import { evaluateProfileSeo } from '@/utils/profile-seo'
 import { buildBreadcrumbSchema, buildProfilePageSchema, serializeJsonLd } from '@/utils/schema'
 import ActivityFeed, { type ActivityItem } from '@/components/profile/ActivityFeed'
+import FollowButton from '@/components/social/FollowButton'
 import SectionHeader from '@/components/ui/SectionHeader'
 import Button from '@/components/ui/Button'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
@@ -226,7 +227,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
     ? getPersonCombinedCredits().catch(() => ({ id: 0, cast: [], crew: [] }))
     : Promise.resolve({ id: 0, cast: [], crew: [] })
 
-  const [combinedCredits, filmReviewsResult, musicReviewsResult, watchlistResult] = await Promise.all([
+  const [combinedCredits, filmReviewsResult, musicReviewsResult, watchlistResult, followerCountResult, followingCountResult, followingResult] = await Promise.all([
     creditsPromise,
     profile.show_activity
       ? supabase
@@ -256,7 +257,21 @@ export default async function ProfilePage({ params, searchParams }: Props) {
           .order('created_at', { ascending: false })
           .limit(24)
       : Promise.resolve({ data: [] }),
+    supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', profile.id),
+    supabase.from('follows').select('following_id', { count: 'exact', head: true }).eq('follower_id', profile.id),
+    user && !isOwner
+      ? supabase
+          .from('follows')
+          .select('follower_id')
+          .eq('follower_id', user.id)
+          .eq('following_id', profile.id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ])
+
+  const followerCount = followerCountResult.count ?? 0
+  const followingCount = followingCountResult.count ?? 0
+  const isFollowing = Boolean(followingResult.data)
 
   const creditMap = new Map<string, { title: string; posterPath: string | null }>()
   for (const c of combinedCredits.cast) {
@@ -446,12 +461,21 @@ export default async function ProfilePage({ params, searchParams }: Props) {
                 </div>
               </div>
 
-              {/* Owner Action Button */}
-              {isOwner && (
+              {/* Owner Action Button / Follow Button */}
+              {isOwner ? (
                 <div className="pb-1">
                   <Button href="/profile/edit" variant="secondary" size="sm">
                     Edit Profile Atelier ↗
                   </Button>
+                </div>
+              ) : (
+                <div className="pb-1">
+                  <FollowButton
+                    targetUserId={profile.id}
+                    profileSlug={profileSlug}
+                    isFollowing={isFollowing}
+                    isSignedIn={Boolean(user)}
+                  />
                 </div>
               )}
             </div>
@@ -476,6 +500,13 @@ export default async function ProfilePage({ params, searchParams }: Props) {
                       </span>
                     </>
                   )}
+                  <span className="text-[var(--border-subtle)]" aria-hidden="true">·</span>
+                  <span className="font-mono text-xs text-[var(--text-muted)]">
+                    <span className="text-[var(--text-secondary)]">{followerCount}</span> {followerCount === 1 ? 'follower' : 'followers'}
+                  </span>
+                  <span className="font-mono text-xs text-[var(--text-muted)]">
+                    <span className="text-[var(--text-secondary)]">{followingCount}</span> following
+                  </span>
                 </div>
               </div>
 
