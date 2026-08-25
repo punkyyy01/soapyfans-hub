@@ -163,37 +163,3 @@ export async function submitReport(formData: FormData) {
   await setFlash('Report submitted — thank you for helping keep the archive clean.', 'message')
   redirect(redirectTo)
 }
-
-// ── Notifications ────────────────────────────────────────────────────────
-
-export async function markNotificationRead(formData: FormData) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  const notificationId = formData.get('notification_id') as string
-  if (!notificationId) redirect('/notifications')
-
-  await supabase
-    .from('notifications')
-    .update({ read_at: new Date().toISOString() })
-    .eq('id', notificationId)
-    .eq('user_id', user.id)
-
-  revalidatePath('/notifications')
-}
-
-export async function markAllNotificationsRead() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
-
-  await supabase
-    .from('notifications')
-    .update({ read_at: new Date().toISOString() })
-    .eq('user_id', user.id)
-    .is('read_at', null)
-
-  revalidatePath('/notifications')
-  redirect('/notifications')
-}
