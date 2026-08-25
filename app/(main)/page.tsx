@@ -17,9 +17,11 @@ import Link from 'next/link'
 import Hero from '@/components/ui/Hero'
 import WorksSection from '@/components/media/WorksSection'
 import MusicSection from '@/components/forms/MusicSection'
+import CommunityPulseSection from '@/components/home/CommunityPulseSection'
 import PageContainer from '@/components/ui/PageContainer'
-
-export const revalidate = 3600
+import { createClient, getUser } from '@/utils/supabase/server'
+import { getRecentActivityRaw, rankActivity } from '@/utils/activity'
+import { getTrendingThisWeek } from '@/utils/trending'
 
 export const metadata: Metadata = {
   title: {
@@ -59,6 +61,41 @@ function MusicSkeleton() {
       </div>
     </section>
   )
+}
+
+function CommunityPulseSkeleton() {
+  return (
+    <section className="relative mx-auto max-w-7xl px-6 pb-24 sm:px-10">
+      <div className="mb-10 h-8 w-48 animate-pulse rounded bg-[var(--bg-elevated)]" />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-24 animate-pulse rounded-xl bg-[var(--bg-elevated)]/60" />
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// Streamed in its own Suspense boundary: the follows lookup here is the
+// only thing on this page that reads cookies, so isolating it keeps
+// Hero/Works able to paint without waiting on it.
+async function CommunityPulse() {
+  const [user, feed, trending] = await Promise.all([
+    getUser(),
+    getRecentActivityRaw(),
+    getTrendingThisWeek(),
+  ])
+
+  let followedIds = new Set<string>()
+  if (user) {
+    const supabase = await createClient()
+    const { data } = await supabase.from('follows').select('following_id').eq('follower_id', user.id)
+    followedIds = new Set((data ?? []).map((f) => f.following_id))
+  }
+
+  const ranked = rankActivity(feed, followedIds).slice(0, 8)
+
+  return <CommunityPulseSection feed={ranked} trending={trending} />
 }
 
 export default async function HomePage() {
@@ -138,7 +175,12 @@ export default async function HomePage() {
         <MusicSection />
       </Suspense>
 
-      {/* ── 04: Community Invitation ─────────────────────────── */}
+      {/* ── 04: Community Pulse (activity feed + trending) ───── */}
+      <Suspense fallback={<CommunityPulseSkeleton />}>
+        <CommunityPulse />
+      </Suspense>
+
+      {/* ── 05: Community Invitation ─────────────────────────── */}
       <section className="relative pb-24 sm:pb-32">
         <PageContainer size="default">
           <div className="border-t border-b border-[var(--border-subtle)] py-12 sm:py-16">
