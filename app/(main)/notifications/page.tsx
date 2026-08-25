@@ -8,6 +8,7 @@ import { notificationMessage } from '@/utils/social'
 import PageContainer from '@/components/ui/PageContainer'
 import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
+import RefreshNavbarBadge from '@/components/social/RefreshNavbarBadge'
 
 export const metadata: Metadata = {
   title: 'Notifications',
@@ -99,6 +100,7 @@ export default async function NotificationsPage() {
 
   return (
     <main className="min-h-screen bg-[var(--bg-base)] pb-32 pt-24 sm:pt-28">
+      {hasUnread && <RefreshNavbarBadge />}
       <PageContainer size="narrow">
         <PageHeader eyebrow="Archive Activity" title="Notifications" />
 
