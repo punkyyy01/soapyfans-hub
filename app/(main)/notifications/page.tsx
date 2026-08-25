@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getUser, createClient } from '@/utils/supabase/server'
 import { getReleasesWithSlugs } from '@/utils/releases'
 import { profilePath, resolveCanonicalProfileSlug } from '@/utils/profile'
+import { notificationMessage } from '@/utils/social'
 import PageContainer from '@/components/ui/PageContainer'
 import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
@@ -21,21 +22,6 @@ type NotificationRow = {
   read_at: string | null
   created_at: string
   actor: { id: string; username: string | null; display_name: string | null } | null
-}
-
-function messageFor(type: string, actorName: string): string {
-  switch (type) {
-    case 'follow':
-      return `${actorName} started following you`
-    case 'like':
-      return `${actorName} liked your review`
-    case 'reply':
-      return `${actorName} replied to your review`
-    case 'mention':
-      return `${actorName} mentioned you in a reply`
-    default:
-      return `${actorName} interacted with your activity`
-  }
 }
 
 export default async function NotificationsPage() {
@@ -129,7 +115,7 @@ export default async function NotificationsPage() {
                       : 'border-[var(--border-subtle)] bg-[var(--bg-surface)]/60'
                   }`}
                 >
-                  <p className="text-sm text-[var(--text-primary)]">{messageFor(n.type, actorName)}</p>
+                  <p className="text-sm text-[var(--text-primary)]">{notificationMessage(n.type, actorName)}</p>
                   <p className="mt-1 font-mono text-[0.68rem] text-[var(--text-muted)]">
                     {new Date(n.created_at).toLocaleDateString(undefined, {
                       year: 'numeric',

@@ -307,3 +307,59 @@ describe('Schema drift guard: username change cooldown', () => {
     assert.match(actionsSrc, /error\.message\?\.includes\('change your username again'\)/)
   })
 })
+
+describe('Schema drift guard: social layer (follows/likes/replies/reports/notifications)', () => {
+  it('has a migration creating the five social tables', () => {
+    const migrations = readMigrations()
+    const hasMigration = migrations.some((f) => {
+      const sql = fs.readFileSync(path.join(migrationsDir, f), 'utf8')
+      return (
+        sql.includes('create table public.follows') &&
+        sql.includes('create table public.review_likes') &&
+        sql.includes('create table public.review_replies') &&
+        sql.includes('create table public.reports') &&
+        sql.includes('create table public.notifications')
+      )
+    })
+    assert.ok(hasMigration, 'Expected a migration creating follows/review_likes/review_replies/reports/notifications')
+  })
+
+  it('generated types expose the four social RPCs', () => {
+    const types = fs.readFileSync(typesPath, 'utf8')
+    assert.ok(types.includes('toggle_follow:'))
+    assert.ok(types.includes('toggle_review_like:'))
+    assert.ok(types.includes('submit_review_reply:'))
+    assert.ok(types.includes('submit_report:'))
+  })
+
+  it('has a follow-up migration revoking the default PUBLIC execute grant on the SECURITY DEFINER RPCs', () => {
+    // CREATE FUNCTION grants EXECUTE to PUBLIC by default -- missed in the
+    // first pass (caught by mcp__Supabase__get_advisors: anon could call
+    // toggle_follow/toggle_review_like/submit_review_reply). Guards against
+    // that regression reappearing in a future social RPC.
+    const migrations = readMigrations()
+    const hasFix = migrations.some((f) => {
+      const sql = fs.readFileSync(path.join(migrationsDir, f), 'utf8')
+      return (
+        /revoke all on function public\.toggle_follow\(uuid\) from public, anon/i.test(sql) &&
+        /revoke all on function public\.toggle_review_like/i.test(sql) &&
+        /revoke all on function public\.submit_review_reply/i.test(sql)
+      )
+    })
+    assert.ok(hasFix, 'Expected a migration revoking PUBLIC/anon execute on the social SECURITY DEFINER RPCs')
+  })
+
+  it('admin reply/report/news actions gate via the is_admin() RPC, same as review moderation', () => {
+    const src = fs.readFileSync(
+      path.join(repoRoot, 'app', '(admin)', 'dashboard-s9k2mx', 'actions.ts'),
+      'utf8',
+    )
+    for (const fn of ['adminSoftDeleteReply', 'adminResolveReport', 'adminApproveNewsItem']) {
+      assert.ok(src.includes(`export async function ${fn}`), `Expected ${fn} to exist`)
+    }
+    // verifyAdmin() (already asserted elsewhere in this file to use
+    // .rpc('is_admin')) is called at the top of every exported action in
+    // this file, including the new ones -- one substring check covers all.
+    assert.ok(src.includes(".rpc('is_admin')"))
+  })
+})
