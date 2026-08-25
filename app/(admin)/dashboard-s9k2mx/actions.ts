@@ -61,6 +61,105 @@ export async function adminRestoreMusicReview(formData: FormData) {
   revalidatePath(DASHBOARD)
 }
 
+export async function adminSoftDeleteReply(formData: FormData) {
+  await verifyAdmin()
+  const id = formData.get('reply_id') as string
+  if (!id) return
+  await createAdminClient()
+    .from('review_replies')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id)
+  revalidatePath(DASHBOARD)
+}
+
+export async function adminRestoreReply(formData: FormData) {
+  await verifyAdmin()
+  const id = formData.get('reply_id') as string
+  if (!id) return
+  await createAdminClient()
+    .from('review_replies')
+    .update({ deleted_at: null })
+    .eq('id', id)
+  revalidatePath(DASHBOARD)
+}
+
+export async function adminApproveNewsItem(formData: FormData) {
+  await verifyAdmin()
+  const id = formData.get('news_item_id') as string
+  if (!id) return
+  await createAdminClient()
+    .from('news_items')
+    .update({ status: 'approved' })
+    .eq('id', id)
+  revalidatePath(DASHBOARD)
+  revalidatePath('/news')
+}
+
+export async function adminRejectNewsItem(formData: FormData) {
+  await verifyAdmin()
+  const id = formData.get('news_item_id') as string
+  if (!id) return
+  await createAdminClient()
+    .from('news_items')
+    .update({ status: 'rejected' })
+    .eq('id', id)
+  revalidatePath(DASHBOARD)
+  revalidatePath('/news')
+}
+
+// A report's target lives in one of four tables depending on target_type.
+// Resolving hides/removes the underlying content (soft-delete for
+// review/music_review/review_reply, status='rejected' for news_item, same
+// as the direct moderation actions above) and marks the report resolved.
+// Dismissing only marks the report dismissed, leaving the content as-is.
+export async function adminResolveReport(formData: FormData) {
+  const adminUser = await verifyAdmin()
+  const reportId = formData.get('report_id') as string
+  const targetType = formData.get('target_type') as string
+  const targetId = formData.get('target_id') as string
+  if (!reportId || !targetType || !targetId) return
+
+  const admin = createAdminClient()
+
+  switch (targetType) {
+    case 'review':
+      await admin.from('reviews').update({ deleted_at: new Date().toISOString() }).eq('id', targetId)
+      break
+    case 'music_review':
+      await admin.from('music_reviews').update({ deleted_at: new Date().toISOString() }).eq('id', targetId)
+      break
+    case 'review_reply':
+      await admin.from('review_replies').update({ deleted_at: new Date().toISOString() }).eq('id', targetId)
+      break
+    case 'news_item':
+      await admin.from('news_items').update({ status: 'rejected' }).eq('id', targetId)
+      break
+    default:
+      return
+  }
+
+  await admin
+    .from('reports')
+    .update({ status: 'resolved', resolved_at: new Date().toISOString(), resolved_by: adminUser.id })
+    .eq('id', reportId)
+
+  revalidatePath(DASHBOARD)
+  revalidatePath('/news')
+}
+
+export async function adminDismissReport(formData: FormData) {
+  const adminUser = await verifyAdmin()
+  const reportId = formData.get('report_id') as string
+  if (!reportId) return
+
+  await createAdminClient()
+    .from('reports')
+    .update({ status: 'dismissed', resolved_at: new Date().toISOString(), resolved_by: adminUser.id })
+    .eq('id', reportId)
+
+  revalidatePath(DASHBOARD)
+}
+
 export async function adminBanUser(formData: FormData) {
   const adminUser = await verifyAdmin()
   const userId = formData.get('user_id') as string
