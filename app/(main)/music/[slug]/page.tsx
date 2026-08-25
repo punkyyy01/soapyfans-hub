@@ -11,17 +11,17 @@ import {
   RELEASE_TYPE_LABEL,
   SOPHIE_MUSIC_QUOTES,
 } from '@/utils/music'
-import { isVisibleReview, reviewAuthorProfilePath } from '@/utils/reviews'
+import { isVisibleReview } from '@/utils/reviews'
 import { buildMusicReleaseSchema, buildBreadcrumbSchema, serializeJsonLd } from '@/utils/schema'
 import TrackList from '@/components/media/TrackList'
 import MusicReviewForm from '@/components/forms/MusicReviewForm'
+import ReviewCard from '@/components/social/ReviewCard'
 import PageContainer from '@/components/ui/PageContainer'
 import SectionHeader from '@/components/ui/SectionHeader'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import EmptyState from '@/components/ui/EmptyState'
-import StarRating from '@/components/ui/StarRating'
 import SafeImage from '@/components/ui/SafeImage'
 
 export const revalidate = 3600
@@ -80,6 +80,15 @@ type MusicReviewWithProfile = {
   created_at: string
   deleted_at: string | null
   profiles: { username: string | null; display_name: string | null } | null
+  review_likes: { user_id: string }[]
+  review_replies: {
+    id: string
+    user_id: string
+    content: string
+    created_at: string
+    deleted_at: string | null
+    profiles: { username: string | null; display_name: string | null } | null
+  }[]
 }
 
 export default async function ReleaseDetailPage({ params, searchParams }: Props) {
@@ -93,7 +102,7 @@ export default async function ReleaseDetailPage({ params, searchParams }: Props)
     getUser(),
     supabase
       .from('music_reviews')
-      .select('id, user_id, rating, content, created_at, deleted_at, profiles(username, display_name)')
+      .select('id, user_id, rating, content, created_at, deleted_at, profiles(username, display_name), review_likes(user_id), review_replies(id, user_id, content, created_at, deleted_at, profiles(username, display_name))')
       .eq('release_id', release.id)
       .is('deleted_at', null),
     getBannedUserIds(),
@@ -346,50 +355,23 @@ export default async function ReleaseDetailPage({ params, searchParams }: Props)
             {reviews.length > 0 ? (
               <ul className="space-y-4">
                 {reviews.map((review) => {
-                  const author = review.profiles?.display_name ?? review.profiles?.username ?? 'Anonymous Fan'
-                  const isOwn = review.user_id === user?.id
-                  const authorHref = reviewAuthorProfilePath(review.profiles)
+                  const likeCount = review.review_likes.filter((l) => !bannedUserIds.has(l.user_id)).length
+                  const likedByMe = Boolean(user && review.review_likes.some((l) => l.user_id === user.id))
+                  const replies = review.review_replies
+                    .filter((r) => r.deleted_at === null && !bannedUserIds.has(r.user_id))
+                    .sort((a, b) => a.created_at.localeCompare(b.created_at))
                   return (
-                    <li
+                    <ReviewCard
                       key={review.id}
-                      className="group relative rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-6 transition-all hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface)]"
-                    >
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--accent-amber)]/40 bg-[var(--bg-card)] font-mono text-xs font-semibold text-[var(--accent-amber)]">
-                          {author[0]?.toUpperCase() ?? '?'}
-                        </span>
-                        <span className="font-display text-base font-medium text-[var(--text-primary)]">
-                          {authorHref ? (
-                            <Link
-                              href={authorHref}
-                              className="transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
-                            >
-                              {author}
-                            </Link>
-                          ) : (
-                            author
-                          )}
-                          {isOwn && (
-                            <span className="ml-2 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-[var(--accent-amber)]">
-                              (You)
-                            </span>
-                          )}
-                        </span>
-                        <StarRating value={review.rating} />
-                        <span className="ml-auto font-mono text-xs text-[var(--text-muted)]">
-                          {new Date(review.created_at).toLocaleDateString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                        </span>
-                      </div>
-                      {review.content && (
-                        <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)] text-pretty">
-                          {review.content}
-                        </p>
-                      )}
-                    </li>
+                      review={review}
+                      targetType="music_review"
+                      currentUserId={user?.id ?? null}
+                      isSignedIn={Boolean(user)}
+                      redirectTo={`/music/${release.slug}`}
+                      likeCount={likeCount}
+                      likedByMe={likedByMe}
+                      replies={replies}
+                    />
                   )
                 })}
               </ul>

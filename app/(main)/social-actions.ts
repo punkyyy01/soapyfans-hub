@@ -65,11 +65,7 @@ export async function toggleReviewLike(formData: FormData) {
     redirect(`${redirectTo}?error=${encodeURIComponent('Could not update like. Please try again.')}`)
   }
 
-  if (targetType === 'review') {
-    revalidatePath(redirectTo)
-  } else {
-    revalidatePath('/music')
-  }
+  revalidatePath(redirectTo)
   redirect(redirectTo)
 }
 
@@ -102,11 +98,7 @@ export async function submitReply(formData: FormData) {
     redirect(`${redirectTo}?error=${encodeURIComponent('Could not post your reply. Please try again.')}`)
   }
 
-  if (targetType === 'review') {
-    revalidatePath(redirectTo)
-  } else {
-    revalidatePath('/music')
-  }
+  revalidatePath(redirectTo)
   redirect(redirectTo)
 }
 
