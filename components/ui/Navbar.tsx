@@ -3,6 +3,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { logout } from '@/app/(auth)/actions'
 import NotificationBell from '@/components/social/NotificationBell'
+import SearchButton from './SearchButton'
 import NavbarLinks from './NavbarLinks'
 import MobileNav from './MobileNav'
 
@@ -40,8 +41,9 @@ export default async function Navbar() {
           <NavbarLinks />
         </div>
 
-        {/* Right: Auth State */}
+        {/* Right: Search + Auth State */}
         <div className="flex items-center gap-3">
+          <SearchButton />
           {user && profileHref ? (
             <div className="flex items-center gap-3">
               <NotificationBell />
