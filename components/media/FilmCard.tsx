@@ -75,7 +75,7 @@ export default function FilmCard({
           </div>
 
           <div className="mt-4 flex items-center justify-between border-t border-[var(--border-subtle)] pt-3 text-xs text-metadata">
-            <span className="text-[var(--text-muted)]">Featured entry</span>
+            <span className="text-[var(--text-muted)]">Latest credit</span>
             <span className="inline-flex items-center gap-1 font-medium text-[var(--accent-amber)] transition-transform duration-200 group-hover:translate-x-1">
               Explore entry →
             </span>
