@@ -2,6 +2,8 @@ import { getAuthUserWithProfile } from '@/utils/supabase/server'
 import Image from 'next/image'
 import Link from 'next/link'
 import { logout } from '@/app/(auth)/actions'
+import NotificationBell from '@/components/social/NotificationBell'
+import SearchButton from './SearchButton'
 import NavbarLinks from './NavbarLinks'
 import MobileNav from './MobileNav'
 
@@ -39,10 +41,12 @@ export default async function Navbar() {
           <NavbarLinks />
         </div>
 
-        {/* Right: Auth State */}
+        {/* Right: Search + Auth State */}
         <div className="flex items-center gap-3">
+          <SearchButton />
           {user && profileHref ? (
             <div className="flex items-center gap-3">
+              <NotificationBell />
               <Link
                 href={profileHref}
                 className="group flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 transition-colors hover:bg-[var(--bg-surface)] focus-ring"

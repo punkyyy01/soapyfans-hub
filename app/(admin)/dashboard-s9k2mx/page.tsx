@@ -7,6 +7,12 @@ import {
   adminRestoreReview,
   adminSoftDeleteMusicReview,
   adminRestoreMusicReview,
+  adminSoftDeleteReply,
+  adminRestoreReply,
+  adminApproveNewsItem,
+  adminRejectNewsItem,
+  adminResolveReport,
+  adminDismissReport,
   adminBanUser,
   adminUnbanUser,
 } from './actions'
@@ -20,9 +26,9 @@ interface Props {
   searchParams: Promise<{ section?: string }>
 }
 
-type Section = 'overview' | 'reviews' | 'users'
+type Section = 'overview' | 'reviews' | 'reports' | 'users'
 
-const VALID_SECTIONS: Section[] = ['overview', 'reviews', 'users']
+const VALID_SECTIONS: Section[] = ['overview', 'reviews', 'reports', 'users']
 
 function parseSection(raw?: string): Section {
   return VALID_SECTIONS.includes(raw as Section) ? (raw as Section) : 'overview'
@@ -163,11 +169,31 @@ export default async function DashboardPage({ searchParams }: Props) {
     releases: { title: string; release_type: string } | null
   }
 
+  type Reply = {
+    id: string
+    content: string
+    created_at: string
+    deleted_at: string | null
+    user_id: string
+    profiles: { username: string | null } | null
+    review_id: string | null
+    music_review_id: string | null
+  }
+  type NewsItem = {
+    id: string
+    title: string
+    source_name: string
+    status: string
+    published_at: string
+  }
+
   let filmReviews: FilmReview[] = []
   let musicReviews: MusicReview[] = []
+  let replies: Reply[] = []
+  let newsItems: NewsItem[] = []
 
   if (active === 'reviews') {
-    const [filmRes, musicRes] = await Promise.all([
+    const [filmRes, musicRes, repliesRes, newsRes] = await Promise.all([
       admin
         .from('reviews')
         .select('id, rating, content, created_at, deleted_at, user_id, profiles(username), films(title, release_year)')
@@ -176,9 +202,71 @@ export default async function DashboardPage({ searchParams }: Props) {
         .from('music_reviews')
         .select('id, rating, content, created_at, deleted_at, user_id, profiles(username), releases(title, release_type)')
         .order('created_at', { ascending: false }),
+      admin
+        .from('review_replies')
+        .select('id, content, created_at, deleted_at, user_id, review_id, music_review_id, profiles(username)')
+        .order('created_at', { ascending: false })
+        .limit(200),
+      admin
+        .from('news_items')
+        .select('id, title, source_name, status, published_at')
+        .order('published_at', { ascending: false })
+        .limit(200),
     ])
     filmReviews = (filmRes.data ?? []) as FilmReview[]
     musicReviews = (musicRes.data ?? []) as MusicReview[]
+    replies = (repliesRes.data ?? []) as Reply[]
+    newsItems = (newsRes.data ?? []) as NewsItem[]
+  }
+
+  type ReportRow = {
+    id: string
+    target_type: string
+    target_id: string
+    reason: string
+    status: string
+    created_at: string
+    profiles: { username: string | null } | null
+  }
+
+  let reports: ReportRow[] = []
+  let reportPreviews = new Map<string, string>()
+
+  if (active === 'reports') {
+    const { data } = await admin
+      .from('reports')
+      .select('id, target_type, target_id, reason, status, created_at, profiles!reports_reporter_id_fkey(username)')
+      .order('status', { ascending: true })
+      .order('created_at', { ascending: false })
+      .limit(200)
+    reports = (data ?? []) as unknown as ReportRow[]
+
+    const idsByType = new Map<string, string[]>()
+    for (const r of reports) {
+      idsByType.set(r.target_type, [...(idsByType.get(r.target_type) ?? []), r.target_id])
+    }
+
+    const [reviewPreviews, musicPreviews, replyPreviews, newsPreviews] = await Promise.all([
+      idsByType.get('review')?.length
+        ? admin.from('reviews').select('id, content').in('id', idsByType.get('review')!)
+        : Promise.resolve({ data: [] as { id: string; content: string | null }[] }),
+      idsByType.get('music_review')?.length
+        ? admin.from('music_reviews').select('id, content').in('id', idsByType.get('music_review')!)
+        : Promise.resolve({ data: [] as { id: string; content: string | null }[] }),
+      idsByType.get('review_reply')?.length
+        ? admin.from('review_replies').select('id, content').in('id', idsByType.get('review_reply')!)
+        : Promise.resolve({ data: [] as { id: string; content: string | null }[] }),
+      idsByType.get('news_item')?.length
+        ? admin.from('news_items').select('id, title').in('id', idsByType.get('news_item')!)
+        : Promise.resolve({ data: [] as { id: string; title: string }[] }),
+    ])
+
+    reportPreviews = new Map<string, string>([
+      ...(reviewPreviews.data ?? []).map((r) => [r.id, r.content ?? '(no text)'] as [string, string]),
+      ...(musicPreviews.data ?? []).map((r) => [r.id, r.content ?? '(no text)'] as [string, string]),
+      ...(replyPreviews.data ?? []).map((r) => [r.id, r.content] as [string, string]),
+      ...(newsPreviews.data ?? []).map((r) => [r.id, r.title] as [string, string]),
+    ])
   }
 
   type UserRow = {
@@ -233,6 +321,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   const tabs: { id: Section; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'reviews', label: 'Reviews' },
+    { id: 'reports', label: 'Reports' },
     { id: 'users', label: 'Users' },
   ]
 
@@ -421,6 +510,172 @@ export default async function DashboardPage({ searchParams }: Props) {
               </TableShell>
             )}
           </div>
+
+          <div>
+            <h2 className="mb-3 text-[0.65rem] uppercase tracking-[0.3em] text-[var(--text-muted)]">
+              Replies — {replies.length}
+            </h2>
+            {replies.length === 0 ? (
+              <p className="text-sm text-[var(--text-muted)]">No replies yet.</p>
+            ) : (
+              <TableShell headers={['Author', 'On', 'Content', 'Date', 'Status', 'Actions']}>
+                {replies.map((r) => (
+                  <tr
+                    key={r.id}
+                    className={`border-t border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-elevated)] ${
+                      r.deleted_at ? 'opacity-50' : ''
+                    }`}
+                  >
+                    <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">
+                      {r.profiles?.username ?? <span className="text-[var(--text-muted)]">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-[var(--text-muted)]">
+                      {r.review_id ? 'Film review' : 'Music review'}
+                    </td>
+                    <td className="max-w-xs px-4 py-3 text-xs text-[var(--text-secondary)]">
+                      {truncate(r.content)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-xs text-[var(--text-muted)]">
+                      {fmt(r.created_at)}
+                    </td>
+                    <td className="px-4 py-3">
+                      {r.deleted_at ? (
+                        <span className="rounded-full bg-red-950/40 px-2 py-0.5 text-[0.6rem] uppercase tracking-wider text-red-400">
+                          Deleted
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-emerald-950/40 px-2 py-0.5 text-[0.6rem] uppercase tracking-wider text-emerald-400">
+                          Active
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {r.deleted_at ? (
+                        <ActionBtn action={adminRestoreReply} hidden={{ reply_id: r.id }} variant="success">
+                          Restore
+                        </ActionBtn>
+                      ) : (
+                        <ActionBtn action={adminSoftDeleteReply} hidden={{ reply_id: r.id }} variant="danger">
+                          Delete
+                        </ActionBtn>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </TableShell>
+            )}
+          </div>
+
+          <div>
+            <h2 className="mb-3 text-[0.65rem] uppercase tracking-[0.3em] text-[var(--text-muted)]">
+              News Items — {newsItems.length}
+            </h2>
+            {newsItems.length === 0 ? (
+              <p className="text-sm text-[var(--text-muted)]">No news items yet.</p>
+            ) : (
+              <TableShell headers={['Title', 'Source', 'Date', 'Status', 'Actions']}>
+                {newsItems.map((n) => (
+                  <tr
+                    key={n.id}
+                    className={`border-t border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-elevated)] ${
+                      n.status === 'rejected' ? 'opacity-50' : ''
+                    }`}
+                  >
+                    <td className="max-w-sm px-4 py-3 text-sm text-[var(--text-secondary)]">{truncate(n.title, 120)}</td>
+                    <td className="px-4 py-3 text-xs text-[var(--text-muted)]">{n.source_name}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-xs text-[var(--text-muted)]">
+                      {fmt(n.published_at)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[0.6rem] uppercase tracking-wider ${
+                          n.status === 'approved'
+                            ? 'bg-emerald-950/40 text-emerald-400'
+                            : n.status === 'rejected'
+                              ? 'bg-red-950/40 text-red-400'
+                              : 'bg-[var(--bg-elevated)] text-[var(--text-muted)]'
+                        }`}
+                      >
+                        {n.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {n.status === 'rejected' ? (
+                        <ActionBtn action={adminApproveNewsItem} hidden={{ news_item_id: n.id }} variant="success">
+                          Approve
+                        </ActionBtn>
+                      ) : (
+                        <ActionBtn action={adminRejectNewsItem} hidden={{ news_item_id: n.id }} variant="danger">
+                          Reject
+                        </ActionBtn>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </TableShell>
+            )}
+          </div>
+        </section>
+      )}
+
+      {active === 'reports' && (
+        <section>
+          <h2 className="mb-3 text-[0.65rem] uppercase tracking-[0.3em] text-[var(--text-muted)]">
+            Reports — {reports.length}
+          </h2>
+          {reports.length === 0 ? (
+            <p className="text-sm text-[var(--text-muted)]">No reports yet.</p>
+          ) : (
+            <TableShell headers={['Reporter', 'Target', 'Preview', 'Reason', 'Date', 'Status', 'Actions']}>
+              {reports.map((r) => (
+                <tr
+                  key={r.id}
+                  className={`border-t border-[var(--border-subtle)] transition-colors hover:bg-[var(--bg-elevated)] ${
+                    r.status !== 'pending' ? 'opacity-50' : ''
+                  }`}
+                >
+                  <td className="px-4 py-3 text-sm text-[var(--text-secondary)]">
+                    {r.profiles?.username ?? <span className="text-[var(--text-muted)]">—</span>}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-[var(--text-muted)]">{r.target_type}</td>
+                  <td className="max-w-xs px-4 py-3 text-xs text-[var(--text-secondary)]">
+                    {truncate(reportPreviews.get(r.target_id) ?? null)}
+                  </td>
+                  <td className="max-w-xs px-4 py-3 text-xs text-[var(--text-secondary)]">{truncate(r.reason)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-xs text-[var(--text-muted)]">{fmt(r.created_at)}</td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[0.6rem] uppercase tracking-wider ${
+                        r.status === 'pending'
+                          ? 'bg-[var(--bg-elevated)] text-[var(--text-muted)]'
+                          : r.status === 'resolved'
+                            ? 'bg-emerald-950/40 text-emerald-400'
+                            : 'bg-red-950/40 text-red-400'
+                      }`}
+                    >
+                      {r.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {r.status === 'pending' && (
+                      <div className="flex items-center gap-3">
+                        <ActionBtn
+                          action={adminResolveReport}
+                          hidden={{ report_id: r.id, target_type: r.target_type, target_id: r.target_id }}
+                          variant="danger"
+                        >
+                          Resolve
+                        </ActionBtn>
+                        <ActionBtn action={adminDismissReport} hidden={{ report_id: r.id }} variant="default">
+                          Dismiss
+                        </ActionBtn>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </TableShell>
+          )}
         </section>
       )}
 
