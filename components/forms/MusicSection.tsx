@@ -24,6 +24,13 @@ const getHomeReleases = unstable_cache(
   { revalidate: 300 }
 )
 
+function formatReleaseDate(dateString: string | null): string | null {
+  if (!dateString) return null
+  const date = new Date(dateString)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+}
+
 export default async function MusicSection() {
   const releases = await getHomeReleases().catch(() => null)
   const releasesError = releases === null
@@ -105,12 +112,14 @@ export default async function MusicSection() {
                   {featuredRelease.title}
                 </h3>
                 <p className="text-xs text-[var(--text-secondary)]">
-                  Sophie Thatcher · Debut Studio EP
+                  Original music by Sophie Thatcher
                 </p>
               </div>
 
               <div className="mt-6 flex items-center justify-between border-t border-[var(--border-subtle)] pt-3 text-xs text-metadata">
-                <span className="text-[var(--text-muted)]">5 tracks recorded in Asheville</span>
+                <span className="text-[var(--text-muted)]">
+                  {formatReleaseDate(featuredRelease.release_date) ?? 'Newest addition'}
+                </span>
                 <span className="inline-flex items-center gap-1 font-medium text-[var(--accent-amber)] transition-transform duration-200 group-hover:translate-x-1">
                   Listen &amp; lyrics →
                 </span>

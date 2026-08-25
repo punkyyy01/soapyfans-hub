@@ -134,7 +134,7 @@ export default function Hero({
           >
             <span>SoapyFans Hub</span>
             <span className="text-[var(--border-default)]">/</span>
-            <span>Sophie Thatcher Fan Archive</span>
+            <span>Fan Archive</span>
           </p>
 
           <div data-hero-title className="space-y-2">
@@ -147,7 +147,7 @@ export default function Hero({
             data-hero-tagline
             className="mt-6 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-base"
           >
-            A dedicated community database cataloging the complete work of actress and musician Sophie Thatcher across film, television, and original recordings.
+            A dedicated community database cataloging her complete work as an actress and musician — across film, television, and original recordings.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">

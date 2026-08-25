@@ -24,7 +24,19 @@ export default async function NotificationBell() {
       aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : 'Notifications'}
       className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)] focus-ring"
     >
-      <span aria-hidden="true" className="text-base">🔔</span>
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-[18px] w-[18px]"
+      >
+        <path d="M18 8a6 6 0 0 0-12 0c0 6.5-2.5 8.5-2.5 8.5h17S18 14.5 18 8Z" />
+        <path d="M13.73 20a2 2 0 0 1-3.46 0" />
+      </svg>
       {unreadCount > 0 && (
         <span
           aria-hidden="true"
