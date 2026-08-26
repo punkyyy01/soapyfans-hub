@@ -79,7 +79,7 @@ type MusicReviewWithProfile = {
   content: string | null
   created_at: string
   deleted_at: string | null
-  profiles: { username: string | null; display_name: string | null } | null
+  profiles: { username: string | null; display_name: string | null; avatar_url: string | null } | null
   review_likes: { user_id: string }[]
   review_replies: {
     id: string
@@ -102,7 +102,7 @@ export default async function ReleaseDetailPage({ params, searchParams }: Props)
     getUser(),
     supabase
       .from('music_reviews')
-      .select('id, user_id, rating, content, created_at, deleted_at, profiles(username, display_name), review_likes(user_id), review_replies(id, user_id, content, created_at, deleted_at, profiles(username, display_name))')
+      .select('id, user_id, rating, content, created_at, deleted_at, profiles(username, display_name, avatar_url), review_likes(user_id), review_replies(id, user_id, content, created_at, deleted_at, profiles(username, display_name))')
       .eq('release_id', release.id)
       .is('deleted_at', null),
     getBannedUserIds(),

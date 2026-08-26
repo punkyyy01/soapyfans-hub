@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import StarRating from '@/components/ui/StarRating'
 import { reviewAuthorProfilePath } from '@/utils/reviews'
@@ -12,7 +13,7 @@ export type ReviewCardData = {
   rating: number
   content: string | null
   created_at: string
-  profiles: { username: string | null; display_name: string | null } | null
+  profiles: { username: string | null; display_name: string | null; avatar_url: string | null } | null
 }
 
 interface Props {
@@ -49,8 +50,18 @@ export default function ReviewCard({
   return (
     <li className="group relative rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-6 transition-all hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface)]">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--accent-amber)]/40 bg-[var(--bg-card)] font-mono text-xs font-semibold text-[var(--accent-amber)]">
-          {author[0]?.toUpperCase() ?? '?'}
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--accent-amber)]/40 bg-[var(--bg-card)] font-mono text-xs font-semibold text-[var(--accent-amber)]">
+          {review.profiles?.avatar_url ? (
+            <Image
+              src={review.profiles.avatar_url}
+              alt={author}
+              width={32}
+              height={32}
+              className="h-full w-full object-cover object-center"
+            />
+          ) : (
+            author[0]?.toUpperCase() ?? '?'
+          )}
         </span>
         <span className="font-display text-base font-medium text-[var(--text-primary)]">
           {authorHref ? (
