@@ -4,7 +4,8 @@ export const SITE_TAGLINE = 'Unofficial Sophie Thatcher Fan Archive & Community'
 export const SITE_DESCRIPTION =
   'SoapyFans Hub is an unofficial fan archive dedicated to Sophie Thatcher, compiling her complete filmography, television credits, music releases, and fan reviews.'
 
-export const SITE_OG_IMAGE = '/og.svg'
+export const SITE_OG_IMAGE = '/og.png'
+export const NEWS_OG_IMAGE = '/og-news.png'
 
 export function getSiteUrl(): string {
   if (process.env.NEXT_PUBLIC_SITE_URL) {

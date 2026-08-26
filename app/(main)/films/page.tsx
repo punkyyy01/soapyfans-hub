@@ -38,6 +38,7 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
+    card: 'summary_large_image',
     title: 'Filmography · Sophie Thatcher',
     description: FILMOGRAPHY_DESCRIPTION,
     images: [absoluteUrl(SITE_OG_IMAGE)],

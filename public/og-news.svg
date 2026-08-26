@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="News · Sophie Thatcher — SoapyFans Hub">
+  <defs>
+    <linearGradient id="newsBg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#080704"/>
+      <stop offset="40%" stop-color="#110e0a"/>
+      <stop offset="100%" stop-color="#1c130b"/>
+    </linearGradient>
+    <radialGradient id="newsGlow" cx="0.15" cy="0.2" r="0.75">
+      <stop offset="0%" stop-color="#3d2817" stop-opacity="0.9"/>
+      <stop offset="50%" stop-color="#1a120b" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#080704" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="newsCornerGlow" cx="0.88" cy="0.8" r="0.5">
+      <stop offset="0%" stop-color="#2c1c10" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#080704" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="newsGold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f5d799"/>
+      <stop offset="60%" stop-color="#e2b45d"/>
+      <stop offset="100%" stop-color="#b87d1f"/>
+    </linearGradient>
+    <linearGradient id="newsAmber" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#e8890c"/>
+      <stop offset="100%" stop-color="#ffb700"/>
+    </linearGradient>
+    <pattern id="grain" width="6" height="6" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="0.6" fill="#ffffff" opacity="0.035"/>
+      <circle cx="4.5" cy="2" r="0.5" fill="#ffffff" opacity="0.03"/>
+      <circle cx="3" cy="5" r="0.4" fill="#ffffff" opacity="0.025"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#newsBg)"/>
+  <rect width="1200" height="630" fill="url(#newsGlow)"/>
+  <rect width="1200" height="630" fill="url(#newsCornerGlow)"/>
+  <rect width="1200" height="630" fill="url(#grain)"/>
+
+  <!-- Elegant Editorial Frame -->
+  <rect x="54" y="54" width="1092" height="522" rx="24" fill="none" stroke="#382617" stroke-width="1.5"/>
+  <rect x="70" y="70" width="1060" height="490" rx="16" fill="none" stroke="#22160d" stroke-width="1"/>
+
+  <!-- Top Bar -->
+  <g>
+    <text x="108" y="136" fill="#9d8870" font-family="'DM Sans', sans-serif" font-size="13" font-weight="500" letter-spacing="5">
+      SOPHIE THATCHER
+    </text>
+    <rect x="874" y="115" width="218" height="30" rx="15" fill="#15100b" stroke="#382617" stroke-width="1"/>
+    <circle cx="894" cy="130" r="3.5" fill="#e8890c"/>
+    <text x="908" y="135" fill="#cfbfa9" font-family="'DM Sans', sans-serif" font-size="11" font-weight="600" letter-spacing="2">
+      ARCHIVE FEED · LIVE
+    </text>
+  </g>
+
+  <!-- Main Headline Typography -->
+  <g>
+    <text x="108" y="260" fill="#f5f0e8" font-family="'Playfair Display', serif" font-size="78" font-weight="600" letter-spacing="-0.5">
+      News &amp; Updates
+    </text>
+  </g>
+
+  <!-- Divider Line -->
+  <rect x="108" y="290" width="220" height="4" rx="2" fill="url(#newsAmber)"/>
+
+  <!-- Tagline / Descriptor -->
+  <text x="108" y="348" fill="#e0d2bf" font-family="'DM Sans', sans-serif" font-size="24" font-weight="400" letter-spacing="3">
+    VERIFIED PRESS, INTERVIEWS &amp; ARTICLES
+  </text>
+  <text x="108" y="384" fill="#9d8870" font-family="'DM Sans', sans-serif" font-size="16" font-weight="400" letter-spacing="1">
+    Curated coverage from entertainment outlets, updated automatically.
+  </text>
+
+  <!-- Bottom Navigation Capsule -->
+  <g>
+    <rect x="108" y="460" width="984" height="52" rx="14" fill="#120d09" stroke="#2e1f13" stroke-width="1"/>
+    <text x="136" y="492" fill="#bda98a" font-family="'DM Sans', sans-serif" font-size="14" font-weight="500" letter-spacing="3.5">
+      INTERVIEWS  ·  PROJECTS  ·  FEATURES  ·  PRESS ARCHIVE
+    </text>
+    <text x="960" y="492" fill="#e8890c" font-family="'Playfair Display', serif" font-size="15" font-weight="600" font-style="italic">
+      SoapyFans Hub
+    </text>
+  </g>
+</svg>

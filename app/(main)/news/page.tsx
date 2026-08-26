@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/utils/supabase/server'
-import { SITE_OG_IMAGE, absoluteUrl } from '@/utils/site'
+import { NEWS_OG_IMAGE, absoluteUrl } from '@/utils/site'
 import { buildCollectionPageSchema, buildBreadcrumbSchema, serializeJsonLd } from '@/utils/schema'
 import { isValidNewsTag } from '@/utils/news'
 import { dedupNewsForDisplay } from '@/utils/news-display'
@@ -16,7 +16,9 @@ const NEWS_DESCRIPTION =
 export const revalidate = 900
 
 export const metadata: Metadata = {
-  title: 'News',
+  title: {
+    absolute: 'News · Sophie Thatcher',
+  },
   description: NEWS_DESCRIPTION,
   alternates: { canonical: '/news' },
   openGraph: {
@@ -26,7 +28,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: absoluteUrl(SITE_OG_IMAGE),
+        url: absoluteUrl(NEWS_OG_IMAGE),
         width: 1200,
         height: 630,
         alt: 'News · Sophie Thatcher',
@@ -34,9 +36,10 @@ export const metadata: Metadata = {
     ],
   },
   twitter: {
+    card: 'summary_large_image',
     title: 'News · Sophie Thatcher',
     description: NEWS_DESCRIPTION,
-    images: [absoluteUrl(SITE_OG_IMAGE)],
+    images: [absoluteUrl(NEWS_OG_IMAGE)],
   },
 }
 
