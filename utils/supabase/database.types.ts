@@ -119,6 +119,82 @@ export type Database = {
           },
         ]
       }
+      list_items: {
+        Row: {
+          created_at: string
+          id: string
+          list_id: string
+          media_type: string
+          note: string | null
+          position: number
+          tmdb_id: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          list_id: string
+          media_type: string
+          note?: string | null
+          position?: number
+          tmdb_id: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          list_id?: string
+          media_type?: string
+          note?: string | null
+          position?: number
+          tmdb_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "list_items_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lists: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_public: boolean
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lists_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       music_reviews: {
         Row: {
           content: string | null
@@ -712,6 +788,10 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       normalize_news_title_sql: { Args: { raw_title: string }; Returns: string }
+      reorder_list_items: {
+        Args: { p_ids: string[]; p_list_id: string }
+        Returns: undefined
+      }
       reorder_profile_favorites: {
         Args: { p_ids: string[] }
         Returns: undefined

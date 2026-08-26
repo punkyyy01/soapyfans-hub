@@ -4,6 +4,7 @@ import { reviewAuthorProfilePath } from '@/utils/reviews'
 import LikeButton from './LikeButton'
 import ReplyThread, { type ReplyItem } from './ReplyThread'
 import ReportButton from './ReportButton'
+import ShareButton from './ShareButton'
 
 export type ReviewCardData = {
   id: string
@@ -23,6 +24,8 @@ interface Props {
   likeCount: number
   likedByMe: boolean
   replies: ReplyItem[]
+  /** Suppress the permalink/share row when already rendered on /reviews/[id] itself. */
+  showPermalink?: boolean
 }
 
 // Shared between /films/[id] and /music/[slug] -- the review card markup
@@ -37,6 +40,7 @@ export default function ReviewCard({
   likeCount,
   likedByMe,
   replies,
+  showPermalink = true,
 }: Props) {
   const author = review.profiles?.display_name ?? review.profiles?.username ?? 'Anonymous Fan'
   const isOwn = review.user_id === currentUserId
@@ -98,6 +102,17 @@ export default function ReviewCard({
           currentUserId={currentUserId}
           isSignedIn={isSignedIn}
         />
+        {showPermalink && (
+          <>
+            <Link
+              href={`/reviews/${review.id}`}
+              className="font-mono text-xs uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] focus-ring rounded-xs"
+            >
+              Permalink
+            </Link>
+            <ShareButton url={`/reviews/${review.id}`} text={review.content ?? undefined} />
+          </>
+        )}
         {!isOwn && isSignedIn && (
           <div className="ml-auto">
             <ReportButton targetType={targetType} targetId={review.id} redirectTo={redirectTo} />

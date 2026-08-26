@@ -1,5 +1,7 @@
+import Link from 'next/link'
 import Badge from '@/components/ui/Badge'
 import ReportButton from '@/components/social/ReportButton'
+import ShareButton from '@/components/social/ShareButton'
 import { isValidNewsTag, decodeHtmlEntities } from '@/utils/news'
 import { NEWS_TAG_LABEL } from '@/utils/news-display'
 
@@ -32,12 +34,7 @@ export default function NewsCard({ item }: { item: NewsCardItem }) {
 
   return (
     <div className="group flex flex-col overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 transition-all hover:border-[var(--border-strong)] hover:bg-[var(--bg-surface)]">
-      <a
-        href={destinationUrl}
-        target="_blank"
-        rel="noopener noreferrer nofollow"
-        className="flex flex-col focus-ring"
-      >
+      <Link href={`/news/${item.id}`} className="flex flex-col focus-ring">
         <div className="relative aspect-[16/9] w-full overflow-hidden bg-[var(--bg-elevated)]">
           {item.image_url ? (
             // Same-origin proxy (see app/api/news-image/[id]/route.ts) --
@@ -93,16 +90,24 @@ export default function NewsCard({ item }: { item: NewsCardItem }) {
             </p>
           )}
         </div>
-      </a>
+      </Link>
 
-      {/* Outside the anchor: a <button> (ReportButton) can't nest inside
-          an <a> without breaking HTML validity/accessibility. */}
+      {/* Outside the Link: a <button> (ShareButton/ReportButton) can't
+          nest inside an <a> without breaking HTML validity/accessibility. */}
       <div className="mt-auto flex flex-wrap items-center justify-between gap-2 px-5 pb-5 pt-2">
-        <p className="flex items-center gap-1.5 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-[var(--text-muted)]">
+        <a
+          href={destinationUrl}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          className="flex items-center gap-1.5 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-[var(--text-muted)] transition-colors hover:text-[var(--accent-amber)] focus-ring rounded-xs"
+        >
           {item.source_name}
           <span aria-hidden="true">↗</span>
-        </p>
-        <ReportButton targetType="news_item" targetId={item.id} redirectTo="/news" />
+        </a>
+        <div className="flex items-center gap-3">
+          <ShareButton url={`/news/${item.id}`} title={displayTitle} text={displayDescription ?? undefined} />
+          <ReportButton targetType="news_item" targetId={item.id} redirectTo="/news" />
+        </div>
       </div>
     </div>
   )
