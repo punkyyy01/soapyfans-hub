@@ -26,7 +26,7 @@ export type FilmReviewRow = {
   created_at: string
   deleted_at: string | null
   films: { title: string; poster_path: string | null; tmdb_id: number } | null
-  profiles: { username: string | null; display_name: string | null } | null
+  profiles: { username: string | null; display_name: string | null; avatar_url: string | null } | null
   review_likes: { user_id: string }[]
   review_replies: ReplyRow[]
 }
@@ -40,16 +40,16 @@ export type MusicReviewRow = {
   deleted_at: string | null
   release_id: string
   releases: { title: string; cover_art_url: string | null } | null
-  profiles: { username: string | null; display_name: string | null } | null
+  profiles: { username: string | null; display_name: string | null; avatar_url: string | null } | null
   review_likes: { user_id: string }[]
   review_replies: ReplyRow[]
 }
 
 const REVIEW_SELECT =
-  'id, user_id, rating, content, created_at, deleted_at, films(title, poster_path, tmdb_id), profiles(username, display_name), review_likes(user_id), review_replies(id, user_id, content, created_at, deleted_at, profiles(username, display_name))'
+  'id, user_id, rating, content, created_at, deleted_at, films(title, poster_path, tmdb_id), profiles(username, display_name, avatar_url), review_likes(user_id), review_replies(id, user_id, content, created_at, deleted_at, profiles(username, display_name))'
 
 const MUSIC_REVIEW_SELECT =
-  'id, user_id, rating, content, created_at, deleted_at, release_id, releases(title, cover_art_url), profiles(username, display_name), review_likes(user_id), review_replies(id, user_id, content, created_at, deleted_at, profiles(username, display_name))'
+  'id, user_id, rating, content, created_at, deleted_at, release_id, releases(title, cover_art_url), profiles(username, display_name, avatar_url), review_likes(user_id), review_replies(id, user_id, content, created_at, deleted_at, profiles(username, display_name))'
 
 // A review permalink id could belong to either the film reviews table or
 // the music reviews table -- there's no shared id space, so this tries
