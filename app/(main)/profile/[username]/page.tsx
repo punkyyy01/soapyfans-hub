@@ -10,10 +10,12 @@ import { sanitizeCSS } from '@/utils/sanitize-css'
 import { isUuid, resolveCanonicalProfileSlug, profilePath, escapeIlike } from '@/utils/profile'
 import { evaluateProfileSeo } from '@/utils/profile-seo'
 import { buildBreadcrumbSchema, buildProfilePageSchema, serializeJsonLd } from '@/utils/schema'
+import { computeBadges } from '@/utils/badges'
 import ActivityFeed, { type ActivityItem } from '@/components/profile/ActivityFeed'
 import FollowButton from '@/components/social/FollowButton'
 import SectionHeader from '@/components/ui/SectionHeader'
 import Button from '@/components/ui/Button'
+import Badge from '@/components/ui/Badge'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
 
 interface Props {
@@ -170,6 +172,13 @@ type EnrichedWatchlistItem = WatchlistRow & {
   title: string | null
 }
 
+type ListSummaryRow = {
+  id: string
+  name: string
+  is_public: boolean
+  list_items: { id: string }[]
+}
+
 const FALLBACK_ACCENT = '#e8890c'
 
 export default async function ProfilePage({ params, searchParams }: Props) {
@@ -217,6 +226,15 @@ export default async function ProfilePage({ params, searchParams }: Props) {
     favoritesCount: sortedFavorites.length,
     reviewContents,
   })
+
+  // Earned status, not activity visibility -- a badge reflects what a fan
+  // has *done*, independent of whether they've hidden their activity feed,
+  // same rationale as reviewContents already being fetched unconditionally
+  // above for SEO quality.
+  const earnedBadges = computeBadges({
+    reviewCount: reviewContents.length,
+    profileCreatedAt: profile.created_at,
+  })
   const breadcrumbItems = [
     { name: 'Home', path: '/' },
     { name: displayName, path: profilePath(profileSlug) },
@@ -227,7 +245,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
     ? getPersonCombinedCredits().catch(() => ({ id: 0, cast: [], crew: [] }))
     : Promise.resolve({ id: 0, cast: [], crew: [] })
 
-  const [combinedCredits, filmReviewsResult, musicReviewsResult, watchlistResult, followerCountResult, followingCountResult, followingResult] = await Promise.all([
+  const [combinedCredits, filmReviewsResult, musicReviewsResult, watchlistResult, listsResult, followerCountResult, followingCountResult, followingResult] = await Promise.all([
     creditsPromise,
     profile.show_activity
       ? supabase
@@ -257,6 +275,16 @@ export default async function ProfilePage({ params, searchParams }: Props) {
           .order('created_at', { ascending: false })
           .limit(24)
       : Promise.resolve({ data: [] }),
+    // Public lists are a curated showcase, same visibility class as
+    // favorites -- always shown regardless of show_activity, never gated
+    // by it. Private lists are managed from /lists, not surfaced here.
+    supabase
+      .from('lists')
+      .select('id, name, is_public, list_items(id)')
+      .eq('user_id', profile.id)
+      .eq('is_public', true)
+      .order('created_at', { ascending: false })
+      .limit(12),
     supabase.from('follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', profile.id),
     supabase.from('follows').select('following_id', { count: 'exact', head: true }).eq('follower_id', profile.id),
     user && !isOwner
@@ -320,6 +348,8 @@ export default async function ProfilePage({ params, searchParams }: Props) {
       }
     })
   )
+
+  const publicLists = (listsResult.data ?? []) as ListSummaryRow[]
 
   const filmReviews = (filmReviewsResult.data ?? []) as unknown as RawFilmReview[]
   const musicReviews = (musicReviewsResult.data ?? []) as unknown as RawMusicReview[]
@@ -538,6 +568,17 @@ export default async function ProfilePage({ params, searchParams }: Props) {
                   Member since {joinYear}
                 </span>
               </div>
+
+              {/* Earned Badges */}
+              {earnedBadges.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 pt-1" aria-label="Earned badges">
+                  {earnedBadges.map((badge) => (
+                    <Badge key={badge.id} variant="award" size="sm" title={badge.description}>
+                      ★ {badge.label}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           </header>
 
@@ -668,6 +709,50 @@ export default async function ProfilePage({ params, searchParams }: Props) {
                   )
                 })}
               </div>
+            </section>
+          )}
+
+          {/* 3c. LISTS (Public named collections, Letterboxd-style) */}
+          {(publicLists.length > 0 || isOwner) && (
+            <section id="lists" className="mb-16 space-y-6">
+              <SectionHeader
+                kicker="Curated Collections"
+                title="Lists"
+                action={
+                  isOwner ? (
+                    <Button href="/lists" variant="secondary" size="sm">
+                      Manage Lists ↗
+                    </Button>
+                  ) : (
+                    <span className="font-mono text-xs uppercase tracking-wider text-[var(--text-muted)]">
+                      {publicLists.length} {publicLists.length === 1 ? 'List' : 'Lists'}
+                    </span>
+                  )
+                }
+              />
+
+              {publicLists.length === 0 ? (
+                <p className="text-sm text-[var(--text-secondary)]">
+                  No public lists yet.
+                </p>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {publicLists.map((list) => (
+                    <Link
+                      key={list.id}
+                      href={`/lists/${list.id}`}
+                      className="group flex items-center justify-between gap-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]/60 p-5 transition-all hover:border-[var(--accent-amber)]/60 hover:bg-[var(--bg-surface)] focus-ring"
+                    >
+                      <span className="font-display text-base font-medium text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent-amber)]">
+                        {list.name}
+                      </span>
+                      <span className="shrink-0 font-mono text-xs text-[var(--text-muted)]">
+                        {list.list_items.length} {list.list_items.length === 1 ? 'title' : 'titles'} →
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </section>
           )}
 

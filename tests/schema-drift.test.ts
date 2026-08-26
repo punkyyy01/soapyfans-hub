@@ -363,3 +363,42 @@ describe('Schema drift guard: social layer (follows/likes/replies/reports/notifi
     assert.ok(src.includes(".rpc('is_admin')"))
   })
 })
+
+describe('Schema drift guard: lists feature (lists/list_items/reorder_list_items)', () => {
+  it('has a migration creating the lists and list_items tables', () => {
+    const migrations = readMigrations()
+    const hasMigration = migrations.some((f) => {
+      const sql = fs.readFileSync(path.join(migrationsDir, f), 'utf8')
+      return sql.includes('create table public.lists') && sql.includes('create table public.list_items')
+    })
+    assert.ok(hasMigration, 'Expected a migration creating lists and list_items')
+  })
+
+  it('generated types expose the lists and list_items tables and the reorder_list_items RPC', () => {
+    const types = fs.readFileSync(typesPath, 'utf8')
+    assert.ok(types.includes('lists: {'))
+    assert.ok(types.includes('list_items: {'))
+    assert.ok(types.includes('reorder_list_items:'))
+  })
+
+  it('revokes the default PUBLIC execute grant on reorder_list_items up front (no follow-up patch needed)', () => {
+    // Same class of gap the social layer RPCs needed a follow-up migration
+    // to close (20260825164914_lock_down_social_rpc_grants.sql) -- this one
+    // does it in the same migration that creates the function instead.
+    const migrations = readMigrations()
+    const hasRevoke = migrations.some((f) => {
+      const sql = fs.readFileSync(path.join(migrationsDir, f), 'utf8')
+      return /revoke all on function public\.reorder_list_items\(uuid, uuid\[\]\) from public, anon/i.test(sql)
+    })
+    assert.ok(hasRevoke, 'Expected reorder_list_items to revoke PUBLIC/anon execute in its creating migration')
+  })
+
+  it('list_items visibility policy is scoped through the parent list (no unscoped public SELECT)', () => {
+    const migrations = readMigrations()
+    const file = migrations.find((f) => f.includes('add_lists'))
+    assert.ok(file, 'Expected the add_lists migration')
+    const sql = fs.readFileSync(path.join(migrationsDir, file!), 'utf8')
+    assert.match(sql, /create policy "List items are viewable when their parent list is viewable"/)
+    assert.match(sql, /where l\.id = list_id and \(l\.is_public or \(select auth\.uid\(\)\) = l\.user_id\)/)
+  })
+})
