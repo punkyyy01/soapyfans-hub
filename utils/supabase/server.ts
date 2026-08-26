@@ -1,10 +1,26 @@
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { cache } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { Database } from './database.types'
 
 export const getUser = cache(async () => {
+  // middleware.ts already calls supabase.auth.getUser() for every request
+  // and forwards the validated id/email here -- reusing it skips a second
+  // /auth/v1/user round trip on every navigation. Only id/email are ever
+  // read off the result elsewhere (grepped: components/ui/Navbar.tsx is the
+  // only other `.email` access), so a minimal reconstruction is enough; the
+  // real auth check still happened in middleware moments earlier.
+  const headerList = await headers()
+  const headerUserId = headerList.get('x-sb-user-id')
+  if (headerUserId) {
+    const headerUserEmail = headerList.get('x-sb-user-email')
+    return {
+      id: headerUserId,
+      email: headerUserEmail ?? undefined,
+    } as unknown as User
+  }
+
   const cookieStore = await cookies()
   const hasAuthCookie = cookieStore
     .getAll()
