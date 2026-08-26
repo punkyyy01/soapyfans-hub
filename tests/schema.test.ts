@@ -4,6 +4,7 @@ import {
   serializeJsonLd,
   buildOrganizationSchema,
   buildWebSiteSchema,
+  buildWebPageSchema,
   buildMovieSchema,
   buildTvSeriesSchema,
   buildMusicReleaseSchema,
@@ -20,6 +21,21 @@ describe('Schema.org structured data generators', () => {
     assert.equal(json.includes('<'), false)
     assert.equal(json.includes('>'), false)
     assert.ok(json.includes('\\u003c/script\\u003e'))
+  })
+
+  it('buildWebPageSchema omits "about" when not provided', () => {
+    const page = buildWebPageSchema({ name: 'News', description: 'desc', path: '/news' })
+    assert.equal('about' in page, false)
+  })
+
+  it('buildWebPageSchema links to the given entity @id when "about" is provided', () => {
+    const page = buildWebPageSchema({
+      name: 'Some story',
+      description: 'desc',
+      path: '/news/abc',
+      about: SOPHIE_PERSON_ID,
+    })
+    assert.deepEqual(page.about, { '@id': SOPHIE_PERSON_ID })
   })
 
   it('buildOrganizationSchema returns valid Organization JSON-LD', () => {

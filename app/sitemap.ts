@@ -21,6 +21,7 @@ export function buildStaticRoutes(siteUrl: string): MetadataRoute.Sitemap {
     { url: `${siteUrl}/`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'weekly', priority: 1.0 },
     { url: `${siteUrl}/films`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${siteUrl}/music`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${siteUrl}/news`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'daily', priority: 0.8 },
     { url: `${siteUrl}/about`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${siteUrl}/contact`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'yearly', priority: 0.4 },
     { url: `${siteUrl}/privacy`, lastModified: STATIC_CONTENT_LAST_MODIFIED, changeFrequency: 'yearly', priority: 0.3 },
@@ -56,6 +57,20 @@ export function buildReleaseRoutes(releases: ReleaseWithSlug[], siteUrl: string)
     lastModified: new Date(r.updated_at),
     changeFrequency: 'monthly',
     priority: 0.6,
+  }))
+}
+
+export type NewsSitemapCandidate = {
+  id: string
+  published_at: string
+}
+
+export function buildNewsRoutes(items: NewsSitemapCandidate[], siteUrl: string): MetadataRoute.Sitemap {
+  return items.map((item) => ({
+    url: `${siteUrl}/news/${item.id}`,
+    lastModified: new Date(item.published_at),
+    changeFrequency: 'never',
+    priority: 0.5,
   }))
 }
 
@@ -128,6 +143,19 @@ async function fetchCredits(): Promise<NormalizedCredit[]> {
   return credits
 }
 
+const NEWS_SITEMAP_LIMIT = 1000
+
+async function fetchNewsCandidates(): Promise<NewsSitemapCandidate[]> {
+  const supabase = createPublicClient()
+  const { data } = await supabase
+    .from('news_items')
+    .select('id, published_at')
+    .eq('status', 'approved')
+    .order('published_at', { ascending: false })
+    .limit(NEWS_SITEMAP_LIMIT)
+  return (data ?? []) as NewsSitemapCandidate[]
+}
+
 async function fetchProfileCandidates(): Promise<ProfileSitemapCandidate[]> {
   const supabase = createPublicClient()
   const [{ data: profiles }, { data: favorites }, { data: filmReviews }, { data: musicReviews }] =
@@ -176,6 +204,7 @@ async function fetchProfileEntries(siteUrl: string): Promise<MetadataRoute.Sitem
 
 const resolveCredits = createLastKnownGood<NormalizedCredit[]>(SNAPSHOT_MAX_AGE_MS)
 const resolveReleases = createLastKnownGood<ReleaseWithSlug[]>(SNAPSHOT_MAX_AGE_MS)
+const resolveNewsCandidates = createLastKnownGood<NewsSitemapCandidate[]>(SNAPSHOT_MAX_AGE_MS)
 const resolveProfileEntries = createLastKnownGood<MetadataRoute.Sitemap>(SNAPSHOT_MAX_AGE_MS)
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -183,12 +212,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const credits = await resolveCredits(fetchCredits, [])
   const releases = await resolveReleases(getReleasesWithSlugs, [])
+  const newsCandidates = await resolveNewsCandidates(fetchNewsCandidates, [])
   const profileEntries = await resolveProfileEntries(() => fetchProfileEntries(siteUrl), [])
 
   return [
     ...buildStaticRoutes(siteUrl),
     ...buildFilmTvRoutes(credits, siteUrl),
     ...buildReleaseRoutes(releases, siteUrl),
+    ...buildNewsRoutes(newsCandidates, siteUrl),
     ...profileEntries,
   ]
 }

@@ -49,10 +49,13 @@ export function buildWebPageSchema({
   name,
   description,
   path,
+  about,
 }: {
   name: string
   description: string
   path: string
+  /** @id of an entity this page is about (e.g. SOPHIE_PERSON_ID) -- omit for pages with no single topical subject. */
+  about?: string
 }) {
   const url = absoluteUrl(path)
   return {
@@ -65,6 +68,7 @@ export function buildWebPageSchema({
     inLanguage: 'en',
     isPartOf: { '@id': absoluteUrl('/#website') },
     publisher: { '@id': FAN_PUBLISHER_ID },
+    ...(about ? { about: { '@id': about } } : {}),
   }
 }
 

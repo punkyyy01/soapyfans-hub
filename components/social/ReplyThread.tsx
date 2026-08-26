@@ -64,10 +64,11 @@ export default function ReplyThread({
                     )}
                   </span>
                   <span className="font-mono text-[0.65rem] text-[var(--text-muted)]">
-                    {new Date(reply.created_at).toLocaleDateString(undefined, {
+                    {new Date(reply.created_at).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric',
+                      timeZone: 'UTC',
                     })}
                   </span>
                   {isOwn && (

@@ -3,8 +3,10 @@ import assert from 'node:assert/strict'
 import {
   buildStaticRoutes,
   buildFilmTvRoutes,
+  buildNewsRoutes,
   buildProfileSitemapEntries,
   buildReleaseRoutes,
+  type NewsSitemapCandidate,
   type ProfileSitemapCandidate,
 } from '../app/sitemap'
 import { STATIC_CONTENT_LAST_MODIFIED } from '../utils/site'
@@ -39,9 +41,42 @@ describe('buildStaticRoutes', () => {
   it('includes the known static pages', () => {
     const routes = buildStaticRoutes(SITE_URL)
     const urls = routes.map((r) => r.url)
-    for (const path of ['/', '/films', '/music', '/about', '/contact', '/privacy', '/terms']) {
+    for (const path of ['/', '/films', '/music', '/news', '/about', '/contact', '/privacy', '/terms']) {
       assert.ok(urls.includes(`${SITE_URL}${path}`), `missing ${path}`)
     }
+  })
+})
+
+describe('buildNewsRoutes', () => {
+  function newsItem(overrides: Partial<NewsSitemapCandidate>): NewsSitemapCandidate {
+    return {
+      id: 'news-1',
+      published_at: '2026-01-01T00:00:00Z',
+      ...overrides,
+    }
+  }
+
+  it('builds a URL from the id for every approved news item', () => {
+    const routes = buildNewsRoutes([newsItem({ id: 'abc' })], SITE_URL)
+    assert.equal(routes[0].url, `${SITE_URL}/news/abc`)
+  })
+
+  it('uses published_at as lastModified, never "now"', () => {
+    const routes = buildNewsRoutes([newsItem({ published_at: '2025-06-01T00:00:00Z' })], SITE_URL)
+    assert.equal((routes[0].lastModified as Date).toISOString(), '2025-06-01T00:00:00.000Z')
+    assert.notEqual((routes[0].lastModified as Date).getTime(), Date.now())
+  })
+
+  it('includes every item passed in', () => {
+    const routes = buildNewsRoutes(
+      [newsItem({ id: 'a' }), newsItem({ id: 'b' })],
+      SITE_URL,
+    )
+    assert.deepEqual(routes.map((r) => r.url).sort(), [`${SITE_URL}/news/a`, `${SITE_URL}/news/b`])
+  })
+
+  it('returns nothing for an empty list', () => {
+    assert.deepEqual(buildNewsRoutes([], SITE_URL), [])
   })
 })
 

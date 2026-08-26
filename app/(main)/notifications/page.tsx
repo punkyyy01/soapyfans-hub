@@ -119,10 +119,11 @@ export default async function NotificationsPage() {
                 >
                   <p className="text-sm text-[var(--text-primary)]">{notificationMessage(n.type, actorName)}</p>
                   <p className="mt-1 font-mono text-[0.68rem] text-[var(--text-muted)]">
-                    {new Date(n.created_at).toLocaleDateString(undefined, {
+                    {new Date(n.created_at).toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric',
+                      timeZone: 'UTC',
                     })}
                   </p>
                 </div>
