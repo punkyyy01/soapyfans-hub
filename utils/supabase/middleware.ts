@@ -91,6 +91,13 @@ export async function updateSession(request: NextRequest, nonce: string = '') {
   const requestHeaders = new Headers(request.headers)
   if (nonce) requestHeaders.set('x-nonce', nonce)
 
+  // Strip any client-supplied values before we possibly set our own below --
+  // these headers carry the already-validated user across to the RSC render
+  // (see utils/supabase/server.ts getUser()), so an inbound header from the
+  // request itself must never survive into requestHeaders.
+  requestHeaders.delete('x-sb-user-id')
+  requestHeaders.delete('x-sb-user-email')
+
   // If there's no auth cookie, user is unauthenticated
   if (!hasAuthCookie) {
     if (PROTECTED_PATHS.some((p) => pathname.startsWith(p))) {
@@ -195,6 +202,22 @@ export async function updateSession(request: NextRequest, nonce: string = '') {
     url.pathname = '/'
     url.search = ''
     return NextResponse.redirect(url)
+  }
+
+  // Forward the already-validated user to the RSC render so getUser() there
+  // (utils/supabase/server.ts) can skip its own /auth/v1/user round trip --
+  // that duplicate call was showing up as a real chunk of navigation latency.
+  // Rebuilt (rather than just requestHeaders.set(...) earlier) because
+  // NextResponse.next({ request: { headers } }) snapshots headers at
+  // construction time, and supabaseResponse may already have been built
+  // (or rebuilt via the cookie setAll callback above) before `user` was
+  // known -- so any cookies Supabase already queued are copied across.
+  if (user) {
+    requestHeaders.set('x-sb-user-id', user.id)
+    if (user.email) requestHeaders.set('x-sb-user-email', user.email)
+    const freshResponse = NextResponse.next({ request: { headers: requestHeaders } })
+    supabaseResponse.cookies.getAll().forEach((c) => freshResponse.cookies.set(c))
+    supabaseResponse = freshResponse
   }
 
   if (nonce) {

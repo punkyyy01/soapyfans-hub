@@ -49,7 +49,12 @@ export const getReleasesWithTracks = unstable_cache(
     }))
   },
   ['releases', 'with-tracks'],
-  { revalidate: 300 },
+  // Nothing revalidates this on write (no admin flow touches `releases`),
+  // and the underlying query is ~900ms in practice -- not because it's
+  // slow on the DB (it isn't, it's 3 rows), but because of the network
+  // round trip itself, so a longer window trades staleness we don't
+  // actually need for fewer of those round trips.
+  { revalidate: 3600 },
 )
 
 export async function getReleasesWithSlugs(): Promise<ReleaseWithSlug[]> {
