@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { decodeHtmlEntities, isValidNewsTag } from '@/utils/news'
 import { NEWS_TAG_LABEL } from '@/utils/news-display'
-import { buildBreadcrumbSchema, serializeJsonLd } from '@/utils/schema'
+import { buildBreadcrumbSchema, buildWebPageSchema, serializeJsonLd, SOPHIE_PERSON_ID } from '@/utils/schema'
 import { absoluteUrl } from '@/utils/site'
 import ReportButton from '@/components/social/ReportButton'
 import ShareButton from '@/components/social/ShareButton'
@@ -84,6 +84,7 @@ export default async function NewsDetailPage({ params }: Props) {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    timeZone: 'UTC',
   })
 
   const breadcrumbItems = [
@@ -94,6 +95,26 @@ export default async function NewsDetailPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-[var(--bg-base)] px-4 pb-24 pt-24 sm:px-6 sm:pb-32 sm:pt-28">
+      {/*
+        WebPage (not NewsArticle/Article): this page links out to a
+        third-party outlet rather than hosting original reporting, so
+        claiming NewsArticle here would mis-attribute authorship. `about`
+        still ties the page into the site's one Sophie Thatcher entity
+        graph (see SOPHIE_PERSON_ID in utils/schema.ts) for topical signal.
+      */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: serializeJsonLd(
+            buildWebPageSchema({
+              name: displayTitle,
+              description: displayDescription ?? `Sophie Thatcher news from ${item.source_name}, via SoapyFans Hub.`,
+              path: `/news/${id}`,
+              about: SOPHIE_PERSON_ID,
+            }),
+          ),
+        }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(buildBreadcrumbSchema(breadcrumbItems)) }}

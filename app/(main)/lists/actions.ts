@@ -2,6 +2,12 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
+import {
+  isListMediaType,
+  validateListName,
+  validateListDescription,
+  type ListMediaType,
+} from '@/utils/lists'
 
 // Same idiom as app/(main)/profile/edit/actions.ts's addFavorite/
 // removeFavorite/reorderFavorites: plain exported 'use server' functions
@@ -9,11 +15,7 @@ import { revalidatePath } from 'next/cache'
 // management needs local client state (drag reorder, a search modal,
 // optimistic add/remove) beyond a single toggle.
 
-type MediaType = 'movie' | 'tv'
-
-function isMediaType(value: unknown): value is MediaType {
-  return value === 'movie' || value === 'tv'
-}
+type MediaType = ListMediaType
 
 async function revalidateListPages(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -39,15 +41,13 @@ export async function createList(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.', id: null }
 
+  const nameError = validateListName(name)
+  if (nameError) return { error: nameError, id: null }
+  const descriptionError = validateListDescription(description)
+  if (descriptionError) return { error: descriptionError, id: null }
+
   const trimmedName = name.trim()
   const trimmedDescription = description.trim()
-
-  if (trimmedName.length < 1 || trimmedName.length > 100) {
-    return { error: 'List name must be between 1 and 100 characters.', id: null }
-  }
-  if (trimmedDescription.length > 500) {
-    return { error: 'Description must be 500 characters or fewer.', id: null }
-  }
 
   const { data, error } = await supabase
     .from('lists')
@@ -80,16 +80,14 @@ export async function updateListMeta(
   const patch: { name?: string; description?: string | null; is_public?: boolean } = {}
 
   if (updates.name !== undefined) {
-    const trimmed = updates.name.trim()
-    if (trimmed.length < 1 || trimmed.length > 100) {
-      return { error: 'List name must be between 1 and 100 characters.' }
-    }
-    patch.name = trimmed
+    const nameError = validateListName(updates.name)
+    if (nameError) return { error: nameError }
+    patch.name = updates.name.trim()
   }
   if (updates.description !== undefined) {
-    const trimmed = updates.description.trim()
-    if (trimmed.length > 500) return { error: 'Description must be 500 characters or fewer.' }
-    patch.description = trimmed || null
+    const descriptionError = validateListDescription(updates.description)
+    if (descriptionError) return { error: descriptionError }
+    patch.description = updates.description.trim() || null
   }
   if (updates.isPublic !== undefined) {
     patch.is_public = updates.isPublic
@@ -137,7 +135,7 @@ export async function addListItem(
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Not authenticated.', id: null }
-  if (!isMediaType(mediaType)) return { error: 'Invalid media type.', id: null }
+  if (!isListMediaType(mediaType)) return { error: 'Invalid media type.', id: null }
 
   // No hard cap/slot invariant to protect here (unlike profile_favorites),
   // so a plain read-then-insert is fine -- a rare concurrent double-add

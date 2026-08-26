@@ -17,7 +17,7 @@ function timeAgo(dateStr: string): string {
   if (diffHours < 24) return `${diffHours}h ago`
   const diffDays = Math.round(diffHours / 24)
   if (diffDays < 30) return `${diffDays}d ago`
-  return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+  return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })
 }
 
 function ImageFallback() {

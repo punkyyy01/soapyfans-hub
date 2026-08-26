@@ -71,10 +71,11 @@ export default function ReviewCard({
         </span>
         <StarRating value={review.rating} />
         <span className="ml-auto font-mono text-xs text-[var(--text-muted)]">
-          {new Date(review.created_at).toLocaleDateString(undefined, {
+          {new Date(review.created_at).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
+            timeZone: 'UTC',
           })}
         </span>
       </div>

@@ -15,6 +15,7 @@ import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, SITE_OG_IMAGE, absoluteUrl }
 import { buildWebPageSchema, buildWebSiteSchema, serializeJsonLd } from '@/utils/schema'
 import Link from 'next/link'
 import Hero from '@/components/ui/Hero'
+import Reveal from '@/components/ui/Reveal'
 import WorksSection from '@/components/media/WorksSection'
 import MusicSection from '@/components/forms/MusicSection'
 import CommunityPulseSection from '@/components/home/CommunityPulseSection'
@@ -163,58 +164,66 @@ export default async function HomePage() {
 
       {/* ── 02: Works (Unified All / Films / TV Filter) ──────── */}
       {all.length > 0 && (
-        <WorksSection
-          allCredits={dated}
-          filmCredits={films}
-          tvCredits={tv}
-        />
+        <Reveal stagger={0.06} y={16}>
+          <WorksSection
+            allCredits={dated}
+            filmCredits={films}
+            tvCredits={tv}
+          />
+        </Reveal>
       )}
 
       {/* ── 03: Music Corner ─────────────────────────────────── */}
-      <Suspense fallback={<MusicSkeleton />}>
-        <MusicSection />
-      </Suspense>
+      <Reveal stagger={0.06} y={16}>
+        <Suspense fallback={<MusicSkeleton />}>
+          <MusicSection />
+        </Suspense>
+      </Reveal>
 
       {/* ── 04: Community Pulse (activity feed + trending) ───── */}
-      <Suspense fallback={<CommunityPulseSkeleton />}>
-        <CommunityPulse />
-      </Suspense>
+      <Reveal stagger={0.06} y={16}>
+        <Suspense fallback={<CommunityPulseSkeleton />}>
+          <CommunityPulse />
+        </Suspense>
+      </Reveal>
 
       {/* ── 05: Community Invitation ─────────────────────────── */}
-      <section className="relative pb-24 sm:pb-32">
-        <PageContainer size="default">
-          <div className="border-t border-b border-[var(--border-subtle)] py-12 sm:py-16">
-            <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-center lg:gap-14">
-              <div className="space-y-3">
-                <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
-                  Community Archive
-                </p>
-                <h2 className="font-display text-3xl font-medium tracking-tight text-[var(--text-primary)] sm:text-4xl">
-                  Leave a note worth keeping.
-                </h2>
-                <p className="max-w-xl text-sm leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-base">
-                  Sign in to rate titles across Sophie&apos;s filmography, write fan reviews, and personalize your own profile dossier with custom CSS and favorite picks.
-                </p>
-              </div>
+      <Reveal stagger={0.06} y={16}>
+        <section className="relative pb-24 sm:pb-32">
+          <PageContainer size="default">
+            <div className="border-t border-b border-[var(--border-subtle)] py-12 sm:py-16">
+              <div className="grid gap-8 lg:grid-cols-[1.3fr_1fr] lg:items-center lg:gap-14">
+                <div className="space-y-3">
+                  <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                    Community Archive
+                  </p>
+                  <h2 className="font-display text-3xl font-medium tracking-tight text-[var(--text-primary)] sm:text-4xl">
+                    Leave a note worth keeping.
+                  </h2>
+                  <p className="max-w-xl text-sm leading-relaxed text-[var(--text-secondary)] text-pretty sm:text-base">
+                    Sign in to rate titles across Sophie&apos;s filmography, write fan reviews, and personalize your own profile dossier with custom CSS and favorite picks.
+                  </p>
+                </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:justify-end">
-                <Link
-                  href="/login"
-                  className="inline-flex items-center justify-center rounded-full bg-[var(--accent-amber)] px-6 py-2.5 text-xs uppercase tracking-[0.14em] font-medium text-[var(--text-inverse)] transition-all hover:bg-[var(--accent-amber-hover)] focus-ring"
-                >
-                  Join the community →
-                </Link>
-                <Link
-                  href="/films"
-                  className="inline-flex items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-6 py-2.5 text-xs uppercase tracking-[0.14em] text-[var(--text-primary)] transition-all hover:border-[var(--accent-amber)] hover:bg-[var(--accent-amber-dim)] focus-ring"
-                >
-                  Browse full archive
-                </Link>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:justify-end">
+                  <Link
+                    href="/login"
+                    className="inline-flex items-center justify-center rounded-full bg-[var(--accent-amber)] px-6 py-2.5 text-xs uppercase tracking-[0.14em] font-medium text-[var(--text-inverse)] transition-all hover:bg-[var(--accent-amber-hover)] focus-ring"
+                  >
+                    Join the community →
+                  </Link>
+                  <Link
+                    href="/films"
+                    className="inline-flex items-center justify-center rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-6 py-2.5 text-xs uppercase tracking-[0.14em] text-[var(--text-primary)] transition-all hover:border-[var(--accent-amber)] hover:bg-[var(--accent-amber-dim)] focus-ring"
+                  >
+                    Browse full archive
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
-        </PageContainer>
-      </section>
+          </PageContainer>
+        </section>
+      </Reveal>
     </main>
   )
 }
