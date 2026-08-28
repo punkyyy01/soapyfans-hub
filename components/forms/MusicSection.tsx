@@ -35,7 +35,9 @@ export default async function MusicSection() {
   const releases = await getHomeReleases().catch(() => null)
   const releasesError = releases === null
 
-  const [featuredRelease, ...otherReleases] = releases ?? []
+  const releaseList = releases ?? []
+  const featuredRelease = releaseList.find((r) => r.cover_art_url) ?? releaseList[0]
+  const otherReleases = releaseList.filter((r) => r.id !== featuredRelease?.id)
 
   return (
     <section className="relative mx-auto max-w-7xl px-6 pb-24 sm:px-10 sm:pb-32">
