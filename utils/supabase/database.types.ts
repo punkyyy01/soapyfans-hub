@@ -53,6 +53,35 @@ export type Database = {
           },
         ]
       }
+      content_seen: {
+        Row: {
+          news_seen_at: string | null
+          releases_seen_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          news_seen_at?: string | null
+          releases_seen_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          news_seen_at?: string | null
+          releases_seen_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_seen_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       films: {
         Row: {
           created_at: string

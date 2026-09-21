@@ -20,6 +20,7 @@ import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import EmptyState from '@/components/ui/EmptyState'
 import SafeImage from '@/components/ui/SafeImage'
+import MarkContentSeen from '@/components/social/MarkContentSeen'
 
 const MUSIC_DESCRIPTION =
   "Sophie Thatcher's music archive — debut EP 'Pivot & Scrape', cinematic singles, soundtrack appearances, and tracklists with community notes."
@@ -106,6 +107,7 @@ export default async function MusicPage({ searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-[var(--bg-base)] pt-24 sm:pt-28">
+      <MarkContentSeen kind="releases" />
       {/* ── Structured Data (SEO JSON-LD) ────────────────────── */}
       <script
         type="application/ld+json"

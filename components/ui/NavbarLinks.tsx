@@ -4,13 +4,18 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { NAV_LINKS, isNavLinkActive } from './navLinks'
 
-export default function NavbarLinks() {
+interface Props {
+  unseenHrefs?: string[]
+}
+
+export default function NavbarLinks({ unseenHrefs = [] }: Props) {
   const pathname = usePathname()
 
   return (
     <div className="hidden items-center gap-7 text-xs uppercase tracking-[0.14em] font-medium sm:flex">
       {NAV_LINKS.map((link) => {
         const isActive = isNavLinkActive(link.href, pathname)
+        const hasUnseen = unseenHrefs.includes(link.href)
 
         return (
           <Link
@@ -24,6 +29,12 @@ export default function NavbarLinks() {
             }`}
           >
             <span>{link.label}</span>
+            {hasUnseen && (
+              <span
+                aria-hidden="true"
+                className="absolute -right-2 -top-0.5 h-1.5 w-1.5 rounded-full bg-[var(--accent-amber)]"
+              />
+            )}
             {isActive && (
               <span
                 aria-hidden="true"
