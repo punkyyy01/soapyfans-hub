@@ -5,7 +5,11 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { NAV_LINKS, isNavLinkActive } from './navLinks'
 
-export default function MobileNav() {
+interface Props {
+  unseenHrefs?: string[]
+}
+
+export default function MobileNav({ unseenHrefs = [] }: Props) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
   const panelRef = useRef<HTMLDivElement>(null)
@@ -78,16 +82,20 @@ export default function MobileNav() {
             <nav aria-label="Mobile navigation" className="flex flex-col">
               {NAV_LINKS.map((link) => {
                 const isActive = isNavLinkActive(link.href, pathname)
+                const hasUnseen = unseenHrefs.includes(link.href)
                 return (
                   <Link
                     key={link.href}
                     href={link.href}
                     aria-current={isActive ? 'page' : undefined}
-                    className={`flex items-center py-3.5 text-sm uppercase tracking-[0.14em] font-medium focus-ring rounded-sm ${
+                    className={`flex items-center gap-2 py-3.5 text-sm uppercase tracking-[0.14em] font-medium focus-ring rounded-sm ${
                       isActive ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-secondary)]'
                     }`}
                   >
                     {link.label}
+                    {hasUnseen && (
+                      <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-[var(--accent-amber)]" />
+                    )}
                   </Link>
                 )
               })}

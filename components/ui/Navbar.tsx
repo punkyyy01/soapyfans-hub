@@ -1,4 +1,5 @@
 import { getAuthUserWithProfile } from '@/utils/supabase/server'
+import { getUnseenContentFlags } from '@/utils/content-seen'
 import Image from 'next/image'
 import Link from 'next/link'
 import { logout } from '@/app/(auth)/actions'
@@ -8,7 +9,14 @@ import NavbarLinks from './NavbarLinks'
 import MobileNav from './MobileNav'
 
 export default async function Navbar() {
-  const { user, profile, profileHref } = await getAuthUserWithProfile()
+  const [{ user, profile, profileHref }, { hasNewNews, hasNewMusic }] = await Promise.all([
+    getAuthUserWithProfile(),
+    getUnseenContentFlags(),
+  ])
+  const unseenHrefs: string[] = [
+    ...(hasNewNews ? ['/news'] : []),
+    ...(hasNewMusic ? ['/music'] : []),
+  ]
 
   let avatarUrl: string | null = null
   let avatarLetter = ''
@@ -37,8 +45,8 @@ export default async function Navbar() {
             <span className="italic text-[var(--accent-amber)] font-normal">Hub</span>
           </Link>
 
-          <MobileNav />
-          <NavbarLinks />
+          <MobileNav unseenHrefs={unseenHrefs} />
+          <NavbarLinks unseenHrefs={unseenHrefs} />
         </div>
 
         {/* Right: Search + Auth State */}

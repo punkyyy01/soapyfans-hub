@@ -6,6 +6,7 @@ import { isValidNewsTag } from '@/utils/news'
 import { dedupNewsForDisplay } from '@/utils/news-display'
 import type { NewsCardItem } from '@/components/news/NewsCard'
 import NewsFeed from '@/components/news/NewsFeed'
+import MarkContentSeen from '@/components/social/MarkContentSeen'
 import PageContainer from '@/components/ui/PageContainer'
 import PageHeader from '@/components/ui/PageHeader'
 import Breadcrumbs from '@/components/ui/Breadcrumbs'
@@ -89,6 +90,7 @@ export default async function NewsPage({ searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-[var(--bg-base)] pt-24 sm:pt-28">
+      <MarkContentSeen kind="news" />
       {/* ── Structured Data (SEO JSON-LD) ────────────────────── */}
       <script
         type="application/ld+json"
